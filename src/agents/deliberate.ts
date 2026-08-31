@@ -1,5 +1,5 @@
-import Anthropic from "@anthropic-ai/sdk";
-import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
+import OpenAI from "openai";
+import { zodTextFormat } from "openai/helpers/zod";
 import { z } from "zod";
 import type { BriefingPack } from "@/ingest/briefing";
 import { systemPrompt, type Persona } from "./personas";
@@ -7,7 +7,8 @@ import { NIFTY100, ETF_WHITELIST } from "./universe";
 import type { AgentBook, ProposedDecision } from "./rulebook";
 
 // One deliberation call per agent per day. Structured output via
-// messages.parse so malformed decisions are a parse failure, not a trade.
+// responses.parse so a malformed decision is a parse failure, not a trade.
+// The model provider is deliberately isolated to this one file.
 const DeliberationSchema = z.object({
   marketRead: z
     .string()
@@ -41,10 +42,14 @@ export interface Deliberation {
   noTradeReason?: string;
 }
 
-const MODEL = "claude-opus-5";
+const MODEL = "gpt-5.6-luna";
 
 export function isMockMode(): boolean {
   return process.env.FLOOR_MOCK === "1";
+}
+
+export function hasModelKey(): boolean {
+  return Boolean(process.env.OPENAI_KEY);
 }
 
 function dietFilteredPack(pack: BriefingPack, persona: Persona) {
@@ -70,7 +75,7 @@ export async function deliberate(
     };
   }
 
-  const client = new Anthropic();
+  const client = new OpenAI({ apiKey: process.env.OPENAI_KEY });
   const userContent = JSON.stringify(
     {
       briefing: dietFilteredPack(pack, persona),
@@ -82,23 +87,24 @@ export async function deliberate(
     1,
   );
 
-  const response = await client.messages.parse({
+  const response = await client.responses.parse({
     model: MODEL,
-    max_tokens: 16000,
-    system: systemPrompt(persona),
-    messages: [{ role: "user", content: userContent }],
-    output_config: { format: zodOutputFormat(DeliberationSchema) },
+    input: [
+      { role: "system", content: systemPrompt(persona) },
+      { role: "user", content: userContent },
+    ],
+    text: { format: zodTextFormat(DeliberationSchema, "deliberation") },
   });
 
-  if (response.stop_reason === "refusal" || !response.parsed_output) {
+  if (!response.output_parsed) {
     return {
       marketRead: "",
       proposals: [],
-      noTradeReason: `deliberation produced no valid decision (stop_reason: ${response.stop_reason})`,
+      noTradeReason: `deliberation produced no valid decision (status: ${response.status})`,
     };
   }
 
-  const out = response.parsed_output;
+  const out = response.output_parsed;
   return {
     marketRead: out.marketRead,
     proposals: out.decisions.map((d) => ({

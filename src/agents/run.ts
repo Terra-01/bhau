@@ -1,6 +1,6 @@
 import { loadEnv } from "@/lib/load-env";
 import type { BriefingPack } from "@/ingest/briefing";
-import { deliberate, isMockMode } from "./deliberate";
+import { deliberate, hasModelKey, isMockMode } from "./deliberate";
 import { fillBuy, fillSell, markToMarket } from "./fills";
 import { GENESIS_HASH, chainEntries, type ChainEntryInput } from "./ledger";
 import { BENCHMARK_AGENT_ID, PERSONAS } from "./personas";
@@ -145,10 +145,21 @@ async function main() {
   }
 
   // --- 3. deliberation → tomorrow's decisions
-  if (!process.env.ANTHROPIC_API_KEY && !isMockMode()) {
-    summary.push("[deliberate] ANTHROPIC_API_KEY not set — fills/MTM done, deliberation skipped");
+  // Idempotency: an agent deliberates once per session, no matter how many
+  // times the job runs (local + CI on the same evening must not double-decide).
+  const decidedToday = new Set(
+    decisionEntries
+      .filter((d) => (d.payload as unknown as DecisionPayload).packDate === date)
+      .map((d) => d.agentId),
+  );
+  if (!hasModelKey() && !isMockMode()) {
+    summary.push("[deliberate] OPENAI_KEY not set — fills/MTM done, deliberation skipped");
   } else {
     for (const persona of PERSONAS) {
+      if (decidedToday.has(persona.id)) {
+        summary.push(`[decide:${persona.id}] already decided for ${date} — skipping`);
+        continue;
+      }
       const book = books.get(persona.id)!;
       const recent = decisionEntries
         .filter((d) => d.agentId === persona.id)

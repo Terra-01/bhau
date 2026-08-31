@@ -7,7 +7,7 @@
 
 ## Status
 
-**Phase 1** (agent loop, headless). The daily loop in `src/agents/` runs after ingest: fill yesterday's decisions at today's open → mark to market → deliberate for tomorrow (Claude API, structured outputs, `claude-opus-5`). Everything lands on the append-only hash-chained ledger (`LedgerEntry`) — **there are no update/delete paths for ledger rows anywhere, ever**. No UI yet. Exit criterion: the loop runs unattended for a week.
+**Phase 1** (agent loop, headless). The daily loop in `src/agents/` runs after ingest: fill yesterday's decisions at today's open → mark to market → deliberate for tomorrow (OpenAI Responses API, structured outputs, `gpt-5.6-luna`; the provider is isolated to `src/agents/deliberate.ts`, key in `OPENAI_KEY`). Everything lands on the append-only hash-chained ledger (`LedgerEntry`) — **there are no update/delete paths for ledger rows anywhere, ever**. No UI yet. Exit criterion: the loop runs unattended for a week.
 
 ## Stack
 

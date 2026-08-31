@@ -28,3 +28,13 @@ jobs:
       - run: npm run ingest
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      # The Floor: fill yesterday's decisions at today's open, mark to
+      # market, deliberate for tomorrow. Without ANTHROPIC_API_KEY the
+      # deliberation step skips gracefully (fills/MTM still run).
+      - run: npm run floor
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      - run: npm run floor:verify
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}

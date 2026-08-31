@@ -7,7 +7,7 @@
 
 ## Status
 
-**Phase 0** (pipeline + archive). No UI yet — the scaffold's default page is untouched on purpose. Exit criterion: a week of clean daily briefing packs.
+**Phase 1** (agent loop, headless). The daily loop in `src/agents/` runs after ingest: fill yesterday's decisions at today's open → mark to market → deliberate for tomorrow (Claude API, structured outputs, `claude-opus-5`). Everything lands on the append-only hash-chained ledger (`LedgerEntry`) — **there are no update/delete paths for ledger rows anywhere, ever**. No UI yet. Exit criterion: the loop runs unattended for a week.
 
 ## Stack
 
@@ -21,6 +21,10 @@ npm run typecheck      # tsc --noEmit (run prisma generate first on fresh clones
 npm run lint
 npm run ingest -- --dry-run   # run all fetchers, no DB; writes data/briefing-<date>.json
 npm run ingest         # same, persisting to Postgres (needs DATABASE_URL)
+npm run floor          # daily agent loop: fills → MTM → deliberation (needs ANTHROPIC_API_KEY)
+npm run floor -- --dry-run    # compute everything, persist nothing
+FLOOR_MOCK=1 npm run floor    # pipeline test without model calls (forces dry-run)
+npm run floor:verify   # recompute the full hash chain from genesis
 npx prisma generate    # regenerate client after schema changes
 npx prisma migrate dev # apply schema to the database (needs DATABASE_URL in .env.local)
 ```

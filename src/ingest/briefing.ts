@@ -33,10 +33,12 @@ export function buildBriefingPack(
   // today. Fails safe — if NSE and Yahoo are both down, the pack reads as
   // a non-trading day and agents sit out rather than trade stale data.
   const tradingDay = Object.values(barsBySymbol).some((bars) =>
-    bars.some((b) => b.date === date && (b.source === "nse" || b.source === "yahoo")),
+    bars.some((b) => b.date === date && (b.source === "nse" || b.source === "yahoo" || b.source === "bhavcopy")),
   );
-  const markets = Object.keys(barsBySymbol).flatMap((symbol) => {
-    const name = SYMBOL_NAMES[symbol] ?? symbol;
+  // Only the named macro/index series — per-stock bhavcopy bars (thousands)
+  // stay out of the pack; agents reach stocks through news + the universe.
+  const markets = Object.keys(SYMBOL_NAMES).flatMap((symbol) => {
+    const name = SYMBOL_NAMES[symbol];
     const bars = barsBySymbol[symbol];
     const last = bars?.at(-1);
     if (!last) return [];

@@ -10,12 +10,16 @@
     "typecheck": "tsc --noEmit",
     "ingest": "tsx src/ingest/run.ts",
     "postinstall": "prisma generate",
-    "test": "vitest run"
+    "test": "vitest run",
+    "floor": "tsx src/agents/run.ts",
+    "floor:verify": "tsx src/agents/verify.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.122.0",
     "@prisma/adapter-pg": "^7.10.0",
     "@prisma/client": "^7.10.0",
     "fast-xml-parser": "^5.11.1",
+    "fflate": "^0.8.3",
     "next": "16.3.3",
     "prisma": "^7.10.0",
     "react": "19.2.8",

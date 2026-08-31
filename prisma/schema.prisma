@@ -69,3 +69,39 @@ model BriefingPack {
   pack      Json
   createdAt DateTime @default(now())
 }
+
+// The Floor's append-only, hash-chained ledger (CONCEPT.md §3). Every
+// deliberation, fill, and rejection is one immutable entry whose hash
+// covers the previous entry's hash. There are NO update or delete paths —
+// by design, forever. Tamper-evidence is verifiable by anyone.
+model LedgerEntry {
+  seq      Int      @id @default(autoincrement())
+  ts       DateTime
+  kind     String // DECISION | FILL | NOTE
+  agentId  String
+  payload  Json
+  prevHash String
+  hash     String   @unique
+  @@index([agentId, seq])
+}
+
+// Convenience snapshot of each agent's current book (always derivable by
+// replaying the ledger; stored to keep the daily job simple).
+model AgentState {
+  id        String   @id // macro | momentum | value | contrarian | benchmark
+  cash      Float
+  positions Json // { [symbol]: { qty, avgCost, adds } }
+  updatedAt DateTime @updatedAt
+}
+
+model EquitySnapshot {
+  date           DateTime @db.Date
+  agentId        String
+  equity         Float
+  cash           Float
+  positionsValue Float
+  totalReturnPct Float
+  createdAt      DateTime @default(now())
+  @@id([date, agentId])
+  @@index([agentId, date])
+}

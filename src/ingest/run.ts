@@ -3,6 +3,7 @@ import { loadEnv } from "@/lib/load-env";
 import { computeRegime } from "@/lib/regime";
 import { buildBriefingPack } from "./briefing";
 import { amfiFetcher } from "./sources/amfi";
+import { bhavcopyFetcher } from "./sources/bhavcopy";
 import { googleNewsFetcher } from "./sources/google-news";
 import { macroRatesFetcher } from "./sources/macro-rates";
 import { nseIndicesFetcher } from "./sources/nse-indices";
@@ -14,6 +15,7 @@ loadEnv();
 const FETCHERS: Fetcher[] = [
   googleNewsFetcher,
   nseIndicesFetcher,
+  bhavcopyFetcher,
   macroRatesFetcher,
   amfiFetcher,
   yahooMarketsFetcher,
@@ -54,7 +56,28 @@ async function persist(
     skipDuplicates: true,
   });
 
-  for (const bar of bars) {
+  // Bhavcopy is ~2,900 final (immutable) rows — bulk insert with dedup.
+  // Everything else is small and may revise intra-series — upsert.
+  const [bhavBars, liveBars] = [
+    bars.filter((b) => b.source === "bhavcopy"),
+    bars.filter((b) => b.source !== "bhavcopy"),
+  ];
+  if (bhavBars.length > 0) {
+    await prisma.dailyBar.createMany({
+      data: bhavBars.map((b) => ({
+        date: new Date(b.date),
+        symbol: b.symbol,
+        open: b.open ?? null,
+        high: b.high ?? null,
+        low: b.low ?? null,
+        close: b.close,
+        volume: b.volume ?? null,
+        source: b.source,
+      })),
+      skipDuplicates: true,
+    });
+  }
+  for (const bar of liveBars) {
     const data = {
       open: bar.open ?? null,
       high: bar.high ?? null,

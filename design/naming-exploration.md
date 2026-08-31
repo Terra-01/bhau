@@ -116,3 +116,20 @@ The Ticker, The Ledger, Masthead, Above the Fold, The Bulletin, Front Page, Byli
 10. **Pahredar** — watching-everything fit; generic without a modifier.
 
 **Sub-agent's #1: Bhav** — the one word that is simultaneously (a) genuinely used by real traders across Gujarati, Marwari, and Marathi trading communities, (b) a true one-syllable wordmark in both scripts, (c) confirmed clear of existing stock-market fintech brands, and (d) naturally extensible — Bhavcopy for the data product, "aaj ka bhav" for the daily edition, "AI ka bhav" for the agent scoreboard. The other strong candidates are good lenses on the product; Bhav is the word the audience already uses to ask the question the product answers.
+
+---
+
+## Round 2 — Persona names (user direction: names with a face)
+
+User gravitated to **Bhau** (Marathi big brother / Mumbai street boss) and **Circuit** (the Munna Bhai sidekick) — character names, not concept words. Web-checked shortlist:
+
+| Name | Verdict | Evidence / trap |
+|---|---|---|
+| **Bhau** | Clear of app/trademark conflicts; persona caution | No fintech app uses it. Two public figures brand as "Bhau": Bhau Torsekar (veteran Marathi political commentator — different domain, low confusion) and Hindustani Bhau (controversial meme-y YouTuber — avoid his visual/tonal register). Word itself clean in all major languages. Built-in pun with bhav: "Bhav? Poocho Bhau se." |
+| **Panga** | Cleanest legally | Only a B2B dev shop (Panga Apps) uses it. The 2020 film reads as positive underdog. Pan-India understood. "AI takes panga with the Nifty" is a free tagline. An attitude more than a face. |
+| **Ustaad** | Crowded-adjacent | "Ustad" accounting/tax app exists (finance-adjacent). Honorific reserved for classical-music maestros — borrows reverence, can read presumptuous. |
+| **Seth** | Usable but generic | Common surname (incl. the sitting Economic Affairs Secretary); generic honorific with mild "seth-giri" pejorative + class echo. **Better as the Value agent's persona than the master brand.** |
+| **Shana** | Cultural landmine | No conflicts, but in everyday Mumbai/Marathi speech "shaana" defaults to *sarcastic* — smart-aleck, show-off — hardest with exactly the Marathi audience we want. |
+| **Upper Circuit** | **Dead** | A live Pune app (2023, both stores) literally named Upper Circuit — and conceptually colliding: fantasy/paper trading with real-money rewards, i.e. the gambling-adjacent product we least want to be confused with. |
+
+**Round 2 ranking:** 1. Bhau · 2. Panga · 3. Ustaad · 4. Seth (as agent persona) · 5. Shana · 6. Upper Circuit (drop).

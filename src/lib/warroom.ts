@@ -19,10 +19,19 @@ export interface WarRoomData {
   packDate: string;
   tradingDay: boolean;
   regime: BriefingPack["regime"];
+  synthesis: BriefingPack["synthesis"] | null;
+  /** Regime score history (asc) + delta vs previous session. */
+  regimeTrend: { history: Array<{ date: string; score: number }>; delta?: number };
   strip: StripItem[];
   news: BriefingPack["news"];
   flows: Array<{ date: string; category: string; buy: number; sell: number; net: number }>;
+  /** Consecutive sessions of FII net selling (+n) or buying (−n as buyStreak). */
+  fiiStreak: { direction: "selling" | "buying"; days: number } | null;
   sectors: Array<{ sector: string; avgChangePct: number; count: number }>;
+  movers: { gainers: Array<{ symbol: string; changePct: number }>; losers: Array<{ symbol: string; changePct: number }> };
+  breadth: { latest?: number; history: Array<{ date: string; value: number }> };
+  candles: Array<{ date: Date; open: number; high: number; low: number; close: number }>;
+  race: Array<Record<string, unknown>>; // {date: Date, [agentId]: equity}
   floor: {
     date: string;
     scoreboard: Array<{
@@ -188,6 +197,91 @@ export async function getWarRoomData(): Promise<WarRoomData | null> {
     };
   });
 
+  // --- movers: best/worst NIFTY 100 names across the two latest sessions
+  const movers: WarRoomData["movers"] = { gainers: [], losers: [] };
+  if (bhavDates.length === 2) {
+    const [latest, previous] = bhavDates.map((d) => d.date);
+    const rows = await prisma.dailyBar.findMany({
+      where: { source: "bhavcopy", date: { in: [latest, previous] }, symbol: { in: Object.keys(SECTOR_OF) } },
+      select: { symbol: true, date: true, close: true },
+    });
+    const closes = new Map<string, { l?: number; p?: number }>();
+    for (const row of rows) {
+      const entry = closes.get(row.symbol) ?? {};
+      if (row.date.getTime() === latest.getTime()) entry.l = row.close;
+      else entry.p = row.close;
+      closes.set(row.symbol, entry);
+    }
+    const changes = [...closes.entries()]
+      .flatMap(([symbol, { l, p }]) => (l !== undefined && p ? [{ symbol, changePct: ((l - p) / p) * 100 }] : []))
+      .sort((a, b) => b.changePct - a.changePct);
+    movers.gainers = changes.slice(0, 5);
+    movers.losers = changes.slice(-5).reverse();
+  }
+
+  // --- breadth history (% advancers)
+  const breadthBars = await prisma.dailyBar.findMany({
+    where: { symbol: "^BREADTH" },
+    orderBy: { date: "asc" },
+    take: 20,
+  });
+  const breadth: WarRoomData["breadth"] = {
+    latest: breadthBars.at(-1)?.close,
+    history: breadthBars.map((b) => ({ date: b.date.toISOString().slice(0, 10), value: b.close })),
+  };
+
+  // --- Nifty candles (sessions with real OHLC)
+  const candleRows = await prisma.dailyBar.findMany({
+    where: { symbol: "^NSEI", open: { not: null }, high: { not: null }, low: { not: null } },
+    orderBy: { date: "asc" },
+    take: 30,
+  });
+  const candleBy = new Map<string, (typeof candleRows)[number]>();
+  for (const row of candleRows) candleBy.set(row.date.toISOString().slice(0, 10), row); // last source wins per date
+  const candles = [...candleBy.values()].map((r) => ({
+    date: r.date,
+    open: r.open!,
+    high: r.high!,
+    low: r.low!,
+    close: r.close,
+  }));
+
+  // --- equity race series (grows daily; benchmark included)
+  const allSnaps = await prisma.equitySnapshot.findMany({ orderBy: { date: "asc" } });
+  const raceByDate = new Map<string, Record<string, unknown>>();
+  for (const snap of allSnaps) {
+    const key = snap.date.toISOString().slice(0, 10);
+    const row = raceByDate.get(key) ?? { date: snap.date };
+    row[snap.agentId] = snap.equity;
+    raceByDate.set(key, row);
+  }
+  const race = [...raceByDate.values()];
+
+  // --- regime trend
+  const regimeRows = await prisma.regimeSnapshot.findMany({ orderBy: { date: "asc" }, take: 30 });
+  const regimeTrend: WarRoomData["regimeTrend"] = {
+    history: regimeRows.map((r) => ({ date: r.date.toISOString().slice(0, 10), score: r.score })),
+    delta:
+      regimeRows.length >= 2
+        ? Number((regimeRows.at(-1)!.score - regimeRows.at(-2)!.score).toFixed(1))
+        : undefined,
+  };
+
+  // --- FII streak (consecutive sessions same direction)
+  const fiiRows = flowRows
+    .filter((f) => f.category.startsWith("FII"))
+    .sort((a, b) => b.date.getTime() - a.date.getTime());
+  let fiiStreak: WarRoomData["fiiStreak"] = null;
+  if (fiiRows.length > 0) {
+    const direction = fiiRows[0].net < 0 ? "selling" : "buying";
+    let days = 0;
+    for (const row of fiiRows) {
+      if ((row.net < 0) === (direction === "selling")) days += 1;
+      else break;
+    }
+    fiiStreak = { direction, days };
+  }
+
   const healthRows = await prisma.sourceHealth.findMany();
   const health = healthRows.map((h) => ({
     id: h.id,
@@ -200,10 +294,17 @@ export async function getWarRoomData(): Promise<WarRoomData | null> {
     packDate: pack.date,
     tradingDay: pack.tradingDay,
     regime: pack.regime,
+    synthesis: pack.synthesis ?? null,
+    regimeTrend,
     strip,
     news: pack.news,
     flows,
+    fiiStreak,
     sectors,
+    movers,
+    breadth,
+    candles,
+    race,
     floor: {
       date: latestSnapDate?.date.toISOString().slice(0, 10) ?? pack.date,
       scoreboard,

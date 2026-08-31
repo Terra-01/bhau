@@ -7,6 +7,8 @@ export interface BriefingPack {
   generatedAt: string;
   /** False on market holidays — agents must not deliberate on a stale pack. */
   tradingDay: boolean;
+  /** Daily desk synthesis — attached after assembly by src/ingest/synthesize.ts. */
+  synthesis?: { headline: string; bullets: Array<{ text: string; tone: "risk" | "constructive" | "neutral" }> };
   regime: RegimeResult | null;
   markets: Array<{
     symbol: string;
@@ -29,11 +31,17 @@ export function buildBriefingPack(
   barsBySymbol: Record<string, IngestBar[]>,
   regime: RegimeResult | null,
 ): BriefingPack {
-  // Trading-day heuristic: an Indian market source produced a bar dated
-  // today. Fails safe — if NSE and Yahoo are both down, the pack reads as
-  // a non-trading day and agents sit out rather than trade stale data.
+  // Trading-day heuristic: an INDIAN instrument has a bar dated today.
+  // Global symbols are excluded — a late-US Brent close rolls into
+  // tomorrow's IST date and must not fake an Indian session. Fails safe —
+  // if Indian sources are down, agents sit out rather than trade stale data.
+  const INDIA_SYMBOLS = new Set(["^NSEI", "^NSEBANK", "^BSESN", "^INDIAVIX", "^BREADTH"]);
   const tradingDay = Object.values(barsBySymbol).some((bars) =>
-    bars.some((b) => b.date === date && (b.source === "nse" || b.source === "yahoo" || b.source === "bhavcopy")),
+    bars.some(
+      (b) =>
+        b.date === date &&
+        (b.source === "nse" || b.source === "bhavcopy" || (b.source === "yahoo" && INDIA_SYMBOLS.has(b.symbol))),
+    ),
   );
   // Only the named macro/index series — per-stock bhavcopy bars (thousands)
   // stay out of the pack; agents reach stocks through news + the universe.

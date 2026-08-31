@@ -54,4 +54,12 @@ describe("buildBriefingPack", () => {
     }, null);
     expect(pack.tradingDay).toBe(false);
   });
+
+  it("ignores global yahoo bars that roll into today's IST date", () => {
+    // Brent's late-US close lands on tomorrow's IST date — not an Indian session.
+    const pack = buildBriefingPack(DATE, [], { "BZ=F": [mkBar("BZ=F", DATE, 88, "yahoo")] }, null);
+    expect(pack.tradingDay).toBe(false);
+    const packIndian = buildBriefingPack(DATE, [], { "^NSEI": [mkBar("^NSEI", DATE, 24000, "yahoo")] }, null);
+    expect(packIndian.tradingDay).toBe(true);
+  });
 });

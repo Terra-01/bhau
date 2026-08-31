@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import { Geist_Mono, Inter } from "next/font/google";
 import "./globals.css";
+import { cn } from "@/lib/utils";
 
-// DESIGN.md typography: Inter is the workhorse; Geist Mono sets every
-// market numeral. Satoshi (display) joins when we self-host it — Inter 500
-// with tight tracking is the documented substitute until then.
+// DESIGN.md typography: Inter is the workhorse sans (mapped to --font-sans
+// so shadcn/bklit components inherit it); Geist Mono sets every market
+// numeral. Satoshi (display) joins when we self-host it.
 const inter = Inter({
-  variable: "--font-inter",
+  variable: "--font-sans",
   subsets: ["latin"],
 });
 
@@ -23,8 +24,10 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${inter.variable} ${geistMono.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col font-sans">{children}</body>
+    <html lang="en" className={cn("h-full antialiased font-sans", inter.variable, geistMono.variable)}>
+      {/* h-full (definite) so the war-room shell's flex sizing resolves; page
+          scrolling still works below xl via html overflow. */}
+      <body className="h-full flex flex-col font-sans">{children}</body>
     </html>
   );
 }

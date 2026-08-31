@@ -28,6 +28,7 @@ jobs:
       - run: npm run ingest
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          OPENAI_KEY: ${{ secrets.OPENAI_KEY }} # daily synthesis; skips gracefully without it
       # The Floor: fill yesterday's decisions at today's open, mark to
       # market, deliberate for tomorrow. Without OPENAI_KEY the
       # deliberation step skips gracefully (fills/MTM still run).

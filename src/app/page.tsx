@@ -1,12 +1,16 @@
-import type { ReactNode } from "react";
-import { FloorPanel } from "@/components/floor-panel";
-import { FlowsPanel } from "@/components/flows-panel";
-import { HeatmapPanel } from "@/components/heatmap-panel";
-import { MarketStrip } from "@/components/market-strip";
-import { NewsPanel } from "@/components/news-panel";
-import { RegimePanel } from "@/components/regime-panel";
-import { TvPanel } from "@/components/tv-panel";
-import { WAR_ROOM_PANELS } from "@/config/panels";
+import type { CSSProperties, ReactNode } from "react";
+import { BreadthTile } from "@/components/tiles/breadth-tile";
+import { BriefTile } from "@/components/tiles/brief-tile";
+import { CandlesTile } from "@/components/tiles/candles-tile";
+import { FloorTile } from "@/components/tiles/floor-tile";
+import { FlowsTile } from "@/components/tiles/flows-tile";
+import { MoversTile } from "@/components/tiles/movers-tile";
+import { NewsTile } from "@/components/tiles/news-tile";
+import { RegimeTile } from "@/components/tiles/regime-tile";
+import { SectorsTile } from "@/components/tiles/sectors-tile";
+import { Ticker } from "@/components/tiles/ticker";
+import { TvTile } from "@/components/tiles/tv-tile";
+import { WAR_ROOM_TILES } from "@/config/panels";
 import { getWarRoomData, type WarRoomData } from "@/lib/warroom";
 
 export const revalidate = 300; // data changes once per trading day
@@ -19,34 +23,37 @@ const REGIME_COLOR: Record<string, string> = {
   Stressed: "var(--color-regime-stressed)",
 };
 
-function renderPanel(id: string, data: WarRoomData): ReactNode {
+function renderTile(id: string, data: WarRoomData): ReactNode {
   switch (id) {
     case "floor":
-      return <FloorPanel floor={data.floor} />;
-    case "regime":
-      return <RegimePanel regime={data.regime} />;
-    case "flows":
-      return <FlowsPanel flows={data.flows} />;
+      return <FloorTile floor={data.floor} race={data.race} />;
+    case "theses":
+      return <ThesesTileLazy theses={data.floor.theses} />;
+    case "brief":
+      return <BriefTile synthesis={data.synthesis} />;
+    case "news":
+      return <NewsTile news={data.news} />;
+    case "candles":
+      return <CandlesTile candles={data.candles} />;
     case "sectors":
-      return <HeatmapPanel sectors={data.sectors} />;
+      return <SectorsTile sectors={data.sectors} />;
+    case "regime":
+      return <RegimeTile regime={data.regime} trend={data.regimeTrend} />;
+    case "flows":
+      return <FlowsTile flows={data.flows} streak={data.fiiStreak} />;
+    case "movers":
+      return <MoversTile movers={data.movers} />;
+    case "breadth":
+      return <BreadthTile breadth={data.breadth} />;
     case "tv":
-      return <TvPanel />;
-    case "news-markets":
-      return <NewsPanel title="Markets" items={data.news.markets ?? []} />;
-    case "news-policy":
-      return (
-        <NewsPanel
-          title="Policy & macro"
-          meta="RBI · SEBI · MOSPI"
-          items={[...(data.news.policy ?? []), ...(data.news.economy ?? [])].slice(0, 10)}
-        />
-      );
-    case "news-corporate":
-      return <NewsPanel title="Corporate" items={data.news.corporate ?? []} />;
+      return <TvTile />;
     default:
       return null;
   }
 }
+
+// Client tile imported via wrapper to keep this file a server component list.
+import { ThesesTile as ThesesTileLazy } from "@/components/tiles/theses-tile";
 
 export default async function WarRoom() {
   const data = await getWarRoomData();
@@ -62,44 +69,59 @@ export default async function WarRoom() {
   }
 
   const unhealthy = data.health.filter((h) => !h.healthy);
+  const tiles = WAR_ROOM_TILES.filter((t) => t.enabled).sort((a, b) => a.order - b.order);
 
   return (
-    <div className="mx-auto flex w-full max-w-[1280px] flex-1 flex-col px-4 pb-10 sm:px-6">
-      <header className="flex flex-wrap items-baseline gap-x-4 gap-y-1 border-b border-charcoal py-4">
-        <h1 className="text-[21px] font-medium tracking-tight text-ink">Bhau</h1>
-        <span className="text-[12.5px] text-fog">the Indian market war room</span>
-        <span className="ml-auto flex flex-wrap items-center gap-3 font-mono text-[11px] text-fog">
+    <div className="war-room-shell flex w-full flex-1 flex-col px-3 pb-2">
+      <header className="flex shrink-0 flex-wrap items-baseline gap-x-3 gap-y-0.5 border-b border-charcoal py-2">
+        <h1 className="text-[17px] font-semibold tracking-tight text-ink">Bhau</h1>
+        <span className="text-[11px] text-fog">the Indian market war room</span>
+        <span className="ml-auto flex flex-wrap items-center gap-2.5 font-mono text-[10px] text-fog">
           <span>
             EDITION {data.packDate} · {data.tradingDay ? "TRADING DAY" : "AWAITING SESSION"}
           </span>
           {data.regime && (
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-ash px-2.5 py-0.5">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-ash px-2 py-px">
               <span className="h-1.5 w-1.5 rounded-full" style={{ background: REGIME_COLOR[data.regime.band] }} />
-              REGIME {data.regime.score.toFixed(1)} · {data.regime.band.toUpperCase()}
+              REGIME {data.regime.score.toFixed(1)}
+              {data.regimeTrend.delta !== undefined && (
+                <span className="text-silver">Δ{data.regimeTrend.delta > 0 ? "+" : ""}{data.regimeTrend.delta}</span>
+              )}
+              · {data.regime.band.toUpperCase()}
             </span>
           )}
+          <span className={unhealthy.length > 0 ? "text-warn" : "text-silver"}>
+            {unhealthy.length > 0 ? `${unhealthy.length} SRC DEGRADED` : "SOURCES OK"}
+          </span>
         </span>
       </header>
 
-      <main className="flex flex-col gap-2 pt-3">
-        <MarketStrip items={data.strip} />
-        <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-3">
-          {WAR_ROOM_PANELS.filter((p) => p.enabled)
-            .sort((a, b) => a.order - b.order)
-            .map((panel) => (
-              <div key={panel.id} className={panel.span === 2 ? "md:col-span-2" : panel.span === 3 ? "md:col-span-2 xl:col-span-3" : ""}>
-                {renderPanel(panel.id, data)}
-              </div>
-            ))}
-        </div>
+      <div className="shrink-0 pt-1.5">
+        <Ticker items={data.strip} />
+      </div>
+
+      <main className="mt-1.5 grid min-h-0 flex-1 grid-cols-1 gap-1.5 md:grid-cols-2 xl:grid-cols-12 xl:grid-rows-4">
+        {tiles.map((tile) => {
+          const [colStart, colSpan, rowStart, rowSpan] = tile.grid;
+          const style: CSSProperties = {
+            ["--tile-col" as string]: `${colStart} / span ${colSpan}`,
+            ["--tile-row" as string]: `${rowStart} / span ${rowSpan}`,
+          };
+          return (
+            <div
+              key={tile.id}
+              style={style}
+              className={`min-h-0 ${tile.flowHeight} xl:[grid-column:var(--tile-col)] xl:[grid-row:var(--tile-row)]`}
+            >
+              {renderTile(tile.id, data)}
+            </div>
+          );
+        })}
       </main>
 
-      <footer className="mt-8 flex flex-wrap items-center justify-between gap-2 border-t border-ash pt-3 font-mono text-[10.5px] tracking-wide text-fog">
+      <footer className="flex shrink-0 flex-wrap items-center justify-between gap-2 pt-1.5 font-mono text-[9.5px] tracking-wide text-silver">
         <span>BHAU · PAPER CAPITAL ONLY · NOT INVESTMENT ADVICE</span>
-        <span>
-          DATA DELAYED / EOD
-          {unhealthy.length > 0 ? ` · ${unhealthy.length} SOURCE${unhealthy.length > 1 ? "S" : ""} DEGRADED` : " · ALL SOURCES HEALTHY"}
-        </span>
+        <span>DATA DELAYED / EOD · EVERY DECISION ON A PUBLIC HASH-CHAINED LEDGER</span>
       </footer>
     </div>
   );

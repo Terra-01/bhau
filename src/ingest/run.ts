@@ -155,6 +155,18 @@ async function main() {
 
   const regime = computeRegime(barsBySymbol);
   const pack = buildBriefingPack(todayIST(), events, barsBySymbol, regime);
+  try {
+    const { synthesize } = await import("./synthesize");
+    const synthesis = await synthesize(pack);
+    if (synthesis) {
+      pack.synthesis = synthesis;
+      console.log(`[synthesis] ${synthesis.headline}`);
+    } else {
+      console.log("[synthesis] skipped — OPENAI_KEY not set");
+    }
+  } catch (err) {
+    console.warn(`[synthesis] failed — ${err instanceof Error ? err.message : String(err)}`);
+  }
 
   for (const [id, run] of Object.entries(health)) {
     console.log(

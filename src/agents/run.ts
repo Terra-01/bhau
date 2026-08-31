@@ -111,7 +111,10 @@ async function main() {
     const price = openOf(p.symbol);
     let result;
     if (!price) {
-      result = { status: "REJECTED" as const, reason: `no opening price for ${p.symbol} on ${date}`, book };
+      // Missing data is not a rejection — the decision stays pending and
+      // fills on the next session that actually has an opening print.
+      summary.push(`[fill:${decision.agentId}] ${p.action} ${p.symbol} — no open for ${date}, stays pending`);
+      continue;
     } else if (p.action === "BUY") {
       const { equity } = markToMarket(book, openOf);
       result = fillBuy(book, p.symbol, p.allocationPct ?? 0, price, equity);

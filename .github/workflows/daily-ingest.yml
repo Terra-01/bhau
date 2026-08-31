@@ -1,0 +1,30 @@
+# Phase 0 stopgap: daily EOD ingestion on GitHub's machines so nothing
+# depends on a laptop being awake. Retired when Inngest-on-Vercel takes
+# over the daily loop (CONCEPT.md §6).
+#
+# Note: GitHub cron fires with jitter (minutes to ~an hour at busy times) —
+# fine for EOD data. NSE may block datacenter IPs; source isolation means
+# that degrades one source, and SourceHealth records it.
+name: daily-ingest
+
+on:
+  schedule:
+    - cron: "30 11 * * 1-5" # 17:00 IST, Mon–Fri (after the 15:30 close)
+  workflow_dispatch: {}
+
+concurrency: daily-ingest
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run ingest
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}

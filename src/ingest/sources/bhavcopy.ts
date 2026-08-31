@@ -61,16 +61,22 @@ export const bhavcopyFetcher: Fetcher = {
   staleAfterMin: 30 * 60, // tolerates long weekends
 
   async fetch(): Promise<SourceResult> {
-    for (let daysAgo = 0; daysAgo <= MAX_LOOKBACK_DAYS; daysAgo++) {
+    // The two most recent sessions: day-over-day change (sector heatmap)
+    // works from the first run instead of waiting for history to accumulate.
+    const bars: SourceResult["bars"] = [];
+    let filesFound = 0;
+    for (let daysAgo = 0; daysAgo <= MAX_LOOKBACK_DAYS + 4 && filesFound < 2; daysAgo++) {
       const zip = await fetchZip(daysAgo);
       if (!zip) continue;
       const files = unzipSync(zip);
       const csvName = Object.keys(files).find((n) => n.endsWith(".csv"));
       if (!csvName) throw new Error("zip contained no csv");
-      const bars = parseBhavcopy(strFromU8(files[csvName]));
-      if (bars.length === 0) throw new Error("bhavcopy parsed to zero bars");
-      return { events: [], bars };
+      const parsed = parseBhavcopy(strFromU8(files[csvName]));
+      if (parsed.length === 0) throw new Error("bhavcopy parsed to zero bars");
+      bars.push(...parsed);
+      filesFound += 1;
     }
-    throw new Error(`no bhavcopy found in the last ${MAX_LOOKBACK_DAYS + 1} days`);
+    if (filesFound === 0) throw new Error(`no bhavcopy found in the last ${MAX_LOOKBACK_DAYS + 5} days`);
+    return { events: [], bars };
   },
 };

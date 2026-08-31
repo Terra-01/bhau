@@ -58,11 +58,17 @@
   --radius-card: 12px;
   --radius-card-lg: 16px;
 
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-inter);
   --font-mono: var(--font-geist-mono);
+
+  /* Motion vocabulary (emil): strong ease-out, UI under 300ms */
+  --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 body {
-  background: var(--color-canvas);
+  /* Blueprint-paper dot grid (DESIGN.md) — ≤5% opacity */
+  background-color: var(--color-canvas);
+  background-image: radial-gradient(rgba(10, 10, 10, 0.045) 1px, transparent 1px);
+  background-size: 24px 24px;
   color: var(--color-charcoal);
 }

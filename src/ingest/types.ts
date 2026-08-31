@@ -22,9 +22,18 @@ export interface IngestBar {
   source: string;
 }
 
+export interface IngestFlow {
+  date: string; // YYYY-MM-DD
+  category: string; // FII/FPI | DII
+  buy: number;
+  sell: number;
+  net: number;
+}
+
 export interface SourceResult {
   events: IngestEvent[];
   bars: IngestBar[];
+  flows?: IngestFlow[];
 }
 
 /**

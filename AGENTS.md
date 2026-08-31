@@ -7,7 +7,9 @@
 
 ## Status
 
-**Phase 1** (agent loop, headless). The daily loop in `src/agents/` runs after ingest: fill yesterday's decisions at today's open → mark to market → deliberate for tomorrow (OpenAI Responses API, structured outputs, `gpt-5.6-luna`; the provider is isolated to `src/agents/deliberate.ts`, key in `OPENAI_KEY`). Everything lands on the append-only hash-chained ledger (`LedgerEntry`) — **there are no update/delete paths for ledger rows anywhere, ever**. No UI yet. Exit criterion: the loop runs unattended for a week.
+**Phase 2 in progress** (war room UI). `/` renders the war room: panel registry in `src/config/panels.ts`, data assembly in `src/lib/warroom.ts` ("latest available" semantics — must render at any hour), panels in `src/components/`. Design language per DESIGN.md — light broadsheet, tokens in `globals.css`, Geist Mono for every numeral. Still to come (Phase 2b): India map + monsoon layer, `/m` mobile feed, panel customization UI, methodology page, OG cards.
+
+**Phase 1** (agent loop, headless — running nightly). The daily loop in `src/agents/` runs after ingest: fill yesterday's decisions at today's open → mark to market → deliberate for tomorrow (OpenAI Responses API, structured outputs, `gpt-5.6-luna`; the provider is isolated to `src/agents/deliberate.ts`, key in `OPENAI_KEY`). Everything lands on the append-only hash-chained ledger (`LedgerEntry`) — **there are no update/delete paths for ledger rows anywhere, ever**. No UI yet. Exit criterion: the loop runs unattended for a week.
 
 ## Stack
 

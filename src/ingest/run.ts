@@ -4,11 +4,12 @@ import { computeRegime } from "@/lib/regime";
 import { buildBriefingPack } from "./briefing";
 import { amfiFetcher } from "./sources/amfi";
 import { bhavcopyFetcher } from "./sources/bhavcopy";
+import { fiiDiiFetcher } from "./sources/fii-dii";
 import { googleNewsFetcher } from "./sources/google-news";
 import { macroRatesFetcher } from "./sources/macro-rates";
 import { nseIndicesFetcher } from "./sources/nse-indices";
 import { yahooMarketsFetcher } from "./sources/yahoo";
-import type { Fetcher, IngestBar, IngestEvent } from "./types";
+import type { Fetcher, IngestBar, IngestEvent, IngestFlow } from "./types";
 
 loadEnv();
 
@@ -16,6 +17,7 @@ const FETCHERS: Fetcher[] = [
   googleNewsFetcher,
   nseIndicesFetcher,
   bhavcopyFetcher,
+  fiiDiiFetcher,
   macroRatesFetcher,
   amfiFetcher,
   yahooMarketsFetcher,
@@ -132,6 +134,7 @@ async function main() {
   const dryRun = process.argv.includes("--dry-run") || !process.env.DATABASE_URL;
   const events: IngestEvent[] = [];
   const bars: IngestBar[] = [];
+  const flows: IngestFlow[] = [];
   const health: Record<string, SourceRun> = {};
 
   for (const fetcher of FETCHERS) {
@@ -139,6 +142,7 @@ async function main() {
       const result = await fetcher.fetch();
       events.push(...result.events);
       bars.push(...result.bars);
+      if (result.flows) flows.push(...result.flows);
       health[fetcher.id] = { ok: true, events: result.events.length, bars: result.bars.length };
     } catch (err) {
       health[fetcher.id] = { ok: false, error: err instanceof Error ? err.message : String(err), events: 0, bars: 0 };
@@ -169,6 +173,8 @@ async function main() {
   }
   console.log(`[pack] ${pack.date} · tradingDay=${pack.tradingDay}`);
 
+  if (flows.length > 0) console.log(`[flows] ${flows.map((f) => `${f.category} net ₹${f.net}Cr`).join(" · ")}`);
+
   if (dryRun) {
     mkdirSync("data", { recursive: true });
     const out = `data/briefing-${pack.date}.json`;
@@ -176,6 +182,17 @@ async function main() {
     console.log(`[dry-run] no database write — briefing pack saved to ${out}`);
   } else {
     await persist(events, bars, health, pack.date, pack, regime);
+    if (flows.length > 0) {
+      const { prisma } = await import("@/lib/db");
+      for (const flow of flows) {
+        await prisma.flowDaily.upsert({
+          where: { date_category: { date: new Date(flow.date), category: flow.category } },
+          update: { buy: flow.buy, sell: flow.sell, net: flow.net },
+          create: { date: new Date(flow.date), category: flow.category, buy: flow.buy, sell: flow.sell, net: flow.net },
+        });
+      }
+      console.log(`[db] ${flows.length} flow rows upserted`);
+    }
   }
 
   const failures = Object.values(health).filter((run) => !run.ok).length;

@@ -70,6 +70,17 @@ model BriefingPack {
   createdAt DateTime @default(now())
 }
 
+// FII/DII daily flows (₹ crore) — the #1 retail ritual (CONCEPT.md §4).
+model FlowDaily {
+  date      DateTime @db.Date
+  category  String // FII/FPI | DII
+  buy       Float
+  sell      Float
+  net       Float
+  createdAt DateTime @default(now())
+  @@id([date, category])
+}
+
 // The Floor's append-only, hash-chained ledger (CONCEPT.md §3). Every
 // deliberation, fill, and rejection is one immutable entry whose hash
 // covers the previous entry's hash. There are NO update or delete paths —

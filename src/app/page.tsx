@@ -1,15 +1,18 @@
 import type { CSSProperties, ReactNode } from "react";
-import { BreadthTile } from "@/components/tiles/breadth-tile";
+import { WatchlistMarquee } from "@/components/watchlist-marquee";
 import { BriefTile } from "@/components/tiles/brief-tile";
 import { CandlesTile } from "@/components/tiles/candles-tile";
+import { CommoditiesTile } from "@/components/tiles/commodities-tile";
 import { FloorTile } from "@/components/tiles/floor-tile";
 import { FlowsTile } from "@/components/tiles/flows-tile";
 import { MoversTile } from "@/components/tiles/movers-tile";
 import { NewsTile } from "@/components/tiles/news-tile";
 import { RegimeTile } from "@/components/tiles/regime-tile";
 import { SectorsTile } from "@/components/tiles/sectors-tile";
+import { SongTile } from "@/components/tiles/song-tile";
 import { Ticker } from "@/components/tiles/ticker";
 import { TvTile } from "@/components/tiles/tv-tile";
+import { WeatherTile } from "@/components/tiles/weather-tile";
 import { WAR_ROOM_TILES } from "@/config/panels";
 import { getWarRoomData, type WarRoomData } from "@/lib/warroom";
 
@@ -27,8 +30,6 @@ function renderTile(id: string, data: WarRoomData): ReactNode {
   switch (id) {
     case "floor":
       return <FloorTile floor={data.floor} race={data.race} />;
-    case "theses":
-      return <ThesesTileLazy theses={data.floor.theses} />;
     case "brief":
       return <BriefTile synthesis={data.synthesis} />;
     case "news":
@@ -37,23 +38,24 @@ function renderTile(id: string, data: WarRoomData): ReactNode {
       return <CandlesTile candles={data.candles} />;
     case "sectors":
       return <SectorsTile sectors={data.sectors} />;
+    case "commodities":
+      return <CommoditiesTile items={data.commodities} />;
+    case "weather":
+      return <WeatherTile weather={data.weather} />;
+    case "song":
+      return <SongTile songs={data.songs} />;
     case "regime":
       return <RegimeTile regime={data.regime} trend={data.regimeTrend} />;
     case "flows":
       return <FlowsTile flows={data.flows} streak={data.fiiStreak} />;
     case "movers":
       return <MoversTile movers={data.movers} />;
-    case "breadth":
-      return <BreadthTile breadth={data.breadth} />;
     case "tv":
       return <TvTile />;
     default:
       return null;
   }
 }
-
-// Client tile imported via wrapper to keep this file a server component list.
-import { ThesesTile as ThesesTileLazy } from "@/components/tiles/theses-tile";
 
 export default async function WarRoom() {
   const data = await getWarRoomData();
@@ -96,8 +98,9 @@ export default async function WarRoom() {
         </span>
       </header>
 
-      <div className="shrink-0 pt-1.5">
+      <div className="flex shrink-0 flex-col gap-1.5 pt-1.5">
         <Ticker items={data.strip} />
+        <WatchlistMarquee />
       </div>
 
       <main className="mt-1.5 grid min-h-0 flex-1 grid-cols-1 gap-1.5 md:grid-cols-2 xl:grid-cols-12 xl:grid-rows-4">

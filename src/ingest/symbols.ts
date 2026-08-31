@@ -24,4 +24,11 @@ export const SYMBOL_NAMES: Record<string, string> = {
   // NSE breadth + AMFI benchmark
   "^BREADTH": "NSE breadth (% advancers)",
   "NIFTYBEES-NAV": "NIFTYBEES NAV (benchmark)",
+
+  // commodities complex (futures, USD)
+  "GC=F": "Gold",
+  "SI=F": "Silver",
+  "HG=F": "Copper",
+  "CL=F": "WTI Crude",
+  "NG=F": "Nat Gas",
 };

@@ -81,6 +81,34 @@
   }
 }
 
+/* Watchlist marquee: constant motion = linear; hover pauses; reduced
+   motion gets a plain scrollable strip. */
+.marquee-track {
+  width: max-content;
+}
+.marquee-animate {
+  animation: bhau-marquee 45s linear infinite;
+}
+.marquee-window:hover .marquee-track {
+  animation-play-state: paused;
+}
+@keyframes bhau-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .marquee-animate {
+    animation: none;
+  }
+  .marquee-window {
+    overflow-x: auto;
+  }
+}
+
 body {
   /* Blueprint-paper dot grid (DESIGN.md) — ≤5% opacity */
   background-color: var(--color-canvas);

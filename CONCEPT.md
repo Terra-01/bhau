@@ -92,6 +92,8 @@ The audit-proofness *is* the marketing. Finance Twitter will try to shred this; 
 - **Valuation screens** — PE/PB vs. own 5-yr median and sector median, earnings yield vs. 10Y. Framed as *transparent screens* ("trades at 34× vs 5-yr median 22×"), never as "overvalued/undervalued" verdicts — labels like that are the closest thing on the page to advice, so the data speaks and the user concludes
 - **Company risk cards** — pledged-promoter %, debt/equity, auditor flags, related-party noise, big client concentration
 - **Trading fundamentals** — delivery %, 52-week high/low distance, volume spikes, bulk/block deal flags per stock
+- **City-wise retail prices (petrol/diesel/gold/silver)** — no keyless API exists; needs a scraper (goodreturns.in / IOCL widgets), brittle by nature — build behind source isolation when prioritized
+- **Full company deep-dive** (statements, quarterly results, peer comparison, shareholding pattern) — dedicated phase; the watchlist card ships core stats (price, mcap, P/E, P/B, ROE, yield, 52w) via Yahoo fundamentals with Screener/NSE deep links
 
 **Map (v1 — the poster, budgeted like marketing):** India-centric deck.gl + MapLibre with 2–3 layers that are genuinely geospatial: monsoon rainfall departure (IMD), major ports + crude chokepoints, state-level layer (GST/elections) later. Regime index as subtle national mood tint. No globe in v1.
 

@@ -32,6 +32,9 @@ export interface WarRoomData {
   breadth: { latest?: number; history: Array<{ date: string; value: number }> };
   candles: Array<{ date: Date; open: number; high: number; low: number; close: number }>;
   race: Array<Record<string, unknown>>; // {date: Date, [agentId]: equity}
+  commodities: StripItem[];
+  weather: Array<{ city: string; tmax: number; tmin: number; code: number; rainProb: number }> | null;
+  songs: Array<{ title: string; artist: string; art?: string; url?: string }> | null;
   floor: {
     date: string;
     scoreboard: Array<{
@@ -57,6 +60,71 @@ export interface WarRoomData {
   health: Array<{ id: string; healthy: boolean }>;
 }
 
+const COMMODITIES: Array<{ name: string; candidates: string[] }> = [
+  { name: "Gold", candidates: ["GC=F"] },
+  { name: "Silver", candidates: ["SI=F"] },
+  { name: "Copper", candidates: ["HG=F"] },
+  { name: "Brent", candidates: ["BZ=F", "BRENT-SPOT"] },
+  { name: "WTI", candidates: ["CL=F"] },
+  { name: "Nat Gas", candidates: ["NG=F"] },
+];
+
+// Weather for the subcontinent's market cities — Open-Meteo, keyless.
+const CITIES = [
+  { city: "Mumbai", lat: 19.076, lon: 72.877 },
+  { city: "Delhi", lat: 28.613, lon: 77.209 },
+  { city: "Bengaluru", lat: 12.972, lon: 77.594 },
+  { city: "Chennai", lat: 13.083, lon: 80.27 },
+  { city: "Kolkata", lat: 22.573, lon: 88.364 },
+  { city: "Hyderabad", lat: 17.385, lon: 78.487 },
+];
+
+async function fetchWeather(): Promise<WarRoomData["weather"]> {
+  try {
+    const lats = CITIES.map((c) => c.lat).join(",");
+    const lons = CITIES.map((c) => c.lon).join(",");
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lats}&longitude=${lons}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Asia%2FKolkata&forecast_days=1`;
+    const res = await fetch(url, { next: { revalidate: 1800 }, signal: AbortSignal.timeout(10_000) });
+    if (!res.ok) return null;
+    const data = (await res.json()) as Array<{
+      daily?: { weather_code?: number[]; temperature_2m_max?: number[]; temperature_2m_min?: number[]; precipitation_probability_max?: number[] };
+    }>;
+    const list = Array.isArray(data) ? data : [data];
+    return CITIES.map(({ city }, i) => ({
+      city,
+      code: list[i]?.daily?.weather_code?.[0] ?? 0,
+      tmax: Math.round(list[i]?.daily?.temperature_2m_max?.[0] ?? 0),
+      tmin: Math.round(list[i]?.daily?.temperature_2m_min?.[0] ?? 0),
+      rainProb: list[i]?.daily?.precipitation_probability_max?.[0] ?? 0,
+    }));
+  } catch {
+    return null;
+  }
+}
+
+// Trending songs, India — iTunes RSS, keyless. Pure gen-z garnish.
+async function fetchSongs(): Promise<WarRoomData["songs"]> {
+  try {
+    const res = await fetch("https://itunes.apple.com/in/rss/topsongs/limit=3/json", {
+      next: { revalidate: 21600 },
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as {
+      feed?: { entry?: Array<{ "im:name"?: { label?: string }; "im:artist"?: { label?: string }; "im:image"?: Array<{ label?: string }>; link?: { attributes?: { href?: string } } }> };
+    };
+    const entries = data.feed?.entry ?? [];
+    return entries.slice(0, 3).map((e) => ({
+      title: e["im:name"]?.label ?? "—",
+      artist: e["im:artist"]?.label ?? "",
+      art: e["im:image"]?.at(-1)?.label,
+      url: e.link?.attributes?.href,
+    }));
+  } catch {
+    return null;
+  }
+}
+
 // Display order; later entries are fallbacks for the same concept.
 const STRIP: Array<{ name: string; candidates: string[] }> = [
   { name: "Nifty 50", candidates: ["^NSEI"] },
@@ -79,8 +147,10 @@ export async function getWarRoomData(): Promise<WarRoomData | null> {
   if (!packRow) return null;
   const pack = packRow.pack as unknown as BriefingPack;
 
-  // --- market strip with ~12-session sparklines
-  const stripSymbols = STRIP.flatMap((s) => s.candidates);
+  const [weather, songs] = await Promise.all([fetchWeather(), fetchSongs()]);
+
+  // --- market strip + commodities with ~12-session sparklines
+  const stripSymbols = [...STRIP, ...COMMODITIES].flatMap((s) => s.candidates);
   const since = new Date(Date.now() - 20 * 86_400_000);
   const history = await prisma.dailyBar.findMany({
     where: { symbol: { in: stripSymbols }, date: { gte: since } },
@@ -97,20 +167,23 @@ export async function getWarRoomData(): Promise<WarRoomData | null> {
     else list.push({ date: iso, close: bar.close });
     bySymbol.set(key, list);
   }
-  const strip: StripItem[] = STRIP.flatMap(({ name, candidates }) => {
-    const symbol = candidates.find((c) => (bySymbol.get(c)?.length ?? 0) > 0);
-    if (!symbol) return [];
-    const bars = bySymbol.get(symbol)!;
-    const last = bars.at(-1)!;
-    const prev = bars.at(-2);
-    return [{
-      symbol,
-      name,
-      close: last.close,
-      change1dPct: prev ? ((last.close - prev.close) / prev.close) * 100 : undefined,
-      spark: bars.slice(-12).map((b) => b.close),
-    }];
-  });
+  const toItems = (defs: Array<{ name: string; candidates: string[] }>): StripItem[] =>
+    defs.flatMap(({ name, candidates }) => {
+      const symbol = candidates.find((c) => (bySymbol.get(c)?.length ?? 0) > 0);
+      if (!symbol) return [];
+      const bars = bySymbol.get(symbol)!;
+      const last = bars.at(-1)!;
+      const prev = bars.at(-2);
+      return [{
+        symbol,
+        name,
+        close: last.close,
+        change1dPct: prev ? ((last.close - prev.close) / prev.close) * 100 : undefined,
+        spark: bars.slice(-12).map((b) => b.close),
+      }];
+    });
+  const strip = toItems(STRIP);
+  const commodities = toItems(COMMODITIES);
 
   // --- FII/DII flows, newest first, up to 5 sessions × 2 categories
   const flowRows = await prisma.flowDaily.findMany({ orderBy: { date: "desc" }, take: 10 });
@@ -305,6 +378,9 @@ export async function getWarRoomData(): Promise<WarRoomData | null> {
     breadth,
     candles,
     race,
+    commodities,
+    weather,
+    songs,
     floor: {
       date: latestSnapDate?.date.toISOString().slice(0, 10) ?? pack.date,
       scoreboard,

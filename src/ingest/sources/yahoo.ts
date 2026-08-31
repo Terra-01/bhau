@@ -4,7 +4,11 @@ import type { Fetcher, IngestBar, SourceResult } from "../types";
 // yahoo-finance2 handles Yahoo's cookie/crumb/session dance, which raw
 // fetches fail (blanket HTTP 429). Kept behind the same Fetcher isolation:
 // if Yahoo blocks anyway (some datacenter IPs), this source degrades alone.
-const YAHOO_SYMBOLS = ["^NSEI", "^NSEBANK", "^BSESN", "^INDIAVIX", "INR=X", "BZ=F", "^TNX"];
+const YAHOO_SYMBOLS = [
+  "^NSEI", "^NSEBANK", "^BSESN", "^INDIAVIX", "INR=X", "BZ=F", "^TNX",
+  // commodities complex (futures)
+  "GC=F", "SI=F", "HG=F", "CL=F", "NG=F",
+];
 
 const yf = new YahooFinance({ suppressNotices: ["yahooSurvey"] });
 

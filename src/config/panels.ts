@@ -13,15 +13,16 @@ export interface TileDef {
 }
 
 export const WAR_ROOM_TILES: TileDef[] = [
-  { id: "floor", order: 1, enabled: true, grid: [1, 5, 1, 2], flowHeight: "max-xl:min-h-[380px]" },
-  { id: "theses", order: 2, enabled: true, grid: [6, 3, 1, 2], flowHeight: "max-xl:h-[360px]" },
-  { id: "brief", order: 3, enabled: true, grid: [9, 4, 1, 1], flowHeight: "max-xl:min-h-[150px]" },
-  { id: "news", order: 4, enabled: true, grid: [9, 4, 2, 2], flowHeight: "max-xl:h-[360px]" },
-  { id: "candles", order: 5, enabled: true, grid: [1, 4, 3, 1], flowHeight: "max-xl:h-[240px]" },
-  { id: "sectors", order: 6, enabled: true, grid: [5, 4, 3, 1], flowHeight: "max-xl:h-[280px]" },
-  { id: "regime", order: 7, enabled: true, grid: [1, 2, 4, 1], flowHeight: "max-xl:h-[200px]" },
-  { id: "flows", order: 8, enabled: true, grid: [3, 2, 4, 1], flowHeight: "max-xl:h-[200px]" },
-  { id: "movers", order: 9, enabled: true, grid: [5, 2, 4, 1], flowHeight: "max-xl:h-[200px]" },
-  { id: "breadth", order: 10, enabled: true, grid: [7, 2, 4, 1], flowHeight: "max-xl:h-[180px]" },
-  { id: "tv", order: 11, enabled: true, grid: [9, 4, 4, 1], flowHeight: "max-xl:h-[260px]" },
+  { id: "floor", order: 1, enabled: true, grid: [1, 4, 1, 2], flowHeight: "max-xl:min-h-[420px]" },
+  { id: "brief", order: 2, enabled: true, grid: [5, 4, 1, 1], flowHeight: "max-xl:min-h-[150px]" },
+  { id: "candles", order: 3, enabled: true, grid: [5, 4, 2, 1], flowHeight: "max-xl:h-[240px]" },
+  { id: "news", order: 4, enabled: true, grid: [9, 4, 1, 2], flowHeight: "max-xl:h-[360px]" },
+  { id: "sectors", order: 5, enabled: true, grid: [1, 3, 3, 1], flowHeight: "max-xl:h-[280px]" },
+  { id: "commodities", order: 6, enabled: true, grid: [4, 3, 3, 1], flowHeight: "max-xl:h-[240px]" },
+  { id: "weather", order: 7, enabled: true, grid: [7, 3, 3, 1], flowHeight: "max-xl:h-[200px]" },
+  { id: "tv", order: 8, enabled: true, grid: [10, 3, 3, 2], flowHeight: "max-xl:h-[300px]" },
+  { id: "regime", order: 9, enabled: true, grid: [1, 2, 4, 1], flowHeight: "max-xl:h-[200px]" },
+  { id: "flows", order: 10, enabled: true, grid: [3, 2, 4, 1], flowHeight: "max-xl:h-[200px]" },
+  { id: "movers", order: 11, enabled: true, grid: [5, 2, 4, 1], flowHeight: "max-xl:h-[200px]" },
+  { id: "song", order: 12, enabled: true, grid: [7, 3, 4, 1], flowHeight: "max-xl:h-[180px]" },
 ];

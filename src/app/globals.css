@@ -1,0 +1,68 @@
+@import "tailwindcss";
+
+/*
+ * The Floor — design tokens (DESIGN.md).
+ * Base system: Dub (design/dub-reference.md). Light-only, committed:
+ * the morning broadsheet, not another dark terminal. No dark variant.
+ */
+@theme {
+  /* Neutrals (Dub) */
+  --color-canvas: #ffffff;
+  --color-paper: #f5f5f5;
+  --color-ash: #e5e5e5;
+  --color-smoke: #d4d4d4;
+  --color-pebble: #c8c8c8;
+  --color-ink: #0a0a0a;
+  --color-charcoal: #171717;
+  --color-graphite: #262626;
+  --color-slate: #404040;
+  --color-steel: #525252;
+  --color-fog: #737373;
+  --color-silver: #a3a3a3;
+
+  /* Accents (Dub) */
+  --color-blue: #2563eb;
+  --color-sapphire: #1e40af;
+  --color-mint: #dcfce7;
+  --color-tangerine: #ea580c;
+  --color-lavender: #7c3aed;
+
+  /* Market semantics (DESIGN.md extension) — numbers and badges only */
+  --color-gain: #16a34a;
+  --color-gain-wash: #dcfce7;
+  --color-loss: #dc2626;
+  --color-loss-wash: #fee2e2;
+  --color-warn: #d97706;
+  --color-warn-wash: #fef3c7;
+
+  /* Agent identity (DESIGN.md extension) — identity elements only */
+  --color-agent-macro: #2563eb;
+  --color-agent-momentum: #ea580c;
+  --color-agent-contrarian: #7c3aed;
+  --color-agent-value: #262626;
+
+  /* Regime scale — the dial and map tint only */
+  --color-regime-calm: #16a34a;
+  --color-regime-steady: #84cc16;
+  --color-regime-watchful: #eab308;
+  --color-regime-strained: #ea580c;
+  --color-regime-stressed: #dc2626;
+
+  /* Scaffold compatibility */
+  --color-background: #ffffff;
+  --color-foreground: #171717;
+
+  /* Radius vocabulary (Dub): pills 9999 / cards 12 / buttons 8 / inputs 6 / large 16 */
+  --radius-input: 6px;
+  --radius-button: 8px;
+  --radius-card: 12px;
+  --radius-card-lg: 16px;
+
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--color-canvas);
+  color: var(--color-charcoal);
+}

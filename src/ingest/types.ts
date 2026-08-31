@@ -1,0 +1,42 @@
+export type EventKind = "news" | "announcement" | "macro" | "policy";
+
+export interface IngestEvent {
+  ts: Date;
+  source: string;
+  kind: EventKind;
+  title: string;
+  url?: string;
+  entities: string[];
+  payload?: Record<string, unknown>;
+  hash: string;
+}
+
+export interface IngestBar {
+  date: string; // YYYY-MM-DD in Asia/Kolkata
+  symbol: string;
+  open?: number;
+  high?: number;
+  low?: number;
+  close: number;
+  volume?: number;
+  source: string;
+}
+
+export interface SourceResult {
+  events: IngestEvent[];
+  bars: IngestBar[];
+}
+
+/**
+ * One fetcher per upstream. Fetchers are isolated by the runner: a throw
+ * here marks this source unhealthy and degrades one panel — it never
+ * takes down the run (CONCEPT.md §5).
+ */
+export interface Fetcher {
+  id: string;
+  staleAfterMin: number;
+  fetch(): Promise<SourceResult>;
+}
+
+export const USER_AGENT =
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36";

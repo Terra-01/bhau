@@ -1,0 +1,71 @@
+generator client {
+  provider               = "prisma-client"
+  output                 = "../src/generated/prisma"
+  runtime                = "nodejs"
+  moduleFormat           = "esm"
+  generatedFileExtension = "ts"
+  importFileExtension    = "ts"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// The archive is the moat (CONCEPT.md §5): every ingested item lands here,
+// normalized, from day one. Live feeds are commodity; this compounds.
+model Event {
+  id        String   @id @default(cuid())
+  ts        DateTime
+  source    String // fetcher-qualified source id, e.g. "gnews:et-markets"
+  kind      String // news | announcement | macro | policy
+  title     String
+  url       String?
+  entities  String[] @default([])
+  payload   Json?
+  hash      String   @unique // sha256(source|title|url) — dedup across runs
+  createdAt DateTime @default(now())
+
+  @@index([ts])
+  @@index([source, ts])
+  @@index([kind, ts])
+}
+
+model DailyBar {
+  date      DateTime @db.Date
+  symbol    String // upstream symbol, e.g. "^NSEI"
+  open      Float?
+  high      Float?
+  low       Float?
+  close     Float
+  volume    Float?
+  source    String
+  createdAt DateTime @default(now())
+
+  @@id([date, symbol])
+  @@index([symbol, date])
+}
+
+// One row per fetcher: freshness monitoring so a dead scraper degrades
+// one panel, never silently.
+model SourceHealth {
+  id            String    @id
+  lastSuccessAt DateTime?
+  lastErrorAt   DateTime?
+  lastError     String?
+  staleAfterMin Int       @default(1440)
+  updatedAt     DateTime  @updatedAt
+}
+
+model RegimeSnapshot {
+  date       DateTime @id @db.Date
+  score      Float
+  band       String // Calm | Steady | Watchful | Strained | Stressed
+  components Json
+  createdAt  DateTime @default(now())
+}
+
+model BriefingPack {
+  date      DateTime @id @db.Date
+  pack      Json
+  createdAt DateTime @default(now())
+}

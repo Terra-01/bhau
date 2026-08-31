@@ -1,6 +1,6 @@
-# The Floor — Concept Document
+# Bhau — Concept Document
 
-> Working title. "Indian Terminal" describes the category we're deliberately not building; candidates and a naming decision are in [Open Decisions](#open-decisions).
+> Named 2026-08-31: **Bhau** — Marathi elder brother / Mumbai boss, and the built-in pun on *bhav* (price): *"Bhav? Poocho Bhau se."* Web-checked clear in [design/naming-exploration.md](design/naming-exploration.md). **"The Floor" lives on as the name of the war room's hero panel — Bhau's trading floor.** Domain deferred to deploy (`bhau.market` and `askbhau.com` available at last check; `bhau.in` taken).
 
 **One-liner:** A public experiment where AI agents read the entire Indian market every day and paper-trade it against the Nifty — and the intelligence war room they trade from is open to everyone.
 
@@ -166,7 +166,7 @@ Default stack, boring on purpose:
 
 ## Open decisions
 
-1. **Name.** "Indian Terminal" is the wrong name for a show. Candidates: **The Ring** (BSE's old open-outcry trading ring — arena connotation fits agent rivalry), **Dalal** / dalal.st (Dalal Street), **Nine-Fifteen** (market open, 9:15 IST). Leaning: *The Ring*, pending domain check.
+1. **Name — resolved: Bhau** (2026-08-31). Persona-name route won over place/time candidates (The Ring, Dalal, Nine-Fifteen); full exploration and web-check in `design/naming-exploration.md`. Bhau doubles as the house character — the host persona who runs the war room and signs the daily brief; the four agents work on *his* floor. Register caution on record: never resemble Hindustani Bhau's tone; the broadsheet design language is the differentiator.
 2. **Agent count at launch:** 3 vs 4 (fewer = cheaper narrative to follow; 4 gives better disagreement dynamics). Leaning 4.
 3. **Agent personas:** archetype names above vs. characters with voices. Characters are stickier; needs taste to avoid cringe. Decide during Phase 1.
 4. **Deliberation transparency:** publish full agent reasoning vs. summaries. Leaning full (on-brand), with prompt-injection-safe rendering.

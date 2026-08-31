@@ -1,6 +1,6 @@
-# The Floor — Agent Context
+# Bhau — Agent Context
 
-A customizable India-market intelligence war room whose AI paper-trading agents prove its usefulness daily. Read these before touching anything:
+**Bhau** (pun on *bhav*, the price): a customizable India-market intelligence war room whose AI paper-trading agents prove its usefulness daily. "The Floor" is the war room's hero panel — Bhau's trading floor. Read these before touching anything:
 
 - **[CONCEPT.md](CONCEPT.md)** — what we're building and why (product thesis, agents, honesty protocol, data pipeline, roadmap). Source of truth for scope.
 - **[DESIGN.md](DESIGN.md)** — design language: light-only "morning broadsheet" (Dub base in `design/dub-reference.md` + market/agent extensions). No dark mode, no per-component color inventions.

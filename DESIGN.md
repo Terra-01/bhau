@@ -1,10 +1,10 @@
-# Design Language — The Floor
+# Design Language — Bhau
 
 **Base system:** Dub ([design/dub-reference.md](design/dub-reference.md)) — adopted wholesale: palette, type scale, spacing, radii, border-first elevation, pill architecture, do's/don'ts. This file records only the *direction decision*, the *deltas*, and the *product-specific extensions*. When in doubt: the reference wins for generic UI; this file wins for anything market- or agent-specific.
 
 ## Direction
 
-**The morning broadsheet, not another dark terminal.** Every trading product is dark-mode neon (TradingView, every crypto dashboard, Bloomberg itself). The Floor is light, printed, and hairline-bordered — because the product's rhythm is daily-at-close (an edition, not a tape) and because printed-document aesthetics read as *trustworthy*, which is the entire brand (receipts, append-only log, published methodology). Light is the identity, not the default.
+**The morning broadsheet, not another dark terminal.** Every trading product is dark-mode neon (TradingView, every crypto dashboard, Bloomberg itself). Bhau is light, printed, and hairline-bordered — because the product's rhythm is daily-at-close (an edition, not a tape) and because printed-document aesthetics read as *trustworthy*, which is the entire brand (receipts, append-only log, published methodology). Light is the identity, not the default.
 
 - **Light-only in v1.** A committed single theme, executed well. Dark mode, if ever, is a designed variant later — never an inversion.
 - This supersedes the "dark-first war room at night" line that briefly lived in CONCEPT.md §6.

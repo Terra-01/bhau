@@ -130,7 +130,7 @@ Default stack, boring on purpose:
 - **API layer:** route handlers as proxy + cache in front of every upstream; Upstash Redis for cache + rate limiting.
 - **DB:** Postgres (Neon) via Prisma — decision log (append-only, hash-chained), portfolios, event archive, panel configs.
 - **Jobs:** Inngest for the daily pipeline (ingest → deliberate → publish → fill → scoreboard) — cron-triggered, step-isolated, retryable. Perfect first real use of it.
-- **Agents:** Claude API. One deliberation call per agent per day (+ one synthesis call for the daily brief) — a few dozen calls/day total, negligible cost. Guardrails (position limits, universe checks) in code, not prompts.
+- **Agents:** OpenAI Responses API (`gpt-5.6-luna`), provider isolated to one file. One deliberation call per agent per day (+ one synthesis call for the daily brief later) — negligible cost. Guardrails (position limits, universe checks) in code, not prompts.
 - **Map:** deck.gl + MapLibre. **UI:** shadcn/ui; design language in `DESIGN.md` — light "morning broadsheet" system adapted from Dub (deliberately not another dark terminal). **Charts:** lightweight (sparklines + one real chart lib, chosen via `/pick-ui-library` when we get there).
 - **Share engine:** OG image generation (Vercel OG) for daily scoreboard + agent theses — every day produces linkable, screenshot-ready cards.
 - **Analytics:** PostHog. **Auth:** none in v1 (public read-only); Clerk when customization needs accounts.

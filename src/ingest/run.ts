@@ -7,6 +7,7 @@ import { bhavcopyFetcher } from "./sources/bhavcopy";
 import { fiiDiiFetcher } from "./sources/fii-dii";
 import { googleNewsFetcher } from "./sources/google-news";
 import { macroRatesFetcher } from "./sources/macro-rates";
+import { nseCalendarsFetcher } from "./sources/nse-calendars";
 import { nseIndicesFetcher } from "./sources/nse-indices";
 import { yahooMarketsFetcher } from "./sources/yahoo";
 import type { Fetcher, IngestBar, IngestEvent, IngestFlow } from "./types";
@@ -18,6 +19,7 @@ const FETCHERS: Fetcher[] = [
   nseIndicesFetcher,
   bhavcopyFetcher,
   fiiDiiFetcher,
+  nseCalendarsFetcher,
   macroRatesFetcher,
   amfiFetcher,
   yahooMarketsFetcher,
@@ -74,6 +76,7 @@ async function persist(
         low: b.low ?? null,
         close: b.close,
         volume: b.volume ?? null,
+        turnover: b.turnover ?? null,
         source: b.source,
       })),
       skipDuplicates: true,
@@ -86,6 +89,7 @@ async function persist(
       low: bar.low ?? null,
       close: bar.close,
       volume: bar.volume ?? null,
+      turnover: bar.turnover ?? null,
       source: bar.source,
     };
     await prisma.dailyBar.upsert({

@@ -1,4 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
+import { ExchangeSections } from "@/components/exchange/exchange-sections";
 import { WatchlistMarquee } from "@/components/watchlist-marquee";
 import { BriefTile } from "@/components/tiles/brief-tile";
 import { CandlesTile } from "@/components/tiles/candles-tile";
@@ -74,10 +75,17 @@ export default async function WarRoom() {
   const tiles = WAR_ROOM_TILES.filter((t) => t.enabled).sort((a, b) => a.order - b.order);
 
   return (
-    <div className="war-room-shell flex w-full flex-1 flex-col px-3 pb-2">
-      <header className="flex shrink-0 flex-wrap items-baseline gap-x-3 gap-y-0.5 border-b border-charcoal py-2">
+    <div className="flex w-full flex-1 flex-col px-3 pb-2">
+      <header className="sticky top-0 z-40 flex shrink-0 flex-wrap items-baseline gap-x-3 gap-y-0.5 border-b border-charcoal bg-canvas py-2">
         <h1 className="text-[17px] font-semibold tracking-tight text-ink">Bhau</h1>
         <span className="text-[11px] text-fog">the Indian market war room</span>
+        <nav className="ml-4 hidden items-baseline gap-2.5 font-mono text-[10px] text-steel lg:flex">
+          {[["#deck", "DECK"], ["#indices", "INDICES"], ["#stocks", "STOCKS"], ["#forex", "FOREX"], ["#calendars", "CALENDARS"], ["#economy", "ECONOMY"]].map(([href, label]) => (
+            <a key={href} href={href} className="transition-colors duration-150 [@media(hover:hover)]:hover:text-ink">
+              {label}
+            </a>
+          ))}
+        </nav>
         <span className="ml-auto flex flex-wrap items-center gap-2.5 font-mono text-[10px] text-fog">
           <span>
             EDITION {data.packDate} · {data.tradingDay ? "TRADING DAY" : "AWAITING SESSION"}
@@ -98,6 +106,7 @@ export default async function WarRoom() {
         </span>
       </header>
 
+      <section id="deck" className="war-room-deck flex scroll-mt-12 flex-col">
       <div className="flex shrink-0 flex-col gap-1.5 pt-1.5">
         <Ticker items={data.strip} />
         <WatchlistMarquee />
@@ -121,8 +130,11 @@ export default async function WarRoom() {
           );
         })}
       </main>
+      </section>
 
-      <footer className="flex shrink-0 flex-wrap items-center justify-between gap-2 pt-1.5 font-mono text-[9.5px] tracking-wide text-silver">
+      <ExchangeSections />
+
+      <footer className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t border-ash pt-2 font-mono text-[9.5px] tracking-wide text-silver">
         <span>BHAU · PAPER CAPITAL ONLY · NOT INVESTMENT ADVICE</span>
         <span>DATA DELAYED / EOD · EVERY DECISION ON A PUBLIC HASH-CHAINED LEDGER</span>
       </footer>

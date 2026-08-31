@@ -38,6 +38,7 @@ model DailyBar {
   low       Float?
   close     Float
   volume    Float?
+  turnover  Float? // traded value ₹ (bhavcopy TtlTrfVal) — ranks "most traded"
   source    String
   createdAt DateTime @default(now())
 

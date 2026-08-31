@@ -71,12 +71,13 @@
   --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
 }
 
-/* War room app shell: one fixed viewport on desktop, panels scroll inside
-   tiles, the page never scrolls (CONCEPT.md §4 / mosaic blueprint). */
+/* The Deck: fills the first viewport on desktop (below the sticky header);
+   its tiles scroll internally. The page itself scrolls on to the Exchange
+   sections below — Deck + Exchange architecture. */
 @media (min-width: 80rem) {
-  .war-room-shell {
-    height: 100vh;
-    min-height: 0; /* beat flex min-height:auto, or content re-inflates the shell */
+  .war-room-deck {
+    height: calc(100dvh - 46px);
+    min-height: 0; /* beat flex min-height:auto, or content re-inflates the deck */
     overflow: hidden;
   }
 }

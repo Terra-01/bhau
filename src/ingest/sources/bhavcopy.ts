@@ -29,9 +29,9 @@ export function parseBhavcopy(csv: string): IngestBar[] {
   const lines = csv.trim().split("\n");
   const header = lines[0].split(",");
   const col = (name: string) => header.indexOf(name);
-  const [iDate, iSym, iSrs, iOpen, iHigh, iLow, iClose, iVol] = [
+  const [iDate, iSym, iSrs, iOpen, iHigh, iLow, iClose, iVol, iTrf] = [
     col("TradDt"), col("TckrSymb"), col("SctySrs"),
-    col("OpnPric"), col("HghPric"), col("LwPric"), col("ClsPric"), col("TtlTradgVol"),
+    col("OpnPric"), col("HghPric"), col("LwPric"), col("ClsPric"), col("TtlTradgVol"), col("TtlTrfVal"),
   ];
   if ([iDate, iSym, iSrs, iClose].some((i) => i === -1)) {
     throw new Error("bhavcopy column layout changed — update parseBhavcopy");
@@ -50,6 +50,7 @@ export function parseBhavcopy(csv: string): IngestBar[] {
       low: Number(f[iLow]) || undefined,
       close,
       volume: Number(f[iVol]) || undefined,
+      turnover: Number(f[iTrf]) || undefined,
       source: "bhavcopy",
     });
   }

@@ -25,6 +25,20 @@ export const SYMBOL_NAMES: Record<string, string> = {
   "^BREADTH": "NSE breadth (% advancers)",
   "NIFTYBEES-NAV": "NIFTYBEES NAV (benchmark)",
 
+  // NSE indices (Exchange sections)
+  NIFTYNXT50: "Nifty Next 50",
+  NIFTY500: "Nifty 500",
+  NIFTYMID100: "Nifty Midcap 100",
+  NIFTYSML100: "Nifty Smallcap 100",
+  NIFTYIT: "Nifty IT",
+  NIFTYAUTO: "Nifty Auto",
+  NIFTYFMCG: "Nifty FMCG",
+  NIFTYMETAL: "Nifty Metal",
+  NIFTYPHARMA: "Nifty Pharma",
+  NIFTYPSUBANK: "Nifty PSU Bank",
+  NIFTYFINSRV: "Nifty Financial Services",
+  NIFTYREALTY: "Nifty Realty",
+
   // commodities complex (futures, USD)
   "GC=F": "Gold",
   "SI=F": "Silver",

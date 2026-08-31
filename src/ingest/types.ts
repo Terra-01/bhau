@@ -1,4 +1,4 @@
-export type EventKind = "news" | "announcement" | "macro" | "policy";
+export type EventKind = "news" | "announcement" | "macro" | "policy" | "calendar";
 
 export interface IngestEvent {
   ts: Date;
@@ -19,6 +19,7 @@ export interface IngestBar {
   low?: number;
   close: number;
   volume?: number;
+  turnover?: number; // traded value ₹
   source: string;
 }
 

@@ -8,6 +8,29 @@ const INDEX_MAP: Record<string, string> = {
   "NIFTY 50": "^NSEI",
   "NIFTY BANK": "^NSEBANK",
   "INDIA VIX": "^INDIAVIX",
+  // Breadth of the market (TradingView-style indices row)
+  "NIFTY NEXT 50": "NIFTYNXT50",
+  "NIFTY 500": "NIFTY500",
+  "NIFTY MIDCAP 100": "NIFTYMID100",
+  "NIFTY SMALLCAP 100": "NIFTYSML100",
+  // Sector indices — NSE's own sector readings
+  "NIFTY IT": "NIFTYIT",
+  "NIFTY AUTO": "NIFTYAUTO",
+  "NIFTY FMCG": "NIFTYFMCG",
+  "NIFTY METAL": "NIFTYMETAL",
+  "NIFTY PHARMA": "NIFTYPHARMA",
+  "NIFTY PSU BANK": "NIFTYPSUBANK",
+  "NIFTY FINANCIAL SERVICES": "NIFTYFINSRV",
+  "NIFTY REALTY": "NIFTYREALTY",
+};
+
+/** Indices whose daily history we maintain for the hero chart. */
+export const HISTORY_INDICES: Record<string, string> = {
+  "NIFTY 50": "^NSEI",
+  "NIFTY BANK": "^NSEBANK",
+  "NIFTY 500": "NIFTY500",
+  "NIFTY MIDCAP 100": "NIFTYMID100",
+  "NIFTY IT": "NIFTYIT",
 };
 
 interface NseIndexRow {
@@ -121,28 +144,31 @@ export const nseIndicesFetcher: Fetcher = {
       });
     }
 
-    // Nifty 50 daily history (last ~10 sessions) so 5-day components don't
-    // wait on slow snapshot accumulation. Failure here degrades gracefully.
-    try {
-      const history = (await nseGet(
-        `/api/historicalOR/indicesHistory?indexType=${encodeURIComponent("NIFTY 50")}&from=${ddmmyyyy(12)}&to=${ddmmyyyy(0)}`,
-        cookies,
-      )) as { data?: NseHistoryRecord[] };
-      for (const rec of history.data ?? []) {
-        const date = rec.EOD_TIMESTAMP ? parseNseDate(rec.EOD_TIMESTAMP) : undefined;
-        if (!date || typeof rec.EOD_CLOSE_INDEX_VAL !== "number") continue;
-        bars.push({
-          date,
-          symbol: "^NSEI",
-          open: rec.EOD_OPEN_INDEX_VAL,
-          high: rec.EOD_HIGH_INDEX_VAL,
-          low: rec.EOD_LOW_INDEX_VAL,
-          close: rec.EOD_CLOSE_INDEX_VAL,
-          source: "nse",
-        });
+    // Daily history for the hero-chart indices (last ~12 sessions per run;
+    // deep history comes from the one-time backfill script). Per-index
+    // failure degrades gracefully.
+    for (const [indexName, symbol] of Object.entries(HISTORY_INDICES)) {
+      try {
+        const history = (await nseGet(
+          `/api/historicalOR/indicesHistory?indexType=${encodeURIComponent(indexName)}&from=${ddmmyyyy(12)}&to=${ddmmyyyy(0)}`,
+          cookies,
+        )) as { data?: NseHistoryRecord[] };
+        for (const rec of history.data ?? []) {
+          const date = rec.EOD_TIMESTAMP ? parseNseDate(rec.EOD_TIMESTAMP) : undefined;
+          if (!date || typeof rec.EOD_CLOSE_INDEX_VAL !== "number") continue;
+          bars.push({
+            date,
+            symbol,
+            open: rec.EOD_OPEN_INDEX_VAL,
+            high: rec.EOD_HIGH_INDEX_VAL,
+            low: rec.EOD_LOW_INDEX_VAL,
+            close: rec.EOD_CLOSE_INDEX_VAL,
+            source: "nse",
+          });
+        }
+      } catch (err) {
+        console.warn(`[nse-indices] ${indexName} history failed: ${err instanceof Error ? err.message : String(err)}`);
       }
-    } catch (err) {
-      console.warn(`[nse-indices] history backfill failed: ${err instanceof Error ? err.message : String(err)}`);
     }
 
     return { events: [], bars };

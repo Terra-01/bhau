@@ -62,7 +62,9 @@ export function buildBriefingPack(
   });
 
   const news: BriefingPack["news"] = {};
-  const sorted = [...events].sort((a, b) => b.ts.getTime() - a.ts.getTime());
+  // Calendar entries are schedule data, not headlines — they render in the
+  // Exchange sections, never in the news streams.
+  const sorted = events.filter((e) => e.kind !== "calendar").sort((a, b) => b.ts.getTime() - a.ts.getTime());
   for (const event of sorted) {
     const category = (event.payload?.category as string) ?? "other";
     news[category] ??= [];

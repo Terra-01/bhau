@@ -22,8 +22,12 @@ async function fetchFrankfurterUsdInr(): Promise<IngestBar[]> {
   );
 }
 
-// FRED is slow from datacenter IPs (observed timeouts on GitHub runners):
-// generous timeout plus one retry.
+// FRED's fredgraph.csv host blocks datacenter IPs outright (observed:
+// timeouts on GitHub runners even at 30s ×2; instant success from
+// residential IPs). Accepted for Phase 0 — Brent is a 0.15-weight regime
+// component that renormalizes away, US10Y isn't in the formula.
+// TODO(v1.1): switch to api.stlouisfed.org with a free FRED_API_KEY,
+// which is reachable from datacenters.
 async function fetchFredSeries(seriesId: string, symbol: string, attempt = 0): Promise<IngestBar[]> {
   const url = `https://fred.stlouisfed.org/graph/fredgraph.csv?id=${seriesId}&cosd=${daysAgoISO(30)}`;
   let res: Response;

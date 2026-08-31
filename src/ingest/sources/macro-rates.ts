@@ -22,12 +22,20 @@ async function fetchFrankfurterUsdInr(): Promise<IngestBar[]> {
   );
 }
 
-async function fetchFredSeries(seriesId: string, symbol: string): Promise<IngestBar[]> {
+// FRED is slow from datacenter IPs (observed timeouts on GitHub runners):
+// generous timeout plus one retry.
+async function fetchFredSeries(seriesId: string, symbol: string, attempt = 0): Promise<IngestBar[]> {
   const url = `https://fred.stlouisfed.org/graph/fredgraph.csv?id=${seriesId}&cosd=${daysAgoISO(30)}`;
-  const res = await fetch(url, {
-    headers: { "user-agent": USER_AGENT, accept: "text/csv" },
-    signal: AbortSignal.timeout(15_000),
-  });
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      headers: { "user-agent": USER_AGENT, accept: "text/csv" },
+      signal: AbortSignal.timeout(30_000),
+    });
+  } catch (err) {
+    if (attempt < 1) return fetchFredSeries(seriesId, symbol, attempt + 1);
+    throw err;
+  }
   if (!res.ok) throw new Error(`FRED ${seriesId} HTTP ${res.status}`);
   const lines = (await res.text()).trim().split("\n").slice(1); // drop header
   const bars: IngestBar[] = [];

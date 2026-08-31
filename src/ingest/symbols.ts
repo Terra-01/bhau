@@ -20,4 +20,8 @@ export const SYMBOL_NAMES: Record<string, string> = {
   USDINR: "USD/INR (ECB ref)",
   "BRENT-SPOT": "Brent Crude (spot)",
   US10Y: "US 10Y yield",
+
+  // NSE breadth + AMFI benchmark
+  "^BREADTH": "NSE breadth (% advancers)",
+  "NIFTYBEES-NAV": "NIFTYBEES NAV (benchmark)",
 };

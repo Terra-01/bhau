@@ -43,7 +43,7 @@ Four archetypes (personas/names TBD — see Open Decisions):
 - Universe: Nifty 100 constituents + a whitelist of index/sector ETFs.
 - Max 10 open positions; max 20% of book in one name; no averaging down past 2 adds.
 - Costs modeled on every fill: brokerage-equivalent + STT + a published slippage assumption.
-- Benchmark: **Nifty 50 TRI** (total return, not price index — quants check this).
+- Benchmark: **NIFTYBEES NAV** (Nifty 50 ETF, growth — dividends reinvested, so it tracks the Nifty 50 TRI minus ~4bp expenses). Chosen over raw TRI for two honest reasons: TRI is not freely machine-readable (niftyindices.com is walled; NSE's API carries no TRI series), and an ETF NAV is an *investable* benchmark — what buying the index actually returns. The price index alone would flatter the agents by the dividend yield; this is stated on the methodology page.
 - One shared "risk officer" rule set (position limits, circuit-breaker halts) enforced in code, outside the LLM.
 
 **Daily rhythm (all times IST):**

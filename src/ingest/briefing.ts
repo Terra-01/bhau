@@ -5,6 +5,8 @@ import type { IngestBar, IngestEvent } from "./types";
 export interface BriefingPack {
   date: string;
   generatedAt: string;
+  /** False on market holidays — agents must not deliberate on a stale pack. */
+  tradingDay: boolean;
   regime: RegimeResult | null;
   markets: Array<{
     symbol: string;
@@ -27,6 +29,12 @@ export function buildBriefingPack(
   barsBySymbol: Record<string, IngestBar[]>,
   regime: RegimeResult | null,
 ): BriefingPack {
+  // Trading-day heuristic: an Indian market source produced a bar dated
+  // today. Fails safe — if NSE and Yahoo are both down, the pack reads as
+  // a non-trading day and agents sit out rather than trade stale data.
+  const tradingDay = Object.values(barsBySymbol).some((bars) =>
+    bars.some((b) => b.date === date && (b.source === "nse" || b.source === "yahoo")),
+  );
   const markets = Object.keys(barsBySymbol).flatMap((symbol) => {
     const name = SYMBOL_NAMES[symbol] ?? symbol;
     const bars = barsBySymbol[symbol];
@@ -57,5 +65,5 @@ export function buildBriefingPack(
     });
   }
 
-  return { date, generatedAt: new Date().toISOString(), regime, markets, news };
+  return { date, generatedAt: new Date().toISOString(), tradingDay, regime, markets, news };
 }

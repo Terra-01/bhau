@@ -1,75 +1,37 @@
-import { USER_AGENT, type Fetcher, type IngestBar, type SourceResult } from "../types";
+import YahooFinance from "yahoo-finance2";
+import type { Fetcher, IngestBar, SourceResult } from "../types";
 
-export const MARKET_SYMBOLS: Record<string, string> = {
-  "^NSEI": "Nifty 50",
-  "^NSEBANK": "Nifty Bank",
-  "^BSESN": "Sensex",
-  "^INDIAVIX": "India VIX",
-  "INR=X": "USD/INR",
-  "BZ=F": "Brent Crude",
-  "^TNX": "US 10Y (×10)",
-};
+// yahoo-finance2 handles Yahoo's cookie/crumb/session dance, which raw
+// fetches fail (blanket HTTP 429). Kept behind the same Fetcher isolation:
+// if Yahoo blocks anyway (some datacenter IPs), this source degrades alone.
+const YAHOO_SYMBOLS = ["^NSEI", "^NSEBANK", "^BSESN", "^INDIAVIX", "INR=X", "BZ=F", "^TNX"];
 
-interface YahooChart {
-  chart?: {
-    result?: Array<{
-      timestamp?: number[];
-      indicators?: {
-        quote?: Array<{
-          open?: Array<number | null>;
-          high?: Array<number | null>;
-          low?: Array<number | null>;
-          close?: Array<number | null>;
-          volume?: Array<number | null>;
-        }>;
-      };
-    }>;
-    error?: { description?: string } | null;
-  };
-}
-
-// Market days keyed to IST so an NSE close and a late-UTC Brent close land
-// on the trading date an Indian reader expects.
-function istDate(unixSeconds: number): string {
-  return new Date(unixSeconds * 1000).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
-}
+const yf = new YahooFinance({ suppressNotices: ["yahooSurvey"] });
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// Yahoo 429s bursts aggressively; the daily cadence only needs one polite
-// pass, so space requests out and back off once on a rate limit.
-export const REQUEST_SPACING_MS = 2_500;
-const RETRY_BACKOFF_MS = 30_000;
+// Market days keyed to IST so an NSE close and a late-UTC Brent close land
+// on the trading date an Indian reader expects.
+function istDate(date: Date): string {
+  return date.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+}
 
-async function fetchSymbol(symbol: string, attempt = 0): Promise<IngestBar[]> {
-  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=10d&interval=1d`;
-  const res = await fetch(url, {
-    headers: { "user-agent": USER_AGENT, accept: "application/json" },
-    signal: AbortSignal.timeout(15_000),
+async function fetchSymbol(symbol: string): Promise<IngestBar[]> {
+  const chart = await yf.chart(symbol, {
+    period1: new Date(Date.now() - 12 * 86_400_000),
+    interval: "1d",
   });
-  if (res.status === 429 && attempt < 1) {
-    await sleep(RETRY_BACKOFF_MS);
-    return fetchSymbol(symbol, attempt + 1);
-  }
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const data = (await res.json()) as YahooChart;
-  const result = data.chart?.result?.[0];
-  if (!result) throw new Error(data.chart?.error?.description ?? "empty chart result");
-
-  const timestamps = result.timestamp ?? [];
-  const quote = result.indicators?.quote?.[0] ?? {};
   const bars: IngestBar[] = [];
-  for (let i = 0; i < timestamps.length; i++) {
-    const close = quote.close?.[i];
-    if (close === null || close === undefined) continue;
+  for (const quote of chart.quotes) {
+    if (quote.close === null || quote.close === undefined) continue;
     bars.push({
-      date: istDate(timestamps[i]),
+      date: istDate(quote.date),
       symbol,
-      open: quote.open?.[i] ?? undefined,
-      high: quote.high?.[i] ?? undefined,
-      low: quote.low?.[i] ?? undefined,
-      close,
-      volume: quote.volume?.[i] ?? undefined,
+      open: quote.open ?? undefined,
+      high: quote.high ?? undefined,
+      low: quote.low ?? undefined,
+      close: quote.close,
+      volume: quote.volume ?? undefined,
       source: "yahoo",
     });
   }
@@ -83,13 +45,12 @@ export const yahooMarketsFetcher: Fetcher = {
   async fetch(): Promise<SourceResult> {
     const bars: IngestBar[] = [];
     const failures: string[] = [];
-    const symbols = Object.keys(MARKET_SYMBOLS);
-    for (let i = 0; i < symbols.length; i++) {
-      if (i > 0) await sleep(REQUEST_SPACING_MS);
+    for (let i = 0; i < YAHOO_SYMBOLS.length; i++) {
+      if (i > 0) await sleep(500);
       try {
-        bars.push(...(await fetchSymbol(symbols[i])));
+        bars.push(...(await fetchSymbol(YAHOO_SYMBOLS[i])));
       } catch (err) {
-        failures.push(`${symbols[i]}: ${err instanceof Error ? err.message : String(err)}`);
+        failures.push(`${YAHOO_SYMBOLS[i]}: ${err instanceof Error ? err.message : String(err)}`);
       }
     }
     if (bars.length === 0 && failures.length > 0) {

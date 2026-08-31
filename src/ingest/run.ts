@@ -2,6 +2,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { loadEnv } from "@/lib/load-env";
 import { computeRegime } from "@/lib/regime";
 import { buildBriefingPack } from "./briefing";
+import { amfiFetcher } from "./sources/amfi";
 import { googleNewsFetcher } from "./sources/google-news";
 import { macroRatesFetcher } from "./sources/macro-rates";
 import { nseIndicesFetcher } from "./sources/nse-indices";
@@ -10,7 +11,13 @@ import type { Fetcher, IngestBar, IngestEvent } from "./types";
 
 loadEnv();
 
-const FETCHERS: Fetcher[] = [googleNewsFetcher, nseIndicesFetcher, macroRatesFetcher, yahooMarketsFetcher];
+const FETCHERS: Fetcher[] = [
+  googleNewsFetcher,
+  nseIndicesFetcher,
+  macroRatesFetcher,
+  amfiFetcher,
+  yahooMarketsFetcher,
+];
 
 interface SourceRun {
   ok: boolean;
@@ -137,6 +144,7 @@ async function main() {
   } else {
     console.log("[regime] insufficient data");
   }
+  console.log(`[pack] ${pack.date} · tradingDay=${pack.tradingDay}`);
 
   if (dryRun) {
     mkdirSync("data", { recursive: true });

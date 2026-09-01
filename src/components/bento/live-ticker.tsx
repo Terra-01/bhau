@@ -2,6 +2,7 @@
 
 import type { LiveMarket } from "@/app/api/live/market/route";
 import { LiveChip } from "@/components/live-chip";
+import { SlideValue } from "@/components/motion/slide-value";
 import { deltaClass, signedPct } from "@/lib/format";
 import { useLive } from "@/lib/use-live";
 
@@ -40,7 +41,7 @@ export function LiveTicker({ items }: { items: TickerItem[] }) {
         {resolved.map((item) => (
           <span key={item.symbol} className="flex shrink-0 items-baseline gap-1 whitespace-nowrap">
             <span className="text-[8.5px] font-semibold uppercase tracking-[0.05em] text-fog">{item.label}</span>
-            <span className="font-mono text-[10.5px] font-medium tabular-nums text-ink">{fmt.format(item.close)}</span>
+            <SlideValue n={item.close} text={fmt.format(item.close)} className="font-mono text-[10.5px] font-medium tabular-nums text-ink" />
             {item.changePct !== undefined && (
               <span className={`font-mono text-[9px] tabular-nums ${deltaClass(item.changePct)} max-[1450px]:hidden`}>
                 {signedPct(item.changePct)}

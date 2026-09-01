@@ -3,6 +3,7 @@
 import type { LiveMovers } from "@/app/api/live/movers/route";
 import { InsightLine } from "@/components/insight-line";
 import { LiveChip } from "@/components/live-chip";
+import { FlipView } from "@/components/motion/flip-view";
 import type { ExchangeData, StockRow } from "@/lib/exchange";
 import { deltaClass, signedPct } from "@/lib/format";
 import { compactInr } from "@/lib/heat";
@@ -65,7 +66,8 @@ export function MoversPanel({
       }
     >
       <div className="flex h-full min-h-0 flex-col" {...pauseProps}>
-        <ul className="min-h-0 flex-1 overflow-y-auto">
+        <FlipView id={tab} className="flex-1">
+        <ul className="h-full overflow-y-auto">
           {rows.map((row) => (
             <li key={row.symbol} className="flex items-baseline gap-2 border-b border-ash px-2.5 py-[3px]">
               <span className="min-w-0 flex-1 truncate font-mono text-[11px] font-medium text-charcoal">{row.symbol}</span>
@@ -80,6 +82,7 @@ export function MoversPanel({
           ))}
           {rows.length === 0 && <li className="px-2.5 py-3 text-[11px] text-fog">Accumulating sessions…</li>}
         </ul>
+        </FlipView>
 
         {data.etfs.length > 0 && (
           <div className="shrink-0 border-t border-ash">

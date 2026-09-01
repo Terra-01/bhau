@@ -1,6 +1,7 @@
 "use client";
 
 import { Music } from "lucide-react";
+import { FlipView } from "@/components/motion/flip-view";
 import type { ExchangeData } from "@/lib/exchange";
 import type { WarRoomData } from "@/lib/warroom";
 import { deltaClass, signedPct } from "@/lib/format";
@@ -45,6 +46,7 @@ export function FunCorner({
       scroll
     >
       <div {...pauseProps}>
+      <FlipView id={tab}>
       {tab === "songs" ? (
         !songs || songs.length === 0 ? (
           <p className="px-3 py-3 text-[11.5px] text-fog">Charts unavailable.</p>
@@ -106,6 +108,7 @@ export function FunCorner({
           <p className="pt-1 text-[9px] text-silver">Equal-weight 1D basket · not a real index · definitely not advice</p>
         </div>
       ) : null}
+      </FlipView>
       </div>
     </Tile>
   );

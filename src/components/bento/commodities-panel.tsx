@@ -3,6 +3,7 @@
 import type { LiveMarket } from "@/app/api/live/market/route";
 import { InsightLine } from "@/components/insight-line";
 import { LiveChip } from "@/components/live-chip";
+import { TickFlash } from "@/components/motion/tick-flash";
 import type { WarRoomData } from "@/lib/warroom";
 import { deltaClass, signedPct } from "@/lib/format";
 import { useLive } from "@/lib/use-live";
@@ -56,7 +57,9 @@ export function CommoditiesPanel({ items }: { items: WarRoomData["commodities"] 
                 <td className="py-[5px]">
                   <Sparkline values={item.spark} width={44} height={16} />
                 </td>
-                <td className="px-1.5 py-[3px] text-right font-mono text-[11px] font-medium tabular-nums text-ink">${fmt.format(item.close)}</td>
+                <td className="px-1.5 py-[3px] text-right font-mono text-[11px] font-medium tabular-nums text-ink">
+                  <TickFlash value={item.close}>${fmt.format(item.close)}</TickFlash>
+                </td>
                 <td className={`px-1.5 py-[3px] text-right font-mono text-[10.5px] tabular-nums ${item.change !== undefined ? deltaClass(item.change) : "text-fog"}`}>
                   {item.change !== undefined ? `${item.change > 0 ? "+" : item.change < 0 ? "−" : ""}${fmt.format(Math.abs(item.change))}` : "—"}
                 </td>

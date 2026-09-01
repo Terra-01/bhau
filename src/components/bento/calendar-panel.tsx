@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { InsightLine } from "@/components/insight-line";
+import { FlipView } from "@/components/motion/flip-view";
 import type { ExchangeData } from "@/lib/exchange";
 import { useCarousel } from "@/lib/use-carousel";
 import { Tile } from "../tiles/tile";
@@ -86,7 +87,8 @@ export function CalendarPanel({ data, todayIso }: { data: ExchangeData; todayIso
       }
     >
       <div className="flex h-full min-h-0 flex-col" {...pauseProps}>
-      <ul className="min-h-0 flex-1 overflow-y-auto">
+      <FlipView id={tab} className="flex-1">
+      <ul className="h-full overflow-y-auto">
         {items.length === 0 && <li className="px-3 py-4 text-[11.5px] text-fog">Nothing scheduled.</li>}
         {items.map((item, i) => {
           const [weekday, dayMonth] = dateCol(item.date);
@@ -118,6 +120,7 @@ export function CalendarPanel({ data, todayIso }: { data: ExchangeData; todayIso
           );
         })}
       </ul>
+      </FlipView>
       <InsightLine meta="NSE">
         {(() => {
           const nextResults = data.earnings.find((e) => e.isResults);

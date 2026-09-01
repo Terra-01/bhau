@@ -1,7 +1,9 @@
 "use client";
 
-import { ExternalLink, Pause, Play, Tv, Volume2, VolumeX } from "lucide-react";
+import { ExternalLink, Play, Tv, Volume2, VolumeX } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { PauseIcon } from "@/components/ui/pause";
+import { PlayIcon } from "@/components/ui/play";
 import { Tile } from "./tile";
 
 // Custom player, paused by default: while paused we render our own
@@ -142,7 +144,7 @@ export function TvTile() {
                 className="flex h-5 w-5 items-center justify-center rounded-full text-white transition-transform duration-150 active:scale-[0.92] [@media(hover:hover)]:hover:bg-white/20"
                 title={playing ? "Pause" : "Play from live"}
               >
-                {playing ? <Pause size={11} fill="currentColor" /> : <Play size={11} fill="currentColor" />}
+                {playing ? <PauseIcon size={11} className="flex" /> : <PlayIcon size={11} className="flex" />}
               </button>
               {playing && (
                 <button

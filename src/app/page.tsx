@@ -54,26 +54,26 @@ export default async function Feed() {
       <main className="mt-1 grid min-h-0 flex-1 grid-cols-1 gap-1 md:grid-cols-2 xl:grid-cols-[minmax(0,4fr)_minmax(0,4.5fr)_minmax(0,3.5fr)]">
         {/* Left stack — watchlist · rates & macro · off the tape */}
         <div className="flex min-h-0 flex-col gap-1 md:col-span-2 xl:col-span-1">
-          <div className="max-xl:h-[420px] min-h-0 xl:h-auto xl:flex-[1.35]">
+          <div className="tile-in max-xl:h-[420px] min-h-0 xl:h-auto xl:flex-[1.35]">
             <WatchlistPanel pinnedQuotes={pinnedQuotes} />
           </div>
-          <div className="max-xl:h-[280px] min-h-0 xl:h-auto xl:flex-[0.8]">
+          <div className="tile-in max-xl:h-[280px] min-h-0 xl:h-auto xl:flex-[0.8]" style={{ animationDelay: "120ms" }}>
             <RatesPanel rates={rates} />
           </div>
-          <div className="max-xl:h-[240px] min-h-0 xl:h-auto xl:flex-[0.6]">
+          <div className="tile-in max-xl:h-[240px] min-h-0 xl:h-auto xl:flex-[0.6]" style={{ animationDelay: "240ms" }}>
             <FunCorner songs={data.songs} mood={data.songMood} baskets={exchange.funBaskets} />
           </div>
         </div>
 
         {/* Center stack — stocks · the floor (hero) · intelligence */}
         <div className="flex min-h-0 flex-col gap-1 xl:col-span-1">
-          <div className="max-xl:h-[420px] min-h-0 xl:h-auto xl:flex-[1.1]">
+          <div className="tile-in max-xl:h-[420px] min-h-0 xl:h-auto xl:flex-[1.1]" style={{ animationDelay: "40ms" }}>
             <MoversPanel data={exchange} sectors={data.sectors} />
           </div>
-          <div className="max-xl:h-[300px] min-h-0 xl:h-auto xl:flex-[0.85]">
+          <div className="tile-in max-xl:h-[300px] min-h-0 xl:h-auto xl:flex-[0.85]" style={{ animationDelay: "160ms" }}>
             <FloorTile floor={data.floor} race={data.race} />
           </div>
-          <div className="max-xl:h-[360px] min-h-0 xl:h-auto xl:flex-[1.15]">
+          <div className="tile-in max-xl:h-[360px] min-h-0 xl:h-auto xl:flex-[1.15]" style={{ animationDelay: "280ms" }}>
             <WhatMattersPanel synthesis={data.synthesis} news={data.news} flows={data.flows} fiiStreak={data.fiiStreak} />
           </div>
         </div>
@@ -81,17 +81,17 @@ export default async function Feed() {
         {/* Right stack — (city pulse | forex) · calendar · commodities · live TV */}
         <div className="flex min-h-0 flex-col gap-1 xl:col-span-1">
           {/* Fixed height: the city tabs must not re-flow the rail below */}
-          <div className="grid shrink-0 grid-cols-2 gap-1 xl:h-[190px]">
+          <div className="tile-in grid shrink-0 grid-cols-2 gap-1 xl:h-[190px]" style={{ animationDelay: "80ms" }}>
             <CityTile weather={data.weather} pulse={data.cityPulse} />
             <ForexRates forex={exchange.forex} />
           </div>
-          <div className="max-xl:h-[300px] min-h-0 xl:h-auto xl:flex-[0.8]">
+          <div className="tile-in max-xl:h-[300px] min-h-0 xl:h-auto xl:flex-[0.8]" style={{ animationDelay: "200ms" }}>
             <CalendarPanel data={exchange} todayIso={todayIso} />
           </div>
-          <div className="min-h-0 shrink-0">
+          <div className="tile-in min-h-0 shrink-0" style={{ animationDelay: "320ms" }}>
             <CommoditiesPanel items={data.commodities} />
           </div>
-          <div className="max-xl:h-[360px] min-h-0 xl:h-auto xl:flex-[1.2]">
+          <div className="tile-in max-xl:h-[360px] min-h-0 xl:h-auto xl:flex-[1.2]" style={{ animationDelay: "360ms" }}>
             <TvTile />
           </div>
         </div>

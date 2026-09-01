@@ -1,10 +1,12 @@
 "use client";
 
-import { Plus } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CompanyCard } from "@/components/company-card";
 import { InsightLine } from "@/components/insight-line";
 import { LiveChip } from "@/components/live-chip";
+import { FlipView } from "@/components/motion/flip-view";
+import { TickFlash } from "@/components/motion/tick-flash";
+import { PlusIcon } from "@/components/ui/plus";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { deltaClass, signedPct } from "@/lib/format";
 import { isLive, phaseAt, type MarketPhase } from "@/lib/market-clock";
@@ -163,7 +165,7 @@ export function WatchlistPanel({
               title="Add to watchlist"
               className="flex items-center gap-0.5 rounded-full border border-ash px-1.5 py-px font-sans text-[9px] font-semibold text-steel transition-colors duration-150 [@media(hover:hover)]:hover:bg-paper"
             >
-              <Plus size={9} /> ADD
+              <PlusIcon size={9} className="flex" /> ADD
             </PopoverTrigger>
             <PopoverContent align="end" className="w-56 p-2">
               <form
@@ -212,7 +214,9 @@ export function WatchlistPanel({
                 <span className="min-w-0 flex-1 truncate text-[12px] font-semibold text-charcoal">{pin.label}</span>
                 {quote && (
                   <>
-                    <span className="font-mono text-[12px] font-medium tabular-nums text-ink">{fmt.format(quote.close)}</span>
+                    <TickFlash value={quote.close} className="font-mono text-[12px] font-medium tabular-nums text-ink">
+                      {fmt.format(quote.close)}
+                    </TickFlash>
                     {quote.changePct !== undefined && (
                       <span className={`w-16 text-right font-mono text-[10.5px] tabular-nums ${deltaClass(quote.changePct)}`}>
                         {signedPct(quote.changePct)}
@@ -223,6 +227,7 @@ export function WatchlistPanel({
               </button>
             );
           })}
+          <FlipView id={page}>
           {visible.map((symbol) => {
             const quote = quotes.get(symbol);
             return (
@@ -236,7 +241,9 @@ export function WatchlistPanel({
                 </button>
                 {quote?.found ? (
                   <>
-                    <span className="font-mono text-[11.5px] tabular-nums text-ink">₹{fmt.format(quote.close!)}</span>
+                    <TickFlash value={quote.close} className="font-mono text-[11.5px] tabular-nums text-ink">
+                      ₹{fmt.format(quote.close!)}
+                    </TickFlash>
                     {quote.changePct !== undefined && (
                       <span className={`w-16 text-right font-mono text-[10.5px] tabular-nums ${deltaClass(quote.changePct)}`}>
                         {signedPct(quote.changePct)}
@@ -257,6 +264,7 @@ export function WatchlistPanel({
               </div>
             );
           })}
+          </FlipView>
         </div>
         {pages > 1 && (
           <div className="flex shrink-0 items-center justify-end gap-1 border-t border-ash px-2.5 py-0.5 font-mono text-[9.5px] text-fog">

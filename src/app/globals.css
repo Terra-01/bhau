@@ -137,12 +137,72 @@
     transform: translateX(-50%);
   }
 }
+.marquee-window {
+  /* gradient masks: headlines dissolve at the window edges instead of clipping */
+  mask-image: linear-gradient(to right, transparent, black 28px, black calc(100% - 28px), transparent);
+}
 @media (prefers-reduced-motion: reduce) {
   .marquee-animate {
     animation: none;
   }
   .marquee-window {
     overflow-x: auto;
+  }
+}
+
+/* Page-load choreography: tiles rise in once, staggered via inline
+   animation-delay. CSS so it stays smooth while hydration is busy. */
+@keyframes tile-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.tile-in {
+  animation: tile-in 340ms var(--ease-out-strong) backwards;
+}
+
+/* Tick flash: the terminal-standard wash when a live value changes. */
+@keyframes tick-up-kf {
+  from {
+    background-color: color-mix(in oklab, var(--color-gain) 26%, transparent);
+  }
+  to {
+    background-color: transparent;
+  }
+}
+@keyframes tick-down-kf {
+  from {
+    background-color: color-mix(in oklab, var(--color-loss) 24%, transparent);
+  }
+  to {
+    background-color: transparent;
+  }
+}
+.tick-up {
+  animation: tick-up-kf 700ms var(--ease-out-strong);
+}
+.tick-down {
+  animation: tick-down-kf 700ms var(--ease-out-strong);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* fade stays for comprehension; movement and choreography go */
+  @keyframes tile-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  .tile-in {
+    animation-duration: 200ms;
+    animation-delay: 0ms !important;
   }
 }
 

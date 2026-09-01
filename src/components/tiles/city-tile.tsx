@@ -1,7 +1,13 @@
 "use client";
 
-import { Cloud, CloudDrizzle, CloudFog, CloudLightning, CloudRain, CloudSun, Snowflake, Sun } from "lucide-react";
+import { Cloud, CloudDrizzle, CloudFog } from "lucide-react";
 import { InsightLine } from "@/components/insight-line";
+import { FlipView } from "@/components/motion/flip-view";
+import { CloudLightningIcon } from "@/components/ui/cloud-lightning";
+import { CloudRainIcon } from "@/components/ui/cloud-rain";
+import { CloudSunIcon } from "@/components/ui/cloud-sun";
+import { SnowflakeIcon } from "@/components/ui/snowflake";
+import { SunIcon } from "@/components/ui/sun";
 import type { WarRoomData } from "@/lib/warroom";
 import { deltaClass, signedPct } from "@/lib/format";
 import { useCarousel } from "@/lib/use-carousel";
@@ -10,18 +16,18 @@ import { Tile } from "./tile";
 // City pulse: what's happening on Indian streets today — pump prices
 // (genuinely city-level via state taxes), the IBJA bullion fix (national
 // by construction), and the weather. One tile, two auto-rotating tabs.
+// Weather glyphs are lucide-animated where the registry has them
+// (hover-triggered); the rest stay static lucide.
 
-function iconFor(code: number) {
-  if (code === 0) return Sun;
-  if (code <= 2) return CloudSun;
-  if (code === 3) return Cloud;
-  if (code <= 48) return CloudFog;
-  if (code <= 57) return CloudDrizzle;
-  if (code <= 67) return CloudRain;
-  if (code <= 77) return Snowflake;
-  if (code <= 82) return CloudRain;
-  if (code <= 86) return Snowflake;
-  return CloudLightning;
+function WeatherIcon({ code, size, className }: { code: number; size: number; className?: string }) {
+  if (code === 0) return <SunIcon size={size} className={className} />;
+  if (code <= 2) return <CloudSunIcon size={size} className={className} />;
+  if (code === 3) return <Cloud size={size} className={className} strokeWidth={1.75} />;
+  if (code <= 48) return <CloudFog size={size} className={className} strokeWidth={1.75} />;
+  if (code <= 57) return <CloudDrizzle size={size} className={className} strokeWidth={1.75} />;
+  if (code <= 67 || (code > 77 && code <= 82)) return <CloudRainIcon size={size} className={className} />;
+  if (code <= 86) return <SnowflakeIcon size={size} className={className} />;
+  return <CloudLightningIcon size={size} className={className} />;
 }
 
 const inr0 = new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 });
@@ -70,7 +76,8 @@ export function CityTile({
       }
     >
       <div className="flex h-full min-h-0 flex-col" {...pauseProps}>
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <FlipView id={showPrices ? "prices" : "weather"} className="flex-1">
+        <div className="flex h-full min-h-0 flex-col overflow-hidden">
           {showPrices ? (
             <>
               <table className="w-full border-collapse">
@@ -116,10 +123,9 @@ export function CityTile({
           ) : weather ? (
             <ul className="px-2.5 py-0.5">
               {weather.slice(0, 7).map((w) => {
-                const Icon = iconFor(w.code);
                 return (
                   <li key={w.city} className="flex items-center gap-1.5 border-b border-ash py-[2.5px] last:border-b-0">
-                    <Icon size={12} className="shrink-0 text-steel" strokeWidth={1.75} />
+                    <WeatherIcon code={w.code} size={12} className="flex shrink-0 text-steel" />
                     <span className="min-w-0 truncate text-[10px] text-charcoal">{w.city}</span>
                     <span className="ml-auto font-mono text-[10px] tabular-nums text-ink">
                       {w.tmax}°<span className="text-silver">/{w.tmin}°</span>
@@ -133,6 +139,7 @@ export function CityTile({
             <p className="px-2.5 py-3 text-[11px] text-fog">City data unavailable.</p>
           )}
         </div>
+        </FlipView>
         {showPrices && priciest ? (
           <InsightLine meta="₹/L · DAILY">
             Petrol top {priciest.city} {inr2.format(priciest.petrol)}

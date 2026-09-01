@@ -3,6 +3,7 @@
 import type { LiveMarket } from "@/app/api/live/market/route";
 import { InsightLine } from "@/components/insight-line";
 import { LiveChip } from "@/components/live-chip";
+import { TickFlash } from "@/components/motion/tick-flash";
 import type { ExchangeData } from "@/lib/exchange";
 import { deltaClass, signedPct } from "@/lib/format";
 import { useLive } from "@/lib/use-live";
@@ -87,7 +88,7 @@ export function ForexRates({ forex }: { forex: ExchangeData["forex"] }) {
                       <Sparkline values={row.spark} width={40} height={13} />
                     </td>
                     <td className="px-1 py-[2.5px] text-right font-mono text-[10.5px] font-medium leading-none tabular-nums text-ink">
-                      {fmt.format(row.price * scale)}
+                      <TickFlash value={row.price}>{fmt.format(row.price * scale)}</TickFlash>
                     </td>
                     <td className={`px-2.5 py-[2.5px] text-right font-mono text-[9.5px] leading-none tabular-nums ${row.m1 !== null ? deltaClass(row.m1) : "text-fog"}`}>
                       {row.m1 !== null ? signedPct(row.m1, 1) : "—"}

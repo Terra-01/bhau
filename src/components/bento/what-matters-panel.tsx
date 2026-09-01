@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { FlipView } from "@/components/motion/flip-view";
 import type { WarRoomData } from "@/lib/warroom";
 import { crore, deltaClass, timeIST } from "@/lib/format";
 import { useCarousel } from "@/lib/use-carousel";
@@ -92,7 +93,8 @@ export function WhatMattersPanel({
           )}
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto">
+        <FlipView id={tab} className="flex-1">
+        <div className="h-full overflow-y-auto">
           {tab === "synthesis" ? (
             synthesis ? (
               <div className="px-2.5 py-1.5">
@@ -128,6 +130,7 @@ export function WhatMattersPanel({
             </ul>
           )}
         </div>
+        </FlipView>
       </div>
     </Tile>
   );

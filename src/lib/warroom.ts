@@ -34,6 +34,11 @@ export interface WarRoomData {
   race: Array<Record<string, unknown>>; // {date: Date, [agentId]: equity}
   commodities: StripItem[];
   weather: Array<{ city: string; tmax: number; tmin: number; code: number; rainProb: number }> | null;
+  cityPulse: {
+    cities: Array<{ city: string; petrol?: number; diesel?: number }>;
+    metals: Array<{ name: string; unit: string; value: number; changePct?: number }>;
+    metalsAsOf?: string;
+  } | null;
   songs: Array<{ title: string; artist: string; art?: string; url?: string }> | null;
   songMood: { label: string; emoji: string; line: string } | null;
   floor: {
@@ -107,6 +112,54 @@ async function fetchWeather(): Promise<WarRoomData["weather"]> {
   }
 }
 
+// Fuel is city-level (state taxes); bullion is IBJA's national fix.
+const PULSE_CITIES = ["MUMBAI", "DELHI", "BENGALURU", "CHENNAI", "KOLKATA", "HYDERABAD"];
+const CITY_LABEL: Record<string, string> = {
+  MUMBAI: "Mumbai", DELHI: "Delhi", BENGALURU: "Bengaluru",
+  CHENNAI: "Chennai", KOLKATA: "Kolkata", HYDERABAD: "Hyderabad",
+};
+
+async function fetchCityPulse(): Promise<WarRoomData["cityPulse"]> {
+  const symbols = [
+    ...PULSE_CITIES.flatMap((c) => [`PETROL:${c}`, `DIESEL:${c}`]),
+    "GOLD999", "SILVER999",
+  ];
+  const rows = await prisma.dailyBar.findMany({
+    where: { symbol: { in: symbols }, date: { gte: new Date(Date.now() - 15 * 86_400_000) } },
+    orderBy: { date: "asc" },
+  });
+  if (rows.length === 0) return null;
+  const bySymbol = new Map<string, Array<{ date: string; close: number }>>();
+  for (const row of rows) {
+    const list = bySymbol.get(row.symbol) ?? [];
+    list.push({ date: row.date.toISOString().slice(0, 10), close: row.close });
+    bySymbol.set(row.symbol, list);
+  }
+  const cities = PULSE_CITIES.flatMap((key) => {
+    const petrol = bySymbol.get(`PETROL:${key}`)?.at(-1)?.close;
+    const diesel = bySymbol.get(`DIESEL:${key}`)?.at(-1)?.close;
+    return petrol === undefined && diesel === undefined ? [] : [{ city: CITY_LABEL[key], petrol, diesel }];
+  });
+  const metals: NonNullable<WarRoomData["cityPulse"]>["metals"] = [];
+  let metalsAsOf: string | undefined;
+  for (const [symbol, name, unit] of [
+    ["GOLD999", "Gold 999", "/10g"],
+    ["SILVER999", "Silver 999", "/kg"],
+  ] as const) {
+    const bars = bySymbol.get(symbol);
+    const last = bars?.at(-1);
+    if (!last) continue;
+    const prev = bars!.at(-2);
+    metals.push({
+      name, unit, value: last.close,
+      changePct: prev ? ((last.close - prev.close) / prev.close) * 100 : undefined,
+    });
+    metalsAsOf = last.date;
+  }
+  if (cities.length === 0 && metals.length === 0) return null;
+  return { cities, metals, metalsAsOf };
+}
+
 // Trending songs, India — iTunes RSS, keyless. Pure gen-z garnish.
 async function fetchSongs(): Promise<WarRoomData["songs"]> {
   try {
@@ -152,7 +205,7 @@ export async function getWarRoomData(): Promise<WarRoomData | null> {
   if (!packRow) return null;
   const pack = packRow.pack as unknown as BriefingPack;
 
-  const [weather, songs] = await Promise.all([fetchWeather(), fetchSongs()]);
+  const [weather, songs, cityPulse] = await Promise.all([fetchWeather(), fetchSongs(), fetchCityPulse()]);
   const { readSongMood } = await import("./song-mood");
   const songMood = songs ? await readSongMood(songs.map((s) => ({ title: s.title, artist: s.artist }))) : null;
 
@@ -387,6 +440,7 @@ export async function getWarRoomData(): Promise<WarRoomData | null> {
     race,
     commodities,
     weather,
+    cityPulse,
     songs,
     songMood,
     floor: {

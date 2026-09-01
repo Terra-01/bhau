@@ -1,4 +1,4 @@
-import { ECON_RELEASES, ETF_LIST, FUN_BASKETS, HERO_INDICES, INDEX_ROW, POLICY_RATE } from "@/config/exchange";
+import { ECON_RELEASES, FUN_BASKETS, HERO_INDICES, INDEX_ROW } from "@/config/exchange";
 import { SYMBOL_NAMES } from "@/ingest/symbols";
 import { prisma } from "./db";
 
@@ -27,15 +27,17 @@ export interface ExchangeData {
   mostTraded: StockRow[];
   gainers: StockRow[];
   losers: StockRow[];
-  etfs: StockRow[];
-  forex: Array<{ pair: string; price: number; horizons: Array<{ label: string; pct: number | null }> }> | null;
+  forex: Array<{
+    pair: string;
+    price: number;
+    spark: number[]; // ~30 calendar days of INR-per-unit closes
+    d1: number | null;
+    m1: number | null;
+    y1: number | null;
+  }> | null;
   earnings: Array<{ symbol: string; company?: string; purpose?: string; date: string; isResults: boolean }>;
   ipos: Array<{ symbol: string; company?: string; date: string; endDate?: string; priceBand?: string; status?: string }>;
   econCalendar: Array<{ name: string; source: string; date: string }>;
-  economy: {
-    tiles: Array<{ label: string; value: string; sub?: string }>;
-    gdpSeries: Array<{ date: Date; value: number }>;
-  } | null;
   funBaskets: Array<{
     id: string;
     name: string;
@@ -52,78 +54,37 @@ const todayIST = () => new Date().toLocaleDateString("en-CA", { timeZone: "Asia/
 async function fetchForex(): Promise<ExchangeData["forex"]> {
   try {
     const iso = (daysAgo: number) => new Date(Date.now() - daysAgo * 86_400_000).toISOString().slice(0, 10);
-    const horizons: Array<{ label: string; daysAgo: number }> = [
-      { label: "1D", daysAgo: 1 },
-      { label: "1W", daysAgo: 7 },
-      { label: "1M", daysAgo: 30 },
-      { label: "6M", daysAgo: 182 },
-      { label: "1Y", daysAgo: 365 },
-      { label: "5Y", daysAgo: 1826 },
-    ];
+    const symbols = "USD,EUR,JPY,GBP,CHF,CNY";
     const get = async (path: string) => {
-      const res = await fetch(`https://api.frankfurter.dev/v1/${path}&base=INR&symbols=USD,EUR,JPY,GBP,CHF,CNY`, {
+      const res = await fetch(`https://api.frankfurter.dev/v1/${path}&base=INR&symbols=${symbols}`, {
         next: { revalidate: 3600 },
         signal: AbortSignal.timeout(10_000),
       });
       if (!res.ok) throw new Error(`frankfurter ${res.status}`);
-      return (await res.json()) as { rates: Record<string, number> };
+      return (await res.json()) as { rates: Record<string, Record<string, number> | number> };
     };
-    const [latest, ...past] = await Promise.all([
-      get("latest?"),
-      ...horizons.map((h) => get(`${iso(h.daysAgo)}?`)),
-    ]);
+    // One 32-day range call carries the sparkline, 1D and 1M in one shot.
+    const [series, yearAgo] = await Promise.all([get(`${iso(32)}..?`), get(`${iso(365)}?`)]);
+    const days = Object.keys(series.rates).sort();
     const pairs = ["USD", "EUR", "JPY", "GBP", "CHF", "CNY"];
     return pairs.map((ccy) => {
-      const now = 1 / latest.rates[ccy]; // INR per unit of ccy
+      const spark = days
+        .map((d) => (series.rates[d] as Record<string, number>)?.[ccy])
+        .filter((v): v is number => typeof v === "number")
+        .map((v) => 1 / v); // INR per unit of ccy
+      const price = spark.at(-1) ?? 0;
+      const pct = (then: number | undefined) =>
+        then !== undefined && then !== 0 ? ((price - then) / then) * 100 : null;
+      const yearRate = (yearAgo.rates as Record<string, number>)?.[ccy];
       return {
-        pair: `${ccy}/INR`,
-        price: now,
-        horizons: horizons.map((h, i) => {
-          const then = past[i]?.rates?.[ccy] ? 1 / past[i].rates[ccy] : null;
-          return { label: h.label, pct: then ? ((now - then) / then) * 100 : null };
-        }),
+        pair: ccy,
+        price,
+        spark,
+        d1: pct(spark.at(-2)),
+        m1: pct(spark.at(0)),
+        y1: pct(typeof yearRate === "number" ? 1 / yearRate : undefined),
       };
     });
-  } catch {
-    return null;
-  }
-}
-
-interface WorldBankRow {
-  date: string;
-  value: number | null;
-}
-
-async function fetchEconomy(): Promise<ExchangeData["economy"]> {
-  try {
-    const get = async (indicator: string): Promise<WorldBankRow[]> => {
-      const res = await fetch(
-        `https://api.worldbank.org/v2/country/IND/indicator/${indicator}?format=json&per_page=20`,
-        { next: { revalidate: 86_400 }, signal: AbortSignal.timeout(12_000) },
-      );
-      if (!res.ok) throw new Error(`worldbank ${res.status}`);
-      const data = (await res.json()) as [unknown, WorldBankRow[]];
-      return (data[1] ?? []).filter((r) => r.value !== null);
-    };
-    const [gdp, growth, inflation, unemployment] = await Promise.all([
-      get("NY.GDP.MKTP.CD"),
-      get("NY.GDP.MKTP.KD.ZG"),
-      get("FP.CPI.TOTL.ZG"),
-      get("SL.UEM.TOTL.ZS"),
-    ]);
-    const latest = (rows: WorldBankRow[]) => rows[0];
-    const tiles = [
-      { label: "GDP", value: `$${(latest(gdp).value! / 1e12).toFixed(2)} T`, sub: latest(gdp).date },
-      { label: "GDP growth", value: `${latest(growth).value!.toFixed(1)}%`, sub: latest(growth).date },
-      { label: "CPI inflation", value: `${latest(inflation).value!.toFixed(1)}%`, sub: `${latest(inflation).date} avg` },
-      { label: "Unemployment", value: `${latest(unemployment).value!.toFixed(1)}%`, sub: latest(unemployment).date },
-      { label: POLICY_RATE.label, value: `${POLICY_RATE.value.toFixed(2)}%`, sub: POLICY_RATE.asOf },
-    ];
-    const gdpSeries = [...gdp]
-      .reverse()
-      .slice(-15)
-      .map((r) => ({ date: new Date(`${r.date}-12-31`), value: r.value! / 1e12 }));
-    return { tiles, gdpSeries };
   } catch {
     return null;
   }
@@ -147,7 +108,7 @@ function nextOccurrences(): ExchangeData["econCalendar"] {
 }
 
 export async function getExchangeData(): Promise<ExchangeData> {
-  const [forex, economy] = await Promise.all([fetchForex(), fetchEconomy()]);
+  const forex = await fetchForex();
 
   // --- indices: latest two nse closes per symbol
   const indexSymbols = [...INDEX_ROW];
@@ -208,7 +169,6 @@ export async function getExchangeData(): Promise<ExchangeData> {
   let mostTraded: StockRow[] = [];
   let gainers: StockRow[] = [];
   let losers: StockRow[] = [];
-  let etfs: StockRow[] = [];
   const asOf = bhavDates[0]?.date.toISOString().slice(0, 10) ?? todayIST();
   if (bhavDates.length === 2) {
     const [latest, previous] = bhavDates.map((d) => d.date);
@@ -232,8 +192,6 @@ export async function getExchangeData(): Promise<ExchangeData> {
     mostTraded = [...all].sort((a, b) => b.turnover - a.turnover).slice(0, 6);
     gainers = [...liquid].sort((a, b) => b.changePct - a.changePct).slice(0, 6);
     losers = [...liquid].sort((a, b) => a.changePct - b.changePct).slice(0, 6);
-    const etfSet = new Set<string>(ETF_LIST);
-    etfs = all.filter((r) => etfSet.has(r.symbol)).sort((a, b) => b.turnover - a.turnover).slice(0, 10);
   }
 
   // --- NSE calendars (upcoming only)
@@ -301,12 +259,10 @@ export async function getExchangeData(): Promise<ExchangeData> {
     mostTraded,
     gainers,
     losers,
-    etfs,
     forex,
     earnings: earnings.slice(0, 6),
     ipos: ipos.slice(0, 6),
     econCalendar: nextOccurrences(),
-    economy,
     funBaskets,
   };
 }

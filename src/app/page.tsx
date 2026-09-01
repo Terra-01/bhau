@@ -3,14 +3,15 @@ import { CalendarPanel } from "@/components/bento/calendar-panel";
 import { CommoditiesPanel } from "@/components/bento/commodities-panel";
 import { FunCorner } from "@/components/bento/fun-corner";
 import { MoversPanel } from "@/components/bento/movers-panel";
+import { RatesPanel } from "@/components/bento/rates-panel";
 import { WatchlistPanel } from "@/components/bento/watchlist-panel";
 import { WhatMattersPanel } from "@/components/bento/what-matters-panel";
-import { WorldView } from "@/components/bento/world-view";
-import { ForexRates } from "@/components/exchange/forex-matrix";
+import { ForexRates } from "@/components/exchange/forex-rates";
+import { CityTile } from "@/components/tiles/city-tile";
 import { FloorTile } from "@/components/tiles/floor-tile";
 import { TvTile } from "@/components/tiles/tv-tile";
-import { WeatherTile } from "@/components/tiles/weather-tile";
 import { getExchangeData } from "@/lib/exchange";
+import { getRatesData } from "@/lib/rates";
 import { getWarRoomData } from "@/lib/warroom";
 
 export const revalidate = 300; // data changes once per trading day
@@ -19,7 +20,7 @@ export const revalidate = 300; // data changes once per trading day
 // area (viewport − header − footer) is distributed across three column
 // stacks; the document never scrolls at xl. Below xl it flows normally.
 export default async function Feed() {
-  const [data, exchange] = await Promise.all([getWarRoomData(), getExchangeData()]);
+  const [data, exchange, rates] = await Promise.all([getWarRoomData(), getExchangeData(), getRatesData()]);
 
   if (!data) {
     return (
@@ -41,13 +42,13 @@ export default async function Feed() {
       <AppHeader data={data} />
 
       <main className="mt-1 grid min-h-0 flex-1 grid-cols-1 gap-1 md:grid-cols-2 xl:grid-cols-[minmax(0,4fr)_minmax(0,4.5fr)_minmax(0,3.5fr)]">
-        {/* Left stack — watchlist · world view · (off the tape | forex) */}
+        {/* Left stack — watchlist · rates & macro · off the tape */}
         <div className="flex min-h-0 flex-col gap-1 md:col-span-2 xl:col-span-1">
-          <div className="max-xl:h-[420px] min-h-0 xl:h-auto xl:flex-[1.15]">
+          <div className="max-xl:h-[420px] min-h-0 xl:h-auto xl:flex-[1.35]">
             <WatchlistPanel pinnedQuotes={pinnedQuotes} />
           </div>
-          <div className="max-xl:h-[360px] min-h-0 xl:h-auto xl:flex-1">
-            <WorldView />
+          <div className="max-xl:h-[280px] min-h-0 xl:h-auto xl:flex-[0.8]">
+            <RatesPanel rates={rates} />
           </div>
           <div className="max-xl:h-[240px] min-h-0 xl:h-auto xl:flex-[0.6]">
             <FunCorner songs={data.songs} mood={data.songMood} baskets={exchange.funBaskets} />
@@ -67,10 +68,10 @@ export default async function Feed() {
           </div>
         </div>
 
-        {/* Right stack — (weather | forex) · floor · commodities · live TV */}
+        {/* Right stack — (city pulse | forex) · floor · commodities · live TV */}
         <div className="flex min-h-0 flex-col gap-1 xl:col-span-1">
           <div className="grid shrink-0 grid-cols-2 gap-1">
-            <WeatherTile weather={data.weather} />
+            <CityTile weather={data.weather} pulse={data.cityPulse} />
             <ForexRates forex={exchange.forex} />
           </div>
           <div className="max-xl:h-[300px] min-h-0 xl:h-auto xl:flex-1">

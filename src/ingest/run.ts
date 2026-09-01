@@ -5,10 +5,13 @@ import { buildBriefingPack } from "./briefing";
 import { amfiFetcher } from "./sources/amfi";
 import { bhavcopyFetcher } from "./sources/bhavcopy";
 import { fiiDiiFetcher } from "./sources/fii-dii";
+import { fuelCityFetcher } from "./sources/fuel-city";
 import { googleNewsFetcher } from "./sources/google-news";
+import { ibjaFetcher } from "./sources/ibja";
 import { macroRatesFetcher } from "./sources/macro-rates";
 import { nseCalendarsFetcher } from "./sources/nse-calendars";
 import { nseIndicesFetcher } from "./sources/nse-indices";
+import { rbiRatesFetcher } from "./sources/rbi-rates";
 import { yahooMarketsFetcher } from "./sources/yahoo";
 import type { Fetcher, IngestBar, IngestEvent, IngestFlow } from "./types";
 
@@ -23,6 +26,9 @@ const FETCHERS: Fetcher[] = [
   macroRatesFetcher,
   amfiFetcher,
   yahooMarketsFetcher,
+  rbiRatesFetcher,
+  ibjaFetcher,
+  fuelCityFetcher,
 ];
 
 interface SourceRun {

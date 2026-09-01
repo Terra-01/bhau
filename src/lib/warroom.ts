@@ -35,6 +35,7 @@ export interface WarRoomData {
   commodities: StripItem[];
   weather: Array<{ city: string; tmax: number; tmin: number; code: number; rainProb: number }> | null;
   songs: Array<{ title: string; artist: string; art?: string; url?: string }> | null;
+  songMood: { label: string; emoji: string; line: string } | null;
   floor: {
     date: string;
     scoreboard: Array<{
@@ -152,6 +153,8 @@ export async function getWarRoomData(): Promise<WarRoomData | null> {
   const pack = packRow.pack as unknown as BriefingPack;
 
   const [weather, songs] = await Promise.all([fetchWeather(), fetchSongs()]);
+  const { readSongMood } = await import("./song-mood");
+  const songMood = songs ? await readSongMood(songs.map((s) => ({ title: s.title, artist: s.artist }))) : null;
 
   // --- market strip + commodities with ~12-session sparklines
   const stripSymbols = [...STRIP, ...COMMODITIES].flatMap((s) => s.candidates);
@@ -385,6 +388,7 @@ export async function getWarRoomData(): Promise<WarRoomData | null> {
     commodities,
     weather,
     songs,
+    songMood,
     floor: {
       date: latestSnapDate?.date.toISOString().slice(0, 10) ?? pack.date,
       scoreboard,

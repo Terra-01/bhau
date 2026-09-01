@@ -39,6 +39,7 @@ export function WorldView() {
   const [loaded, setLoaded] = useState<{ iso: string; stats: CountryStats | null } | null>(null);
   const stats = loaded?.iso === selected.iso ? loaded.stats : null;
   const hovered = useRef<{ iso: string; name: string } | null>(null);
+  const pressAt = useRef<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
     fetch("/geo/countries.geo.json")
@@ -59,16 +60,32 @@ export function WorldView() {
   }, [selected]);
 
   return (
-    <Tile title="World view" meta="WORLD BANK · CLICK A COUNTRY">
+    <Tile title="World view" meta="CLICK A COUNTRY · DRAG / PINCH / SCROLL TO EXPLORE">
       <div className="flex h-full min-h-0 flex-col">
         <div
-          className="min-h-0 flex-1 cursor-pointer"
-          onClick={() => {
+          className="min-h-0 flex-1 cursor-grab active:cursor-grabbing"
+          onPointerDown={(e) => {
+            pressAt.current = { x: e.clientX, y: e.clientY };
+          }}
+          onClick={(e) => {
+            // Select only on a true click — a pan that ends here shouldn't
+            // switch countries. 5px movement threshold.
+            const start = pressAt.current;
+            if (start && Math.hypot(e.clientX - start.x, e.clientY - start.y) > 5) return;
             if (hovered.current) setSelected(hovered.current);
           }}
         >
           {geo ? (
-            <ChoroplethChart data={geo} className="h-full" aspectRatio={undefined} scale={230} center={[63, 17]}>
+            <ChoroplethChart
+              data={geo}
+              className="h-full"
+              aspectRatio={undefined}
+              scale={230}
+              center={[63, 17]}
+              zoomEnabled
+              zoomMin={0.6}
+              zoomMax={8}
+            >
               <ChoroplethFeature
                 stroke="var(--color-canvas)"
                 strokeWidth={0.5}

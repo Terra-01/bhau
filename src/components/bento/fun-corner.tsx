@@ -11,9 +11,11 @@ import { Tile } from "../tiles/tile";
 // indicators, computed for real from listed names.
 export function FunCorner({
   songs,
+  mood,
   baskets,
 }: {
   songs: WarRoomData["songs"];
+  mood: WarRoomData["songMood"];
   baskets: ExchangeData["funBaskets"];
 }) {
   const tabs = [{ id: "songs", label: "Songs" }, ...baskets.map((b) => ({ id: b.id, label: b.name.split(" ")[0] }))];
@@ -46,6 +48,15 @@ export function FunCorner({
           <p className="px-3 py-3 text-[11.5px] text-fog">Charts unavailable.</p>
         ) : (
           <ul className="px-2.5 py-1">
+            {mood && (
+              <li className="mb-0.5 flex items-baseline gap-1.5 rounded-[4px] bg-paper/70 px-1.5 py-1">
+                <span className="text-[12px]">{mood.emoji}</span>
+                <span className="min-w-0">
+                  <span className="text-[10.5px] font-semibold text-ink">India&apos;s mood: {mood.label}</span>
+                  <span className="block text-[9.5px] leading-snug text-fog">{mood.line}</span>
+                </span>
+              </li>
+            )}
             {songs.map((song, i) => (
               <li key={song.title} className="flex items-center gap-2 border-b border-ash py-[3px] last:border-b-0">
                 <span className="w-3 font-mono text-[9.5px] tabular-nums text-silver">{i + 1}</span>

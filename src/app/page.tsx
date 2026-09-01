@@ -40,32 +40,36 @@ export default async function Feed() {
     <div className="flex w-full flex-1 flex-col px-2 pb-1 xl:h-dvh xl:overflow-hidden">
       <AppHeader data={data} />
 
-      <main className="mt-1 grid min-h-0 flex-1 grid-cols-1 gap-1 md:grid-cols-2 xl:grid-cols-[minmax(0,5fr)_minmax(0,4fr)_minmax(0,3fr)]">
-        {/* Left stack — watchlist · world view · off the tape */}
+      <main className="mt-1 grid min-h-0 flex-1 grid-cols-1 gap-1 md:grid-cols-2 xl:grid-cols-[minmax(0,4fr)_minmax(0,4.5fr)_minmax(0,3.5fr)]">
+        {/* Left stack — watchlist · world view · (off the tape | forex) */}
         <div className="flex min-h-0 flex-col gap-1 md:col-span-2 xl:col-span-1">
-          <div className="max-xl:h-[420px] min-h-0 xl:h-auto xl:flex-[1.1]">
+          <div className="max-xl:h-[420px] min-h-0 xl:h-auto xl:flex-[1.15]">
             <WatchlistPanel pinnedQuotes={pinnedQuotes} />
           </div>
           <div className="max-xl:h-[360px] min-h-0 xl:h-auto xl:flex-1">
             <WorldView />
           </div>
-          <div className="max-xl:h-[240px] min-h-0 xl:h-auto xl:flex-[0.55]">
-            <FunCorner songs={data.songs} baskets={exchange.funBaskets} />
+          <div className="max-xl:h-[240px] min-h-0 xl:h-auto xl:flex-[0.62]">
+            <div className="grid h-full min-h-0 grid-cols-2 gap-1">
+              <div className="min-h-0">
+                <FunCorner songs={data.songs} mood={data.songMood} baskets={exchange.funBaskets} />
+              </div>
+              <div className="min-h-0">
+                <ForexMatrix forex={exchange.forex} />
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Center stack — stocks · calendar · forex · intelligence */}
+        {/* Center stack — stocks · calendar · intelligence */}
         <div className="flex min-h-0 flex-col gap-1 xl:col-span-1">
           <div className="max-xl:h-[420px] min-h-0 xl:h-auto xl:flex-[1.1]">
             <MoversPanel data={exchange} />
           </div>
-          <div className="max-xl:h-[300px] min-h-0 xl:h-auto xl:flex-[0.8]">
+          <div className="max-xl:h-[300px] min-h-0 xl:h-auto xl:flex-[0.85]">
             <CalendarPanel data={exchange} todayIso={todayIso} />
           </div>
-          <div className="min-h-0 shrink-0">
-            <ForexMatrix forex={exchange.forex} />
-          </div>
-          <div className="max-xl:h-[360px] min-h-0 xl:h-auto xl:flex-[1.05]">
+          <div className="max-xl:h-[360px] min-h-0 xl:h-auto xl:flex-[1.15]">
             <WhatMattersPanel synthesis={data.synthesis} news={data.news} flows={data.flows} fiiStreak={data.fiiStreak} />
           </div>
         </div>

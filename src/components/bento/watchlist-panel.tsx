@@ -4,8 +4,10 @@ import { Plus } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CompanyCard } from "@/components/company-card";
 import { InsightLine } from "@/components/insight-line";
+import { LiveChip } from "@/components/live-chip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { deltaClass, signedPct } from "@/lib/format";
+import { isLive, phaseAt, type MarketPhase } from "@/lib/market-clock";
 import { Tile } from "../tiles/tile";
 import { MarketChart } from "./market-chart";
 
@@ -70,7 +72,9 @@ export function WatchlistPanel({
     return () => cancelAnimationFrame(id);
   }, []);
 
-  // Quotes for pinned + list in one call, refreshed every minute.
+  // Quotes for pinned + list in one call — every 30s during the session,
+  // every 5 min otherwise; hidden tabs skip fetches.
+  const [liveMeta, setLiveMeta] = useState<{ source?: string; phase?: MarketPhase }>({});
   useEffect(() => {
     if (!list) return;
     try {
@@ -79,14 +83,29 @@ export function WatchlistPanel({
       /* private mode */
     }
     const symbols = [...PINNED.map((p) => p.symbol), ...list];
-    const load = () =>
-      fetch(`/api/quotes?symbols=${symbols.join(",")}`)
-        .then((r) => r.json())
-        .then((d: { quotes: Quote[] }) => setQuotes(new Map(d.quotes.map((q) => [q.symbol, q]))))
-        .catch(() => {});
+    let alive = true;
+    let timer: number | undefined;
+    const load = async () => {
+      if (!document.hidden) {
+        try {
+          const res = await fetch(`/api/quotes?symbols=${symbols.join(",")}`);
+          const d = (await res.json()) as { quotes: Quote[]; source?: string; phase?: MarketPhase };
+          if (alive) {
+            setQuotes(new Map(d.quotes.map((q) => [q.symbol, q])));
+            setLiveMeta({ source: d.source, phase: d.phase });
+          }
+        } catch {
+          /* keep last quotes */
+        }
+      }
+      if (!alive) return;
+      timer = window.setTimeout(load, isLive(phaseAt(new Date())) ? 30_000 : 300_000);
+    };
     load();
-    const id = setInterval(load, 60_000);
-    return () => clearInterval(id);
+    return () => {
+      alive = false;
+      window.clearTimeout(timer);
+    };
   }, [list]);
 
   // The chart tours the list on its own; interacting holds it.
@@ -253,7 +272,15 @@ export function WatchlistPanel({
           </div>
         )}
         {listQuotes.length > 0 && (
-          <InsightLine meta="YAHOO · 1 MIN">
+          <InsightLine
+            meta={
+              liveMeta.phase && liveMeta.phase !== "closed" ? (
+                <LiveChip phase={liveMeta.phase} source={liveMeta.source} />
+              ) : (
+                (liveMeta.source ?? "yahoo").toUpperCase()
+              )
+            }
+          >
             {up}/{listQuotes.length} watched up
             {best && best.changePct !== undefined && (
               <>

@@ -1,10 +1,13 @@
 "use client";
 
+import type { LiveMovers } from "@/app/api/live/movers/route";
 import { InsightLine } from "@/components/insight-line";
+import { LiveChip } from "@/components/live-chip";
 import type { ExchangeData, StockRow } from "@/lib/exchange";
 import { deltaClass, signedPct } from "@/lib/format";
 import { compactInr } from "@/lib/heat";
 import { useCarousel } from "@/lib/use-carousel";
+import { useLive } from "@/lib/use-live";
 import type { WarRoomData } from "@/lib/warroom";
 import { Tile } from "../tiles/tile";
 
@@ -33,7 +36,11 @@ export function MoversPanel({
 }) {
   const { index, select, pauseProps } = useCarousel(TABS.length, 14_000);
   const tab = TABS[index].id;
-  const rows: StockRow[] = data[tab] ?? [];
+  // Intraday: NSE's live lists take over; after close the full-universe
+  // bhavcopy ranking (with its liquidity floor) is the better product.
+  const live = useLive<LiveMovers>("/api/live/movers", { openMs: 30_000, closedMs: 600_000 });
+  const liveOn = live !== null && live.phase !== "closed" && live[tab].length > 0;
+  const rows: StockRow[] = liveOn ? live[tab] : (data[tab] ?? []);
   const lead = sectors[0];
   const lag = sectors.at(-1);
 
@@ -93,7 +100,7 @@ export function MoversPanel({
           </div>
         )}
 
-        <InsightLine meta={`EOD · ${data.asOf.slice(5).replace("-", "/")}`}>
+        <InsightLine meta={liveOn ? <LiveChip phase={live!.phase} source="nse" /> : `EOD · ${data.asOf.slice(5).replace("-", "/")}`}>
           {lead && lag ? (
             <>
               Sectors: {lead.sector} <span className={deltaClass(lead.avgChangePct)}>{signedPct(lead.avgChangePct, 1)}</span> leads ·{" "}

@@ -1,6 +1,8 @@
-# Real-time NSE plan (approved direction, pre-build)
+# Real-time NSE plan (BUILT 2026-09-01)
 
-> Decided 2026-09-01 with Terra: **NSE-direct + Yahoo fallback · ~30s cadence · live scope = strip/indices + watchlist + intraday stocks lists + commodities/forex · watchlist gains a 1D intraday tab.** The Floor (agents vs Nifty) stays EOD by design. Everything below is planning; nothing here is built yet.
+> Decided 2026-09-01 with Terra: **NSE-direct + Yahoo fallback · ~30s cadence · live scope = strip/indices + watchlist + intraday stocks lists + commodities/forex · watchlist gains a 1D intraday tab.** The Floor (agents vs Nifty) stays EOD by design.
+
+**Build notes (same day):** shipped as `src/lib/market-clock.ts` (pure phase clock, unit-tested boundaries) + `src/lib/nse-live.ts` (warmed cookie jar, holiday-master cache) + routes `/api/live/market` (NSE allIndices + one Yahoo batch: indices/fx-crosses/commodities, 25s shared cache, stale-keep ladder), `/api/live/movers` (NSE live-analysis gainers/"loosers"/most-active, series-EQ filter, ₹-lakh turnover normalized), `/api/live/health`, upgraded `/api/quotes` (phase+source) and `/api/history/[symbol]?range=1d` (minute prints, last session only). Client: `useLive` hook (phase-aware cadence, hidden-tab pause), `LiveChip`, header `LiveTicker`, live overlays in movers/commodities/forex/watchlist, 1D tab on the lightweight-chart (IST-shifted timestamps). One plan change discovered in the field: **NSE removed `equity-stockIndices` (404), so watchlist quotes are Yahoo-primary** with the bhavcopy archive as fallback — allowed by the decided policy. Vercel egress remains the open question; `/api/live/health` answers it on deploy day.
 
 ## Empirical findings (2026-09-01, during market hours)
 

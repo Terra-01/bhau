@@ -1,17 +1,29 @@
 "use client";
 
-import { AreaSeries, ColorType, createChart, type IChartApi, type ISeriesApi } from "lightweight-charts";
+import {
+  AreaSeries,
+  ColorType,
+  createChart,
+  type IChartApi,
+  type ISeriesApi,
+  type UTCTimestamp,
+} from "lightweight-charts";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { isLive, phaseAt } from "@/lib/market-clock";
 
 // The watchlist hero chart on TradingView's open-source Lightweight
 // Charts (Apache-2.0; the small attribution logo is the license's ask).
-// EOD daily data via /api/history — crosshair, price scale and time
-// scale come from the library instead of a hand-rolled sparkline.
+// 1D = the latest session's minute prints (~1 min lag, timestamps
+// shifted so the axis reads IST); 1M/3M/1Y = daily bars where the last
+// bar is today's forming session.
 const TIMEFRAMES = [
+  { label: "1D", days: 0 },
   { label: "1M", days: 31 },
   { label: "3M", days: 93 },
   { label: "1Y", days: 370 },
 ] as const;
+
+const IST_OFFSET_S = 19_800; // lightweight-charts draws UTC; shift so labels read IST
 
 function themeTokens() {
   const style = getComputedStyle(document.documentElement);
@@ -57,36 +69,60 @@ const seriesOptions = (t: ReturnType<typeof themeTokens>) => ({
   lineWidth: 2 as const,
 });
 
+interface HistoryPoint {
+  date?: string; // daily
+  t?: number; // intraday unix seconds
+  close: number;
+}
+
 export function MarketChart({ symbol }: { symbol: string }) {
   const container = useRef<HTMLDivElement | null>(null);
   const instance = useRef<{ chart: IChartApi; area: ISeriesApi<"Area"> } | null>(null);
 
-  // State carries which symbol it belongs to — "loading" is derived from
-  // the mismatch, no synchronous resets in effects.
-  const [loaded, setLoaded] = useState<{ symbol: string; points: Array<{ date: string; close: number }> | null } | null>(null);
-  const [timeframe, setTimeframe] = useState<(typeof TIMEFRAMES)[number]>(TIMEFRAMES[1]);
-  const points = loaded?.symbol === symbol ? loaded.points : undefined; // undefined = loading, null = failed
+  // State carries which symbol+mode it belongs to — "loading" is derived
+  // from the mismatch, no synchronous resets in effects.
+  const [loaded, setLoaded] = useState<{ key: string; points: HistoryPoint[] | null } | null>(null);
+  const [timeframe, setTimeframe] = useState<(typeof TIMEFRAMES)[number]>(TIMEFRAMES[2]);
+  const intraday = timeframe.label === "1D";
+  const key = `${symbol}|${intraday ? "1d" : "daily"}`;
+  const points = loaded?.key === key ? loaded.points : undefined; // undefined = loading, null = failed
   const failed = points === null;
+
+  // During the session the 1D tab is the natural default.
+  useEffect(() => {
+    const id = requestAnimationFrame(() => {
+      if (isLive(phaseAt(new Date()))) setTimeframe(TIMEFRAMES[0]);
+    });
+    return () => cancelAnimationFrame(id);
+  }, []);
 
   useEffect(() => {
     let alive = true;
-    fetch(`/api/history/${encodeURIComponent(symbol)}`)
+    const url = `/api/history/${encodeURIComponent(symbol)}${intraday ? "?range=1d" : ""}`;
+    fetch(url)
       .then((r) => (r.ok ? r.json() : Promise.reject()))
-      .then((d) => alive && setLoaded({ symbol, points: d.points ?? [] }))
-      .catch(() => alive && setLoaded({ symbol, points: null }));
+      .then((d) => alive && setLoaded({ key, points: d.points ?? [] }))
+      .catch(() => alive && setLoaded({ key, points: null }));
     return () => {
       alive = false;
     };
-  }, [symbol]);
+  }, [symbol, intraday, key]);
 
   const data = useMemo(() => {
     if (!points || points.length === 0) return [];
-    const anchor = new Date(points[points.length - 1].date).getTime();
+    if (intraday) {
+      return points.flatMap((p) =>
+        p.t !== undefined ? [{ time: (p.t + IST_OFFSET_S) as UTCTimestamp, value: p.close }] : [],
+      );
+    }
+    const daily = points.filter((p) => p.date !== undefined);
+    if (daily.length === 0) return [];
+    const anchor = new Date(daily[daily.length - 1].date!).getTime();
     const since = anchor - timeframe.days * 86_400_000;
-    return points
-      .filter((p) => new Date(p.date).getTime() >= since)
-      .map((p) => ({ time: p.date.slice(0, 10), value: p.close }));
-  }, [points, timeframe]);
+    return daily
+      .filter((p) => new Date(p.date!).getTime() >= since)
+      .map((p) => ({ time: p.date!.slice(0, 10), value: p.close }));
+  }, [points, timeframe, intraday]);
 
   // One chart per mount; theme changes restyle it in place.
   useEffect(() => {
@@ -113,10 +149,11 @@ export function MarketChart({ symbol }: { symbol: string }) {
 
   useEffect(() => {
     const inst = instance.current;
-    if (!inst || loading) return; // keep the outgoing series while the next symbol loads
+    if (!inst || loading) return; // keep the outgoing series while the next load runs
+    inst.chart.applyOptions({ timeScale: { timeVisible: intraday, secondsVisible: false } });
     inst.area.setData(data);
     inst.chart.timeScale().fitContent();
-  }, [data, loading]);
+  }, [data, loading, intraday]);
 
   const empty = failed || (!loading && data.length < 2);
 
@@ -145,7 +182,9 @@ export function MarketChart({ symbol }: { symbol: string }) {
             {tf.label}
           </button>
         ))}
-        <span className="ml-auto font-mono text-[9px] text-silver">{symbol} · DAILY</span>
+        <span className="ml-auto font-mono text-[9px] text-silver">
+          {symbol} · {intraday ? "1D · IST" : "DAILY"}
+        </span>
       </div>
     </div>
   );

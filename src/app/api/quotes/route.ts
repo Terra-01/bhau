@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import YahooFinance from "yahoo-finance2";
 import { prisma } from "@/lib/db";
+import { currentPhase } from "@/lib/nse-live";
 
 // Watchlist quotes — Yahoo's NSE feed (measured seconds-fresh; the same
 // source as the chart's last bar, so rows and chart always agree), with
@@ -71,14 +72,17 @@ export async function GET(request: Request) {
   if (symbols.length === 0) return NextResponse.json({ quotes: [] });
 
   let quotes: QuoteOut[];
+  let source: "yahoo" | "eod" = "yahoo";
   try {
     quotes = await fromYahoo(symbols);
   } catch {
     quotes = await fromArchive(symbols);
+    source = "eod";
   }
+  const phase = await currentPhase();
 
   return NextResponse.json(
-    { quotes },
-    { headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120" } },
+    { quotes, source, phase },
+    { headers: { "Cache-Control": "public, s-maxage=30, stale-while-revalidate=60" } },
   );
 }

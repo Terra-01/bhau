@@ -1,18 +1,30 @@
+"use client";
+
+import type { LiveMarket } from "@/app/api/live/market/route";
 import { InsightLine } from "@/components/insight-line";
+import { LiveChip } from "@/components/live-chip";
 import type { ExchangeData } from "@/lib/exchange";
 import { deltaClass, signedPct } from "@/lib/format";
+import { useLive } from "@/lib/use-live";
 import { Sparkline } from "../sparkline";
 import { Tile } from "../tiles/tile";
 
 const fmt = new Intl.NumberFormat("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-// Forex vs INR: where INR sits (₹ per unit), the 30-day shape, and the
-// 1-month move — the horizon on which ECB reference rates are actually
-// informative. JPY follows market convention (per ¥100).
+// Forex vs INR: ECB's daily reference draws the 30-day shape; Yahoo's
+// live crosses overlay the ₹ column while FX venues trade (24/5). The 1M
+// move is recomputed against the effective price so columns never argue.
 
-/** One honest sentence computed from the table itself. */
-function insight(forex: NonNullable<ExchangeData["forex"]>): string | null {
-  const moved = forex.filter((r) => r.m1 !== null);
+interface Row {
+  pair: string;
+  price: number;
+  spark: number[];
+  m1: number | null;
+  live: boolean;
+}
+
+function insight(rows: Row[]): string | null {
+  const moved = rows.filter((r) => r.m1 !== null);
   if (moved.length < 2) return null;
   const weaker = moved.filter((r) => r.m1! > 0).length; // pair up = INR down
   const biggest = [...moved].sort((a, b) => Math.abs(b.m1!) - Math.abs(a.m1!))[0];
@@ -23,45 +35,69 @@ function insight(forex: NonNullable<ExchangeData["forex"]>): string | null {
 }
 
 export function ForexRates({ forex }: { forex: ExchangeData["forex"] }) {
+  const liveMkt = useLive<LiveMarket>("/api/live/market", { openMs: 60_000, closedMs: 120_000 });
+
+  const rows: Row[] = (forex ?? []).map((row) => {
+    const q = liveMkt?.fx?.[row.pair];
+    const price = q?.last ?? row.price;
+    const base = row.spark[0];
+    return {
+      pair: row.pair,
+      price,
+      spark: row.spark,
+      m1: base ? ((price - base) / base) * 100 : row.m1,
+      live: q?.state === "REGULAR",
+    };
+  });
+  const anyLive = rows.some((r) => r.live);
+
   return (
-    <Tile title="Forex vs INR" meta="ECB REF">
-      {!forex ? (
+    <Tile
+      title="Forex vs INR"
+      meta={
+        <span className="flex items-center gap-1.5">
+          <LiveChip on={anyLive} source="yahoo" />
+          <span>ECB 30D</span>
+        </span>
+      }
+    >
+      {rows.length === 0 ? (
         <p className="px-2.5 py-3 text-[11px] text-fog">Rates unavailable.</p>
       ) : (
         <div className="flex h-full flex-col">
-        <table className="w-full border-collapse">
-          <thead>
-            <tr className="border-b border-ash">
-              <th className="px-2.5 py-0.5 text-left text-[8px] font-semibold uppercase tracking-[0.07em] text-fog">Pair</th>
-              <th className="px-1 py-0.5 text-left text-[8px] font-semibold uppercase tracking-[0.07em] text-fog">30D</th>
-              <th className="px-1 py-0.5 text-right text-[8px] font-semibold uppercase tracking-[0.07em] text-fog">₹</th>
-              <th className="px-2.5 py-0.5 text-right text-[8px] font-semibold uppercase tracking-[0.07em] text-fog">1M</th>
-            </tr>
-          </thead>
-          <tbody>
-            {forex.map((row) => {
-              const scale = row.pair === "JPY" ? 100 : 1;
-              return (
-                <tr key={row.pair} className="border-b border-ash last:border-b-0">
-                  <td className="px-2.5 py-[2.5px] font-mono text-[10px] font-semibold leading-none text-charcoal">
-                    {row.pair}
-                    {scale !== 1 && <span className="font-sans text-[7.5px] font-normal text-silver"> ×100</span>}
-                  </td>
-                  <td className="py-[2.5px]">
-                    <Sparkline values={row.spark} width={40} height={13} />
-                  </td>
-                  <td className="px-1 py-[2.5px] text-right font-mono text-[10.5px] font-medium leading-none tabular-nums text-ink">
-                    {fmt.format(row.price * scale)}
-                  </td>
-                  <td className={`px-2.5 py-[2.5px] text-right font-mono text-[9.5px] leading-none tabular-nums ${row.m1 !== null ? deltaClass(row.m1) : "text-fog"}`}>
-                    {row.m1 !== null ? signedPct(row.m1, 1) : "—"}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-        {insight(forex) && <InsightLine meta="ECB">{insight(forex)}</InsightLine>}
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="border-b border-ash">
+                <th className="px-2.5 py-0.5 text-left text-[8px] font-semibold uppercase tracking-[0.07em] text-fog">Pair</th>
+                <th className="px-1 py-0.5 text-left text-[8px] font-semibold uppercase tracking-[0.07em] text-fog">30D</th>
+                <th className="px-1 py-0.5 text-right text-[8px] font-semibold uppercase tracking-[0.07em] text-fog">₹</th>
+                <th className="px-2.5 py-0.5 text-right text-[8px] font-semibold uppercase tracking-[0.07em] text-fog">1M</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row) => {
+                const scale = row.pair === "JPY" ? 100 : 1;
+                return (
+                  <tr key={row.pair} className="border-b border-ash last:border-b-0">
+                    <td className="px-2.5 py-[2.5px] font-mono text-[10px] font-semibold leading-none text-charcoal">
+                      {row.pair}
+                      {scale !== 1 && <span className="font-sans text-[7.5px] font-normal text-silver"> ×100</span>}
+                    </td>
+                    <td className="py-[2.5px]">
+                      <Sparkline values={row.spark} width={40} height={13} />
+                    </td>
+                    <td className="px-1 py-[2.5px] text-right font-mono text-[10.5px] font-medium leading-none tabular-nums text-ink">
+                      {fmt.format(row.price * scale)}
+                    </td>
+                    <td className={`px-2.5 py-[2.5px] text-right font-mono text-[9.5px] leading-none tabular-nums ${row.m1 !== null ? deltaClass(row.m1) : "text-fog"}`}>
+                      {row.m1 !== null ? signedPct(row.m1, 1) : "—"}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          {insight(rows) && <InsightLine meta={anyLive ? "YAHOO · ECB" : "ECB"}>{insight(rows)}</InsightLine>}
         </div>
       )}
     </Tile>

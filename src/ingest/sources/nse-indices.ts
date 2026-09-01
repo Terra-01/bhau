@@ -4,7 +4,7 @@ import { USER_AGENT, type Fetcher, type IngestBar, type SourceResult } from "../
 // non-browser clients: it needs a cookie warm-up against the homepage and
 // is known to block some client types. Treat as brittle by design — it
 // degrades alone, and Yahoo writes the same symbols when it's healthy.
-const INDEX_MAP: Record<string, string> = {
+export const INDEX_MAP: Record<string, string> = {
   "NIFTY 50": "^NSEI",
   "NIFTY BANK": "^NSEBANK",
   "INDIA VIX": "^INDIAVIX",

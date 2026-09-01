@@ -1,5 +1,6 @@
 import { ThemeToggle } from "@/components/theme-toggle";
 import type { WarRoomData } from "@/lib/warroom";
+import { LiveTicker, type TickerItem } from "./live-ticker";
 
 const REGIME_COLOR: Record<string, string> = {
   Calm: "var(--color-regime-calm)",
@@ -9,23 +10,32 @@ const REGIME_COLOR: Record<string, string> = {
   Stressed: "var(--color-regime-stressed)",
 };
 
+const TICKER: Array<{ symbol: string; label: string }> = [
+  { symbol: "^NSEI", label: "Nifty" },
+  { symbol: "^BSESN", label: "Sensex" },
+  { symbol: "^NSEBANK", label: "Bank" },
+  { symbol: "^INDIAVIX", label: "VIX" },
+  { symbol: "INR=X", label: "USD" },
+];
+
 export function AppHeader({ data }: { data: WarRoomData }) {
   const headlines = Object.values(data.news)
     .flat()
     .sort((a, b) => (a.ts < b.ts ? 1 : -1))
     .slice(0, 10);
   const unhealthy = data.health.filter((h) => !h.healthy).length;
+  const ticker: TickerItem[] = TICKER.flatMap(({ symbol, label }) => {
+    const item = data.strip.find((s) => s.symbol === symbol || (symbol === "INR=X" && s.name === "USD/INR"));
+    return item ? [{ symbol, label, close: item.close, changePct: item.change1dPct }] : [];
+  });
 
   return (
     <header className="sticky top-0 z-40 flex shrink-0 items-center gap-3 border-b border-charcoal bg-canvas py-1.5">
       <span className="flex shrink-0 items-baseline gap-1.5">
         <h1 className="text-[16px] font-semibold tracking-tight text-ink">Bhau</h1>
         <span className="font-mono text-[9px] text-fog">v1.1</span>
-        <span className="flex items-center gap-1 font-mono text-[9px] text-gain">
-          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-gain" />
-          LIVE·EOD
-        </span>
       </span>
+      <LiveTicker items={ticker} />
 
       {/* Breaking strip — newest wire items, marquee, pause on hover */}
       <div className="marquee-window relative min-w-0 flex-1 overflow-hidden">

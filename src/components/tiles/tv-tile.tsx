@@ -31,27 +31,30 @@ export function TvTile() {
     frame.current?.contentWindow?.postMessage(JSON.stringify({ event: "command", func, args }), "*");
   }, []);
 
-  const tune = useCallback((next: Channel, attempt = 0) => {
+  const tune = useCallback((next: Channel) => {
     setChannel(next);
     setMuted(true);
     setPaused(false);
     setStream({ channelId: next.channelId, status: "loading" });
-    const settle = (videoId: string | null) =>
-      setStream((current) => {
-        if (current?.channelId !== next.channelId) return current;
-        if (videoId) return { channelId: next.channelId, status: "live", videoId };
-        // First resolution can time out while the server-side scrape is
-        // cold — retry once before declaring the channel off-air.
-        if (attempt === 0) {
-          setTimeout(() => tune(next, 1), 4000);
-          return { channelId: next.channelId, status: "loading" };
-        }
-        return { channelId: next.channelId, status: "off-air" };
-      });
-    fetch(`/api/tv/${next.channelId}`)
-      .then((r) => r.json())
-      .then((d: { videoId: string | null }) => settle(d.videoId))
-      .catch(() => settle(null));
+    const attemptFetch = (attempt: number) => {
+      const settle = (videoId: string | null) =>
+        setStream((current) => {
+          if (current?.channelId !== next.channelId) return current;
+          if (videoId) return { channelId: next.channelId, status: "live", videoId };
+          // First resolution can time out while the server-side scrape is
+          // cold — retry once before declaring the channel off-air.
+          if (attempt === 0) {
+            setTimeout(() => attemptFetch(1), 4000);
+            return { channelId: next.channelId, status: "loading" };
+          }
+          return { channelId: next.channelId, status: "off-air" };
+        });
+      fetch(`/api/tv/${next.channelId}`)
+        .then((r) => r.json())
+        .then((d: { videoId: string | null }) => settle(d.videoId))
+        .catch(() => settle(null));
+    };
+    attemptFetch(0);
   }, []);
 
   // Always on: tune the default channel on mount, muted.

@@ -43,9 +43,6 @@ export default async function Feed() {
   }
 
   const todayIso = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
-  const pinnedQuotes = data.strip
-    .filter((s) => s.symbol === "^NSEI" || s.symbol === "^BSESN")
-    .map((s) => ({ symbol: s.symbol, close: s.close, changePct: s.change1dPct }));
 
   return (
     <div className="flex w-full flex-1 flex-col px-2 pb-1 xl:h-dvh xl:overflow-hidden">
@@ -55,7 +52,7 @@ export default async function Feed() {
         {/* Left stack — watchlist · rates & macro · off the tape */}
         <div className="flex min-h-0 flex-col gap-1 md:col-span-2 xl:col-span-1">
           <div className="tile-in max-xl:h-[420px] min-h-0 xl:h-auto xl:flex-[1.35]">
-            <WatchlistPanel pinnedQuotes={pinnedQuotes} />
+            <WatchlistPanel />
           </div>
           <div className="tile-in max-xl:h-[280px] min-h-0 xl:h-auto xl:flex-[0.8]" style={{ animationDelay: "120ms" }}>
             <RatesPanel rates={rates} />

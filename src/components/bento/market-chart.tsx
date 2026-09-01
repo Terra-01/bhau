@@ -1,14 +1,8 @@
 "use client";
 
-import {
-  AreaSeries,
-  ColorType,
-  createChart,
-  type IChartApi,
-  type ISeriesApi,
-  type UTCTimestamp,
-} from "lightweight-charts";
+import { AreaSeries, createChart, type IChartApi, type ISeriesApi, type UTCTimestamp } from "lightweight-charts";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { alpha, baseChartOptions, themeTokens } from "@/lib/lw-theme";
 import { isLive, phaseAt } from "@/lib/market-clock";
 
 // The watchlist hero chart on TradingView's open-source Lightweight
@@ -24,43 +18,6 @@ const TIMEFRAMES = [
 ] as const;
 
 const IST_OFFSET_S = 19_800; // lightweight-charts draws UTC; shift so labels read IST
-
-function themeTokens() {
-  const style = getComputedStyle(document.documentElement);
-  const v = (name: string) => style.getPropertyValue(name).trim();
-  return {
-    canvas: v("--color-canvas"),
-    ash: v("--color-ash"),
-    fog: v("--color-fog"),
-    charcoal: v("--color-charcoal"),
-    mono: v("--font-mono") || "monospace",
-  };
-}
-
-/** #rrggbb → #rrggbbAA (canvas needs concrete colors, not CSS vars). */
-const alpha = (hex: string, a: number) =>
-  /^#[0-9a-fA-F]{6}$/.test(hex) ? `${hex}${Math.round(a * 255).toString(16).padStart(2, "0")}` : hex;
-
-function chartOptions(t: ReturnType<typeof themeTokens>) {
-  return {
-    layout: {
-      background: { type: ColorType.Solid, color: t.canvas },
-      textColor: t.fog,
-      fontSize: 9,
-      fontFamily: `${t.mono}, monospace`,
-    },
-    grid: {
-      vertLines: { visible: false },
-      horzLines: { color: alpha(t.ash, 0.55) },
-    },
-    rightPriceScale: { borderVisible: false },
-    timeScale: { borderVisible: false, fixLeftEdge: true, fixRightEdge: true },
-    crosshair: {
-      horzLine: { labelBackgroundColor: t.charcoal, color: t.fog },
-      vertLine: { labelBackgroundColor: t.charcoal, color: t.fog },
-    },
-  };
-}
 
 const seriesOptions = (t: ReturnType<typeof themeTokens>) => ({
   lineColor: t.charcoal,
@@ -129,12 +86,12 @@ export function MarketChart({ symbol }: { symbol: string }) {
     const el = container.current;
     if (!el) return;
     const t = themeTokens();
-    const chart = createChart(el, { autoSize: true, handleScroll: false, handleScale: false, ...chartOptions(t) });
+    const chart = createChart(el, { autoSize: true, handleScroll: false, handleScale: false, ...baseChartOptions(t) });
     const area = chart.addSeries(AreaSeries, seriesOptions(t));
     instance.current = { chart, area };
     const observer = new MutationObserver(() => {
       const next = themeTokens();
-      chart.applyOptions(chartOptions(next));
+      chart.applyOptions(baseChartOptions(next));
       area.applyOptions(seriesOptions(next));
     });
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });

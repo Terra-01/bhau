@@ -15,19 +15,19 @@ import { Tile } from "../tiles/tile";
 import { MarketChart } from "./market-chart";
 
 // The hero watchlist: chart of the selected row on top, quote rows below.
-// NIFTY 50 and SENSEX are pinned; the rest is the user's list
-// (localStorage, max 20). Rows and chart share one Yahoo source, refreshed
-// every minute, and the chart rotates through the list on its own.
-const STORAGE_KEY = "bhau-watchlist";
-const MAX = 20;
+// Everything is one editable list (localStorage) — the indices are just
+// rows like any stock, removable and re-addable. Defaults: NIFTY, SENSEX
+// and the top-20 NSE names. The chart tours the list on its own.
+const STORAGE_KEY = "bhau-watchlist-v2";
+const MAX = 25;
 const DEFAULTS = [
-  "RELIANCE", "HDFCBANK", "TCS", "INFY", "ICICIBANK",
-  "SBIN", "BHARTIARTL", "ITC", "LT", "HINDUNILVR",
+  "^NSEI", "^BSESN",
+  "RELIANCE", "HDFCBANK", "TCS", "BHARTIARTL", "ICICIBANK",
+  "SBIN", "INFY", "HINDUNILVR", "BAJFINANCE", "ITC",
+  "LT", "HCLTECH", "KOTAKBANK", "SUNPHARMA", "MARUTI",
+  "AXISBANK", "ULTRACEMCO", "NTPC", "TITAN", "ADANIENT",
 ];
-const PINNED = [
-  { symbol: "^NSEI", label: "NIFTY 50" },
-  { symbol: "^BSESN", label: "SENSEX" },
-] as const;
+const NAME_OF: Record<string, string> = { "^NSEI": "NIFTY 50", "^BSESN": "SENSEX" };
 const ROTATE_MS = 12_000;
 const HOLD_MS = 45_000;
 
@@ -51,12 +51,7 @@ function loadList(): string[] {
 
 const fmt = new Intl.NumberFormat("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-export function WatchlistPanel({
-  pinnedQuotes,
-}: {
-  /** Server-rendered EOD fallback for the pinned indices: [nifty, sensex]. */
-  pinnedQuotes: Array<{ symbol: string; close: number; changePct?: number }>;
-}) {
+export function WatchlistPanel() {
   const [list, setList] = useState<string[] | null>(null);
   const [quotes, setQuotes] = useState<Map<string, Quote>>(new Map());
   // Selection and page travel together so auto-rotation can keep the
@@ -85,7 +80,7 @@ export function WatchlistPanel({
     } catch {
       /* private mode */
     }
-    const symbols = [...PINNED.map((p) => p.symbol), ...list];
+    const symbols = list;
     let alive = true;
     let timer: number | undefined;
     const load = async () => {
@@ -117,8 +112,7 @@ export function WatchlistPanel({
     const id = setInterval(() => {
       if (document.hidden || hovering.current || Date.now() < holdUntil.current) return;
       setView((current) => {
-        const all = [...PINNED.map((p) => p.symbol), ...list];
-        const next = all[(all.indexOf(current.selected) + 1) % all.length] ?? all[0];
+        const next = list[(list.indexOf(current.selected) + 1) % list.length] ?? list[0];
         const listIndex = list.indexOf(next);
         return { selected: next, page: listIndex >= 0 ? Math.floor(listIndex / PAGE_SIZE) : current.page };
       });
@@ -158,7 +152,7 @@ export function WatchlistPanel({
   return (
     <Tile
       title="Watchlist"
-      icon={<Eye size={10} strokeWidth={2} />}
+      icon={<Eye size={10} strokeWidth={2} className="text-blue" />}
       meta={
         <span className="flex items-center gap-2">
           <span>{list ? `${list.length}/${MAX}` : ""}</span>
@@ -206,53 +200,31 @@ export function WatchlistPanel({
           <MarketChart symbol={selected} />
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto">
-          {PINNED.map((pin) => {
-            const live = quotes.get(pin.symbol);
-            const quote = live?.found
-              ? { close: live.close!, changePct: live.changePct }
-              : pinnedQuotes.find((q) => q.symbol === pin.symbol);
-            return (
-              <AssetPopover
-                key={pin.symbol}
-                symbol={pin.symbol}
-                name={pin.label}
-                onOpen={() => selectSymbol(pin.symbol)}
-                render={
-                  <div role="button" tabIndex={0} className={`cursor-pointer ${rowClass(pin.symbol)}`}>
-                    <span className="min-w-0 flex-1 truncate text-[12px] font-semibold text-charcoal">{pin.label}</span>
-                    {quote && (
-                      <>
-                        <TickFlash value={quote.close} className="font-mono text-[12px] font-medium tabular-nums text-ink">
-                          {fmt.format(quote.close)}
-                        </TickFlash>
-                        {quote.changePct !== undefined && (
-                          <span className={`w-16 text-right font-mono text-[10.5px] tabular-nums ${deltaClass(quote.changePct)}`}>
-                            {signedPct(quote.changePct)}
-                          </span>
-                        )}
-                      </>
-                    )}
-                  </div>
-                }
-              />
-            );
-          })}
           <FlipView id={page}>
           {visible.map((symbol) => {
             const quote = quotes.get(symbol);
+            const isIndex = symbol.startsWith("^");
             return (
               <AssetPopover
                 key={symbol}
                 symbol={symbol}
+                name={NAME_OF[symbol]}
                 onOpen={() => selectSymbol(symbol)}
                 onRemove={() => list && setList(list.filter((s) => s !== symbol))}
                 render={
                   <div role="button" tabIndex={0} className={`cursor-pointer ${rowClass(symbol)}`}>
-                    <span className="min-w-0 flex-1 truncate text-left font-mono text-[11.5px] font-medium text-charcoal">{symbol}</span>
+                    <span
+                      className={`min-w-0 flex-1 truncate text-left ${
+                        isIndex ? "text-[12px] font-semibold text-charcoal" : "font-mono text-[11.5px] font-medium text-charcoal"
+                      }`}
+                    >
+                      {NAME_OF[symbol] ?? symbol}
+                    </span>
                     {quote?.found ? (
                       <>
                         <TickFlash value={quote.close} className="font-mono text-[11.5px] tabular-nums text-ink">
-                          ₹{fmt.format(quote.close!)}
+                          {isIndex ? "" : "₹"}
+                          {fmt.format(quote.close!)}
                         </TickFlash>
                         {quote.changePct !== undefined && (
                           <span className={`w-16 text-right font-mono text-[10.5px] tabular-nums ${deltaClass(quote.changePct)}`}>

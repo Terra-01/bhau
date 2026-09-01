@@ -11,6 +11,18 @@ import { Tile } from "../tiles/tile";
 
 // The fun corner: trending songs + the famous tongue-in-cheek recession
 // indicators, computed for real from listed names.
+
+// Brand glyphs (lucide dropped brand icons) — link-sized, currentColor.
+const SpotifyGlyph = () => (
+  <svg viewBox="0 0 24 24" width="11" height="11" fill="currentColor" aria-hidden="true">
+    <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0Zm5.5 17.3c-.22.36-.68.47-1.04.25-2.85-1.74-6.44-2.13-10.66-1.17-.41.1-.83-.17-.92-.58-.1-.41.17-.83.58-.92 4.62-1.06 8.58-.6 11.78 1.35.37.22.48.7.26 1.07Zm1.47-3.27c-.28.45-.86.6-1.31.32-3.26-2-8.23-2.58-12.08-1.41-.5.15-1.04-.13-1.19-.64-.15-.5.13-1.04.64-1.19 4.4-1.34 9.88-.69 13.62 1.62.45.27.6.86.32 1.3Zm.13-3.4C15.24 8.3 8.8 8.09 5.07 9.22c-.6.18-1.24-.16-1.42-.76-.18-.6.16-1.24.76-1.42 4.28-1.3 11.4-1.05 15.9 1.62.54.32.72 1.02.4 1.56-.32.54-1.02.72-1.56.4Z" />
+  </svg>
+);
+const AppleGlyph = () => (
+  <svg viewBox="0 0 24 24" width="11" height="11" fill="currentColor" aria-hidden="true">
+    <path d="M16.37 12.72c-.02-2.05 1.68-3.03 1.75-3.08-.95-1.39-2.44-1.58-2.97-1.6-1.26-.13-2.47.74-3.11.74-.64 0-1.63-.72-2.68-.7-1.38.02-2.65.8-3.36 2.03-1.43 2.48-.37 6.15 1.03 8.17.68.99 1.49 2.1 2.56 2.06 1.03-.04 1.42-.66 2.66-.66 1.24 0 1.59.66 2.68.64 1.11-.02 1.81-1 2.49-2 .78-1.15 1.1-2.26 1.12-2.32-.02-.01-2.15-.83-2.17-3.28ZM14.3 6.7c.57-.69.95-1.65.85-2.6-.82.03-1.8.54-2.39 1.23-.52.6-.98 1.58-.86 2.51.91.07 1.84-.46 2.4-1.14Z" />
+  </svg>
+);
 export function FunCorner({
   songs,
   mood,
@@ -28,7 +40,7 @@ export function FunCorner({
   return (
     <Tile
       title="Off the tape"
-      icon={<Sparkles size={10} strokeWidth={2} />}
+      icon={<Sparkles size={10} strokeWidth={2} className="text-lavender" />}
       meta={
         <span className="flex gap-1">
           {tabs.map(({ id, label }, i) => (
@@ -75,14 +87,30 @@ export function FunCorner({
                   </span>
                 )}
                 <span className="min-w-0 flex-1">
-                  {song.url ? (
-                    <a href={song.url} target="_blank" rel="noopener noreferrer" className="block truncate text-[11px] font-medium text-charcoal [@media(hover:hover)]:hover:underline">
-                      {song.title}
-                    </a>
-                  ) : (
-                    <span className="block truncate text-[11px] font-medium text-charcoal">{song.title}</span>
-                  )}
+                  <span className="block truncate text-[11px] font-medium text-charcoal">{song.title}</span>
                   <span className="block truncate text-[9.5px] text-fog">{song.artist}</span>
+                </span>
+                <span className="flex shrink-0 items-center gap-1">
+                  <a
+                    href={`https://open.spotify.com/search/${encodeURIComponent(`${song.title} ${song.artist}`)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="Find on Spotify"
+                    className="flex h-5 w-5 items-center justify-center rounded-full text-[#1DB954] transition-colors [@media(hover:hover)]:hover:bg-paper"
+                  >
+                    <SpotifyGlyph />
+                  </a>
+                  {song.url && (
+                    <a
+                      href={song.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title="Open on Apple Music"
+                      className="flex h-5 w-5 items-center justify-center rounded-full text-[#FA57C1] transition-colors [@media(hover:hover)]:hover:bg-paper"
+                    >
+                      <AppleGlyph />
+                    </a>
+                  )}
                 </span>
               </li>
             ))}

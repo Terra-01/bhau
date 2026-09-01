@@ -54,7 +54,7 @@ export function WhatMattersPanel({
   return (
     <Tile
       title="Intelligence"
-      icon={<Newspaper size={10} strokeWidth={2} />}
+      icon={<Newspaper size={10} strokeWidth={2} className="text-warn" />}
       meta={
         <span className="flex gap-1">
           {TABS.map(({ id, label }, i) => (

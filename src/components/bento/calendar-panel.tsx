@@ -2,6 +2,8 @@
 
 import { CalendarDays, FileText, Megaphone, Rocket } from "lucide-react";
 import { useMemo } from "react";
+import { AssetPopover } from "@/components/asset-popover";
+import { InfoPopover } from "@/components/info-popover";
 import { InsightLine } from "@/components/insight-line";
 import { FlipView } from "@/components/motion/flip-view";
 import type { ExchangeData } from "@/lib/exchange";
@@ -70,7 +72,7 @@ export function CalendarPanel({ data, todayIso }: { data: ExchangeData; todayIso
   return (
     <Tile
       title="Calendar"
-      icon={<CalendarDays size={10} strokeWidth={2} />}
+      icon={<CalendarDays size={10} strokeWidth={2} className="text-warn" />}
       meta={
         <span className="flex gap-1">
           {TABS.map(({ id, label }, i) => (
@@ -96,10 +98,11 @@ export function CalendarPanel({ data, todayIso }: { data: ExchangeData; todayIso
           const [weekday, dayMonth] = dateCol(item.date);
           const firstOfDay = i === 0 || items[i - 1].date !== item.date;
           const isToday = item.date === todayIso;
-          return (
+          const RowIcon = tab === "ipos" ? Rocket : tab === "econ" ? Megaphone : item.badge ? FileText : null;
+          const iconTone = tab === "ipos" ? "text-lavender" : tab === "econ" ? "text-warn" : "text-blue";
+          const row = (
             <li
-              key={`${item.primary}-${item.date}`}
-              className={`flex items-center gap-2 border-b border-ash px-2.5 py-[3px] last:border-b-0 ${isToday ? "bg-paper/60" : ""}`}
+              className={`flex cursor-pointer items-center gap-2 border-b border-ash px-2.5 py-[3px] transition-colors duration-150 last:border-b-0 [@media(hover:hover)]:hover:bg-paper/60 ${isToday ? "bg-paper/60" : ""}`}
             >
               {/* date column only on a day's first row — the blank repeats read as grouping */}
               <span className="w-11 shrink-0 font-mono text-[8.5px] leading-tight text-fog">
@@ -109,10 +112,7 @@ export function CalendarPanel({ data, todayIso }: { data: ExchangeData; todayIso
                   </>
                 )}
               </span>
-              {(() => {
-                const RowIcon = tab === "ipos" ? Rocket : tab === "econ" ? Megaphone : item.badge ? FileText : null;
-                return RowIcon ? <RowIcon size={9} strokeWidth={2} className="shrink-0 text-silver" /> : null;
-              })()}
+              {RowIcon && <RowIcon size={9} strokeWidth={2} className={`shrink-0 ${iconTone}`} />}
               <span className={`min-w-0 flex-1 truncate text-[11px] font-medium ${item.emphasized ? "text-charcoal" : "text-steel"}`}>
                 {item.primary}
               </span>
@@ -123,6 +123,41 @@ export function CalendarPanel({ data, todayIso }: { data: ExchangeData; todayIso
               )}
               <span className="max-w-[40%] truncate text-[9.5px] text-fog">{item.secondary}</span>
             </li>
+          );
+          const key = `${item.primary}-${item.date}`;
+          // Earnings rows open the company card; IPOs and releases carry
+          // their own event details.
+          if (tab === "earnings") {
+            return <AssetPopover key={key} symbol={item.primary} render={row} />;
+          }
+          if (tab === "ipos") {
+            const ipo = data.ipos.find((p) => `${p.symbol} IPO` === item.primary && p.date === item.date);
+            return (
+              <InfoPopover
+                key={key}
+                title={ipo?.company ?? item.primary}
+                sub="Public issue · NSE"
+                rows={[
+                  ["Symbol", ipo?.symbol ?? "—"],
+                  ["Opens", item.date],
+                  ...(ipo?.endDate ? ([["Closes", ipo.endDate]] as Array<[string, string]>) : []),
+                  ...(ipo?.priceBand ? ([["Price band", ipo.priceBand]] as Array<[string, string]>) : []),
+                  ["Status", ipo?.status ?? "—"],
+                ]}
+                note="From NSE's public-issues calendar. Listing-day symbols become clickable once they trade."
+                render={row}
+              />
+            );
+          }
+          return (
+            <InfoPopover
+              key={key}
+              title={item.primary}
+              sub={`Data release · ${item.secondary ?? ""}`}
+              rows={[["Expected", item.date]]}
+              note="Recurring Indian data release; dates follow the publisher's usual pattern and can shift by a day or two."
+              render={row}
+            />
           );
         })}
       </ul>

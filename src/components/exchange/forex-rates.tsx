@@ -1,8 +1,10 @@
 "use client";
 
 import { ArrowRightLeft } from "lucide-react";
+import { useState } from "react";
 import type { LiveMarket } from "@/app/api/live/market/route";
-import { AssetPopover } from "@/components/asset-popover";
+import { AssetCard } from "@/components/asset-card";
+import { RowPopover } from "@/components/row-popover";
 import { InsightLine } from "@/components/insight-line";
 import { LiveChip } from "@/components/live-chip";
 import { TickFlash } from "@/components/motion/tick-flash";
@@ -39,6 +41,7 @@ function insight(rows: Row[]): string | null {
 
 export function ForexRates({ forex }: { forex: ExchangeData["forex"] }) {
   const liveMkt = useLive<LiveMarket>("/api/live/market", { openMs: 60_000, closedMs: 120_000 });
+  const [detail, setDetail] = useState<{ symbol: string; name: string; el: HTMLElement } | null>(null);
 
   const rows: Row[] = (forex ?? []).map((row) => {
     const q = liveMkt?.fx?.[row.pair];
@@ -57,7 +60,7 @@ export function ForexRates({ forex }: { forex: ExchangeData["forex"] }) {
   return (
     <Tile
       title="Forex vs INR"
-      icon={<ArrowRightLeft size={10} strokeWidth={2} />}
+      icon={<ArrowRightLeft size={10} strokeWidth={2} className="text-lavender" />}
       meta={anyLive ? <LiveChip on source="yahoo" /> : "ECB"}
     >
       {rows.length === 0 ? (
@@ -76,33 +79,40 @@ export function ForexRates({ forex }: { forex: ExchangeData["forex"] }) {
             <tbody>
               {rows.map((row) => {
                 const scale = row.pair === "JPY" ? 100 : 1;
+                const openDetail = (el: HTMLElement) =>
+                  setDetail({ symbol: row.pair === "USD" ? "INR=X" : `${row.pair}INR=X`, name: `${row.pair}/INR`, el });
                 return (
-                  <AssetPopover
-                    key={row.pair}
-                    symbol={row.pair === "USD" ? "INR=X" : `${row.pair}INR=X`}
-                    name={`${row.pair}/INR`}
-                    render={
-                      <tr role="button" tabIndex={0} className="cursor-pointer border-b border-ash transition-colors duration-150 last:border-b-0 [@media(hover:hover)]:hover:bg-paper/60">
-                    <td className="px-2.5 py-[2.5px] font-mono text-[10px] font-semibold leading-none text-charcoal">
+                      <tr
+                        key={row.pair}
+                        role="button"
+                        tabIndex={0}
+                        onClick={(e) => openDetail(e.currentTarget)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") openDetail(e.currentTarget);
+                        }}
+                        className="cursor-pointer border-b border-ash transition-colors duration-150 last:border-b-0 [@media(hover:hover)]:hover:bg-paper/60"
+                      >
+                    <td className="px-2.5 py-[3px] font-mono text-[10px] font-semibold leading-none text-charcoal">
                       {row.pair}
                       {scale !== 1 && <span className="font-sans text-[7.5px] font-normal text-silver"> ×100</span>}
                     </td>
-                    <td className="py-[2.5px]">
-                      <Sparkline values={row.spark} width={40} height={13} />
+                    <td className="py-[3px]">
+                      <Sparkline values={row.spark} width={40} height={15} />
                     </td>
-                    <td className="px-1 py-[2.5px] text-right font-mono text-[10.5px] font-medium leading-none tabular-nums text-ink">
+                    <td className="px-1 py-[3px] text-right font-mono text-[10.5px] font-medium leading-none tabular-nums text-ink">
                       <TickFlash value={row.price}>{fmt.format(row.price * scale)}</TickFlash>
                     </td>
-                    <td className={`px-2.5 py-[2.5px] text-right font-mono text-[9.5px] leading-none tabular-nums ${row.m1 !== null ? deltaClass(row.m1) : "text-fog"}`}>
+                    <td className={`px-2.5 py-[3px] text-right font-mono text-[9.5px] leading-none tabular-nums ${row.m1 !== null ? deltaClass(row.m1) : "text-fog"}`}>
                       {row.m1 !== null ? signedPct(row.m1, 1) : "—"}
                     </td>
                       </tr>
-                    }
-                  />
                 );
               })}
             </tbody>
           </table>
+          <RowPopover anchor={detail?.el ?? null} onClose={() => setDetail(null)}>
+            {detail && <AssetCard symbol={detail.symbol} fallbackName={detail.name} />}
+          </RowPopover>
           {insight(rows) && <InsightLine meta={anyLive ? "YAHOO · ECB" : "ECB"}>{insight(rows)}</InsightLine>}
         </div>
       )}

@@ -1,8 +1,10 @@
 "use client";
 
 import { Flame } from "lucide-react";
+import { useState } from "react";
 import type { LiveMarket } from "@/app/api/live/market/route";
-import { AssetPopover } from "@/components/asset-popover";
+import { AssetCard } from "@/components/asset-card";
+import { RowPopover } from "@/components/row-popover";
 import { InsightLine } from "@/components/insight-line";
 import { LiveChip } from "@/components/live-chip";
 import { TickFlash } from "@/components/motion/tick-flash";
@@ -18,6 +20,7 @@ const fmt = new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFr
  *  (these venues run nearly 24/5, so "live" here ignores NSE hours). */
 export function CommoditiesPanel({ items }: { items: WarRoomData["commodities"] }) {
   const live = useLive<LiveMarket>("/api/live/market", { openMs: 60_000, closedMs: 120_000 });
+  const [detail, setDetail] = useState<{ symbol: string; name: string; el: HTMLElement } | null>(null);
 
   const rows = items.map((item) => {
     const q = live?.commodities?.[item.symbol];
@@ -34,7 +37,7 @@ export function CommoditiesPanel({ items }: { items: WarRoomData["commodities"] 
   return (
     <Tile
       title="Futures & commodities"
-      icon={<Flame size={10} strokeWidth={2} />}
+      icon={<Flame size={10} strokeWidth={2} className="text-loss" />}
       meta={
         <span className="flex items-center gap-1.5">
           <LiveChip on={anyLive} source="yahoo" />
@@ -55,12 +58,16 @@ export function CommoditiesPanel({ items }: { items: WarRoomData["commodities"] 
           </thead>
           <tbody>
             {rows.map((item) => (
-              <AssetPopover
-                key={item.symbol}
-                symbol={item.symbol}
-                name={item.name}
-                render={
-                  <tr role="button" tabIndex={0} className="cursor-pointer border-b border-ash transition-colors duration-150 last:border-b-0 [@media(hover:hover)]:hover:bg-paper/60">
+                  <tr
+                    key={item.symbol}
+                    role="button"
+                    tabIndex={0}
+                    onClick={(e) => setDetail({ symbol: item.symbol, name: item.name, el: e.currentTarget })}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") setDetail({ symbol: item.symbol, name: item.name, el: e.currentTarget });
+                    }}
+                    className="cursor-pointer border-b border-ash transition-colors duration-150 last:border-b-0 [@media(hover:hover)]:hover:bg-paper/60"
+                  >
                 <td className="px-2.5 py-[3px] text-[11px] font-medium text-charcoal">{item.name}</td>
                 <td className="py-[5px]">
                   <Sparkline values={item.spark} width={44} height={16} />
@@ -75,11 +82,12 @@ export function CommoditiesPanel({ items }: { items: WarRoomData["commodities"] 
                   {item.change1dPct !== undefined ? signedPct(item.change1dPct) : "—"}
                 </td>
                   </tr>
-                }
-              />
             ))}
           </tbody>
         </table>
+        <RowPopover anchor={detail?.el ?? null} onClose={() => setDetail(null)}>
+          {detail && <AssetCard symbol={detail.symbol} fallbackName={detail.name} />}
+        </RowPopover>
         {best && worst && best !== worst && (
           <InsightLine meta="1D">
             {best.name} <span className={deltaClass(best.change1dPct!)}>{signedPct(best.change1dPct!, 1)}</span> leads ·{" "}

@@ -50,7 +50,7 @@ export function MoversPanel({
   return (
     <Tile
       title="Stocks"
-      icon={<ChartCandlestick size={10} strokeWidth={2} />}
+      icon={<ChartCandlestick size={10} strokeWidth={2} className="text-tangerine" />}
       meta={
         <span className="flex gap-1">
           {TABS.map(({ id, label }, i) => (

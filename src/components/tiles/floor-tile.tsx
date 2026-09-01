@@ -1,13 +1,11 @@
 "use client";
 
 import { Bot } from "lucide-react";
-import { LineChart, Line } from "@/components/charts/line-chart";
-import { RingChart } from "@/components/charts/ring-chart";
-import { Ring } from "@/components/charts/ring";
 import { InsightLine } from "@/components/insight-line";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { WarRoomData } from "@/lib/warroom";
 import { dateIST, deltaClass, inr, signedPct, timeIST } from "@/lib/format";
+import { RaceChart, type RaceSeriesDef } from "./race-chart";
 import { Tile } from "./tile";
 
 export const AGENT_COLOR: Record<string, string> = {
@@ -17,6 +15,15 @@ export const AGENT_COLOR: Record<string, string> = {
   contrarian: "var(--color-agent-contrarian)",
   benchmark: "var(--color-fog)",
 };
+
+/** Stable series defs for the race chart (read once per mount). */
+const RACE_SERIES: RaceSeriesDef[] = [
+  { id: "macro", colorVar: "--color-agent-macro" },
+  { id: "momentum", colorVar: "--color-agent-momentum" },
+  { id: "value", colorVar: "--color-agent-value" },
+  { id: "contrarian", colorVar: "--color-agent-contrarian" },
+  { id: "benchmark", colorVar: "--color-fog", benchmark: true },
+];
 
 function Badge({ action, accepted }: { action: string; accepted: boolean }) {
   if (!accepted) return <span className="rounded-full bg-warn-wash px-2 py-px text-[9px] font-semibold text-warn">REJECTED</span>;
@@ -33,29 +40,14 @@ export function FloorTile({
 }) {
   const agents = floor.scoreboard.filter((r) => !r.isBenchmark);
   const benchmark = floor.scoreboard.find((r) => r.isBenchmark);
-
-  // Ring fill: returns on a symmetric domain — all rings sit at 50% when the
-  // race is level and visibly diverge as P&L separates.
-  const domain = Math.max(1, ...floor.scoreboard.map((r) => Math.abs(r.totalReturnPct))) * 1.2;
-  const rings = agents.map((r) => ({
-    label: r.name.replace("The ", ""),
-    value: r.totalReturnPct + domain,
-    maxValue: 2 * domain,
-    color: AGENT_COLOR[r.agentId],
-  }));
-
   const thesesOf = (agentId: string) => floor.theses.filter((t) => t.agentId === agentId).slice(0, 2);
 
   return (
-    <Tile title="The Floor — agents vs. the Nifty" icon={<Bot size={10} strokeWidth={2} />} meta={`MARKED ${floor.date}`}>
+    <Tile title="The Floor — agents vs. the Nifty" icon={<Bot size={10} strokeWidth={2} className="text-lavender" />} meta={`MARKED ${floor.date}`}>
       <div className="flex h-full min-h-0 flex-col">
-        <div className="min-h-0 flex-1 px-2 pt-1">
+        <div className="min-h-0 flex-1">
           {race.length >= 2 ? (
-            <LineChart data={race} className="h-full" aspectRatio={undefined}>
-              {Object.entries(AGENT_COLOR).map(([id, color]) => (
-                <Line key={id} dataKey={id} stroke={color} strokeWidth={id === "benchmark" ? 1.5 : 2} />
-              ))}
-            </LineChart>
+            <RaceChart race={race} series={RACE_SERIES} />
           ) : (
             <div className="flex h-full items-center justify-center text-center">
               <span className="max-w-[320px] text-[11.5px] text-fog">
@@ -65,15 +57,8 @@ export function FloorTile({
           )}
         </div>
 
-        <div className="flex shrink-0 items-center gap-1 border-t border-ash px-1.5 py-1">
-          <div className="hidden h-[92px] w-[92px] shrink-0 sm:block">
-            <RingChart data={rings} size={92} strokeWidth={7} ringGap={3} baseInnerRadius={18}>
-              {rings.map((ring, i) => (
-                <Ring key={ring.label} index={i} color={ring.color} />
-              ))}
-            </RingChart>
-          </div>
-          <ul className="min-w-0 flex-1">
+        <div className="shrink-0 border-t border-ash px-1.5 py-1">
+          <ul className="min-w-0">
             {agents.map((row, i) => (
               <Popover key={row.agentId}>
                 <PopoverTrigger

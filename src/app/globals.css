@@ -75,11 +75,11 @@
    via data-theme on <html>; light stays the default identity. Chart
    strokes, washes, and hairlines all flow from these same tokens. */
 [data-theme="dark"] {
-  --color-canvas: #12161b;
-  --color-paper: #1a1f26;
-  --color-ash: #262c35;
-  --color-smoke: #313945;
-  --color-pebble: #3e4753;
+  --color-canvas: #000000;
+  --color-paper: #101010;
+  --color-ash: #1e1e1e;
+  --color-smoke: #2b2b2b;
+  --color-pebble: #3a3a3a;
   --color-ink: #eceae3;
   --color-charcoal: #d9d7d0;
   --color-graphite: #c0beb7;
@@ -416,14 +416,14 @@ body {
    light. Placed after the shadcn :root block so it wins the cascade.
    Popup surfaces use paper for a hint of elevation. */
 [data-theme="dark"] {
-  --background: #12161b;
+  --background: #000000;
   --foreground: #eceae3;
-  --popover: #1a1f26;
+  --popover: #101010;
   --popover-foreground: #eceae3;
-  --card: #1a1f26;
+  --card: #101010;
   --card-foreground: #eceae3;
-  --border: #262c35;
-  --input: #262c35;
-  --muted: #1a1f26;
+  --border: #1e1e1e;
+  --input: #1e1e1e;
+  --muted: #101010;
   --muted-foreground: #70757d;
 }

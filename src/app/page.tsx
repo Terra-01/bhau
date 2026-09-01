@@ -20,14 +20,24 @@ export const revalidate = 300; // data changes once per trading day
 // area (viewport − header − footer) is distributed across three column
 // stacks; the document never scrolls at xl. Below xl it flows normally.
 export default async function Feed() {
-  const [data, exchange, rates] = await Promise.all([getWarRoomData(), getExchangeData(), getRatesData()]);
+  // The build must never require the database (Vercel's builder may not
+  // reach Neon); a failed fetch renders the fallback and the first ISR
+  // revalidation at runtime replaces it.
+  let data: Awaited<ReturnType<typeof getWarRoomData>> = null;
+  let exchange: Awaited<ReturnType<typeof getExchangeData>> | null = null;
+  let rates: Awaited<ReturnType<typeof getRatesData>> = null;
+  try {
+    [data, exchange, rates] = await Promise.all([getWarRoomData(), getExchangeData(), getRatesData()]);
+  } catch (err) {
+    console.error("[page] data layer unavailable:", err instanceof Error ? err.message : err);
+  }
 
-  if (!data) {
+  if (!data || !exchange) {
     return (
       <main className="mx-auto flex w-full max-w-[720px] flex-1 flex-col items-center justify-center gap-2 px-6 py-24 text-center">
         <h1 className="text-[22px] font-medium tracking-tight text-ink">Bhau</h1>
-        <p className="text-[14px] text-steel">The war room is empty — the ingestion pipeline hasn&apos;t produced a briefing pack yet.</p>
-        <code className="font-mono text-[12px] text-fog">npm run ingest</code>
+        <p className="text-[14px] text-steel">The war room is warming up — no briefing pack reachable right now.</p>
+        <code className="font-mono text-[12px] text-fog">npm run ingest · retrying automatically</code>
       </main>
     );
   }

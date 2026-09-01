@@ -1,23 +1,30 @@
 "use client";
 
 import { Plus } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { CompanyCard } from "@/components/company-card";
+import { InsightLine } from "@/components/insight-line";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { deltaClass, signedPct } from "@/lib/format";
 import { Tile } from "../tiles/tile";
 import { MarketChart } from "./market-chart";
 
-// The mockup's hero watchlist: chart of the selected row on top, quote
-// rows below. NIFTY 50 and SENSEX are pinned; the rest is the user's
-// list (localStorage, max 20).
+// The hero watchlist: chart of the selected row on top, quote rows below.
+// NIFTY 50 and SENSEX are pinned; the rest is the user's list
+// (localStorage, max 20). Rows and chart share one Yahoo source, refreshed
+// every minute, and the chart rotates through the list on its own.
 const STORAGE_KEY = "bhau-watchlist";
 const MAX = 20;
-const DEFAULTS = ["RELIANCE", "HDFCBANK", "TCS", "INFY", "ICICIBANK"];
+const DEFAULTS = [
+  "RELIANCE", "HDFCBANK", "TCS", "INFY", "ICICIBANK",
+  "SBIN", "BHARTIARTL", "ITC", "LT", "HINDUNILVR",
+];
 const PINNED = [
   { symbol: "^NSEI", label: "NIFTY 50" },
   { symbol: "^BSESN", label: "SENSEX" },
 ] as const;
+const ROTATE_MS = 12_000;
+const HOLD_MS = 45_000;
 
 interface Quote {
   symbol: string;
@@ -42,15 +49,19 @@ const fmt = new Intl.NumberFormat("en-IN", { minimumFractionDigits: 2, maximumFr
 export function WatchlistPanel({
   pinnedQuotes,
 }: {
-  /** Server-provided quotes for the pinned indices: [nifty, sensex]. */
+  /** Server-rendered EOD fallback for the pinned indices: [nifty, sensex]. */
   pinnedQuotes: Array<{ symbol: string; close: number; changePct?: number }>;
 }) {
   const [list, setList] = useState<string[] | null>(null);
   const [quotes, setQuotes] = useState<Map<string, Quote>>(new Map());
-  const [selected, setSelected] = useState<string>("^NSEI");
+  // Selection and page travel together so auto-rotation can keep the
+  // selected row in view with a single pure state update.
+  const [view, setView] = useState<{ selected: string; page: number }>({ selected: "^NSEI", page: 0 });
   const [draft, setDraft] = useState("");
-  const [page, setPage] = useState(0);
+  const holdUntil = useRef(0);
+  const hovering = useRef(false);
   const PAGE_SIZE = 6;
+  const { selected, page } = view;
   const pages = Math.max(1, Math.ceil((list?.length ?? 0) / PAGE_SIZE));
   const visible = list?.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE) ?? [];
 
@@ -59,6 +70,7 @@ export function WatchlistPanel({
     return () => cancelAnimationFrame(id);
   }, []);
 
+  // Quotes for pinned + list in one call, refreshed every minute.
   useEffect(() => {
     if (!list) return;
     try {
@@ -66,12 +78,43 @@ export function WatchlistPanel({
     } catch {
       /* private mode */
     }
-    if (list.length === 0) return;
-    fetch(`/api/quotes?symbols=${list.join(",")}`)
-      .then((r) => r.json())
-      .then((d: { quotes: Quote[] }) => setQuotes(new Map(d.quotes.map((q) => [q.symbol, q]))))
-      .catch(() => {});
+    const symbols = [...PINNED.map((p) => p.symbol), ...list];
+    const load = () =>
+      fetch(`/api/quotes?symbols=${symbols.join(",")}`)
+        .then((r) => r.json())
+        .then((d: { quotes: Quote[] }) => setQuotes(new Map(d.quotes.map((q) => [q.symbol, q]))))
+        .catch(() => {});
+    load();
+    const id = setInterval(load, 60_000);
+    return () => clearInterval(id);
   }, [list]);
+
+  // The chart tours the list on its own; interacting holds it.
+  useEffect(() => {
+    if (!list || list.length === 0) return;
+    const id = setInterval(() => {
+      if (document.hidden || hovering.current || Date.now() < holdUntil.current) return;
+      setView((current) => {
+        const all = [...PINNED.map((p) => p.symbol), ...list];
+        const next = all[(all.indexOf(current.selected) + 1) % all.length] ?? all[0];
+        const listIndex = list.indexOf(next);
+        return { selected: next, page: listIndex >= 0 ? Math.floor(listIndex / PAGE_SIZE) : current.page };
+      });
+    }, ROTATE_MS);
+    return () => clearInterval(id);
+  }, [list]);
+
+  const selectSymbol = useCallback((symbol: string) => {
+    holdUntil.current = Date.now() + HOLD_MS;
+    setView((v) => ({ ...v, selected: symbol }));
+  }, []);
+  const goPage = useCallback(
+    (delta: number) => {
+      holdUntil.current = Date.now() + HOLD_MS;
+      setView((v) => ({ ...v, page: Math.min(pages - 1, Math.max(0, v.page + delta)) }));
+    },
+    [pages],
+  );
 
   const add = useCallback(() => {
     const symbol = draft.trim().toUpperCase();
@@ -84,6 +127,11 @@ export function WatchlistPanel({
     `flex w-full items-baseline gap-2 border-b border-ash px-2.5 py-[3px] text-left transition-colors duration-150 last:border-b-0 ${
       selected === symbol ? "bg-paper" : "[@media(hover:hover)]:hover:bg-paper/60"
     }`;
+
+  // One-line insight from the loaded quotes.
+  const listQuotes = (list ?? []).map((s) => quotes.get(s)).filter((q): q is Quote => Boolean(q?.found));
+  const up = listQuotes.filter((q) => (q.changePct ?? 0) > 0).length;
+  const best = [...listQuotes].sort((a, b) => (b.changePct ?? 0) - (a.changePct ?? 0))[0];
 
   return (
     <Tile
@@ -122,15 +170,26 @@ export function WatchlistPanel({
         </span>
       }
     >
-      <div className="flex h-full min-h-0 flex-col">
+      <div
+        className="flex h-full min-h-0 flex-col"
+        onMouseEnter={() => {
+          hovering.current = true;
+        }}
+        onMouseLeave={() => {
+          hovering.current = false;
+        }}
+      >
         <div className="h-[160px] shrink-0 border-b border-ash pt-0.5 xl:h-auto xl:min-h-0 xl:flex-[0.85]">
           <MarketChart symbol={selected} />
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto">
           {PINNED.map((pin) => {
-            const quote = pinnedQuotes.find((q) => q.symbol === pin.symbol);
+            const live = quotes.get(pin.symbol);
+            const quote = live?.found
+              ? { close: live.close!, changePct: live.changePct }
+              : pinnedQuotes.find((q) => q.symbol === pin.symbol);
             return (
-              <button key={pin.symbol} type="button" onClick={() => setSelected(pin.symbol)} className={rowClass(pin.symbol)}>
+              <button key={pin.symbol} type="button" onClick={() => selectSymbol(pin.symbol)} className={rowClass(pin.symbol)}>
                 <span className="min-w-0 flex-1 truncate text-[12px] font-semibold text-charcoal">{pin.label}</span>
                 {quote && (
                   <>
@@ -149,7 +208,11 @@ export function WatchlistPanel({
             const quote = quotes.get(symbol);
             return (
               <div key={symbol} className={rowClass(symbol)}>
-                <button type="button" onClick={() => setSelected(symbol)} className="min-w-0 flex-1 truncate text-left font-mono text-[11.5px] font-medium text-charcoal">
+                <button
+                  type="button"
+                  onClick={() => selectSymbol(symbol)}
+                  className="min-w-0 flex-1 truncate text-left font-mono text-[11.5px] font-medium text-charcoal"
+                >
                   {symbol}
                 </button>
                 {quote?.found ? (
@@ -178,16 +241,26 @@ export function WatchlistPanel({
         </div>
         {pages > 1 && (
           <div className="flex shrink-0 items-center justify-end gap-1 border-t border-ash px-2.5 py-0.5 font-mono text-[9.5px] text-fog">
-            <button type="button" onClick={() => setPage((p) => Math.max(0, p - 1))} disabled={page === 0} className="px-1 disabled:opacity-30 [@media(hover:hover)]:hover:text-ink">
+            <button type="button" onClick={() => goPage(-1)} disabled={page === 0} className="px-1 disabled:opacity-30 [@media(hover:hover)]:hover:text-ink">
               ‹
             </button>
             <span className="tabular-nums">
               {page + 1}/{pages}
             </span>
-            <button type="button" onClick={() => setPage((p) => Math.min(pages - 1, p + 1))} disabled={page === pages - 1} className="px-1 disabled:opacity-30 [@media(hover:hover)]:hover:text-ink">
+            <button type="button" onClick={() => goPage(1)} disabled={page === pages - 1} className="px-1 disabled:opacity-30 [@media(hover:hover)]:hover:text-ink">
               ›
             </button>
           </div>
+        )}
+        {listQuotes.length > 0 && (
+          <InsightLine meta="YAHOO · 1 MIN">
+            {up}/{listQuotes.length} watched up
+            {best && best.changePct !== undefined && (
+              <>
+                {" "}· best {best.symbol} <span className={deltaClass(best.changePct)}>{signedPct(best.changePct)}</span>
+              </>
+            )}
+          </InsightLine>
         )}
       </div>
     </Tile>

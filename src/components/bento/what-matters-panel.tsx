@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import type { WarRoomData } from "@/lib/warroom";
 import { crore, deltaClass, timeIST } from "@/lib/format";
+import { useCarousel } from "@/lib/use-carousel";
 import { Tile } from "../tiles/tile";
 
 // The intelligence panel: desk synthesis first, the wire behind tabs,
@@ -33,7 +34,8 @@ export function WhatMattersPanel({
   flows: WarRoomData["flows"];
   fiiStreak: WarRoomData["fiiStreak"];
 }) {
-  const [tab, setTab] = useState<string>("synthesis");
+  const { index, select, pauseProps } = useCarousel(TABS.length, 15_000);
+  const tab = TABS[index].id;
 
   const items = useMemo(() => {
     if (tab === "synthesis") return [];
@@ -52,11 +54,11 @@ export function WhatMattersPanel({
       title="Intelligence"
       meta={
         <span className="flex gap-1">
-          {TABS.map(({ id, label }) => (
+          {TABS.map(({ id, label }, i) => (
             <button
               key={id}
               type="button"
-              onClick={() => setTab(id)}
+              onClick={() => select(i)}
               className={`rounded-full px-2 py-px font-sans text-[9.5px] font-semibold transition-colors duration-150 ${
                 tab === id ? "bg-charcoal text-canvas" : "text-fog [@media(hover:hover)]:hover:bg-paper"
               }`}
@@ -67,7 +69,7 @@ export function WhatMattersPanel({
         </span>
       }
     >
-      <div className="flex h-full min-h-0 flex-col">
+      <div className="flex h-full min-h-0 flex-col" {...pauseProps}>
         {/* FII/DII — the ritual, one row, always visible */}
         <div className="flex shrink-0 flex-wrap items-baseline gap-x-4 gap-y-0.5 border-b border-ash bg-paper/60 px-2.5 py-1">
           <span className="font-mono text-[9px] font-semibold uppercase tracking-[0.08em] text-fog">

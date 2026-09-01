@@ -1,7 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
+import { InsightLine } from "@/components/insight-line";
 import type { ExchangeData } from "@/lib/exchange";
+import { useCarousel } from "@/lib/use-carousel";
 import { Tile } from "../tiles/tile";
 
 // Flat chronological rows with an inline date column — no week strip, no
@@ -31,7 +33,8 @@ function dateCol(iso: string): [string, string] {
 }
 
 export function CalendarPanel({ data, todayIso }: { data: ExchangeData; todayIso: string }) {
-  const [tab, setTab] = useState<(typeof TABS)[number]["id"]>("earnings");
+  const { index, select, pauseProps } = useCarousel(TABS.length, 17_000);
+  const tab = TABS[index].id;
 
   const items: CalItem[] = useMemo(() => {
     const list: CalItem[] =
@@ -67,11 +70,11 @@ export function CalendarPanel({ data, todayIso }: { data: ExchangeData; todayIso
       title="Calendar"
       meta={
         <span className="flex gap-1">
-          {TABS.map(({ id, label }) => (
+          {TABS.map(({ id, label }, i) => (
             <button
               key={id}
               type="button"
-              onClick={() => setTab(id)}
+              onClick={() => select(i)}
               className={`rounded-full px-2 py-px font-sans text-[9.5px] font-semibold transition-colors duration-150 ${
                 tab === id ? "bg-charcoal text-canvas" : "text-fog [@media(hover:hover)]:hover:bg-paper"
               }`}
@@ -81,9 +84,9 @@ export function CalendarPanel({ data, todayIso }: { data: ExchangeData; todayIso
           ))}
         </span>
       }
-      scroll
     >
-      <ul>
+      <div className="flex h-full min-h-0 flex-col" {...pauseProps}>
+      <ul className="min-h-0 flex-1 overflow-y-auto">
         {items.length === 0 && <li className="px-3 py-4 text-[11.5px] text-fog">Nothing scheduled.</li>}
         {items.map((item, i) => {
           const [weekday, dayMonth] = dateCol(item.date);
@@ -115,6 +118,26 @@ export function CalendarPanel({ data, todayIso }: { data: ExchangeData; todayIso
           );
         })}
       </ul>
+      <InsightLine meta="NSE">
+        {(() => {
+          const nextResults = data.earnings.find((e) => e.isResults);
+          const openIpos = data.ipos.filter((ipo) => ipo.status === "Active").length;
+          if (!nextResults && openIpos === 0) return "Quiet week — nothing market-moving scheduled";
+          const [wd, dm] = nextResults ? dateCol(nextResults.date) : ["", ""];
+          return (
+            <>
+              {nextResults && (
+                <>
+                  Next results {nextResults.symbol} · {wd} {dm}
+                </>
+              )}
+              {nextResults && openIpos > 0 && " · "}
+              {openIpos > 0 && `${openIpos} IPO${openIpos > 1 ? "s" : ""} open`}
+            </>
+          );
+        })()}
+      </InsightLine>
+      </div>
     </Tile>
   );
 }

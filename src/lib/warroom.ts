@@ -1,6 +1,9 @@
+import { XMLParser } from "fast-xml-parser";
 import type { BriefingPack } from "@/ingest/briefing";
 import { SECTOR_OF } from "@/agents/universe";
 import { BENCHMARK_AGENT_ID, PERSONAS } from "@/agents/personas";
+import { FEEDS } from "@/ingest/feeds";
+import { USER_AGENT } from "@/ingest/types";
 import { prisma } from "./db";
 
 // Server-side assembly for the war room. Everything is "latest available"
@@ -113,10 +116,10 @@ async function fetchWeather(): Promise<WarRoomData["weather"]> {
 }
 
 // Fuel is city-level (state taxes); bullion is IBJA's national fix.
-const PULSE_CITIES = ["MUMBAI", "DELHI", "BENGALURU", "CHENNAI", "KOLKATA", "HYDERABAD"];
+const PULSE_CITIES = ["MUMBAI", "DELHI", "BENGALURU", "CHENNAI", "KOLKATA", "HYDERABAD", "PUNE"];
 const CITY_LABEL: Record<string, string> = {
   MUMBAI: "Mumbai", DELHI: "Delhi", BENGALURU: "Bengaluru",
-  CHENNAI: "Chennai", KOLKATA: "Kolkata", HYDERABAD: "Hyderabad",
+  CHENNAI: "Chennai", KOLKATA: "Kolkata", HYDERABAD: "Hyderabad", PUNE: "Pune",
 };
 
 async function fetchCityPulse(): Promise<WarRoomData["cityPulse"]> {
@@ -158,6 +161,58 @@ async function fetchCityPulse(): Promise<WarRoomData["cityPulse"]> {
   }
   if (cities.length === 0 && metals.length === 0) return null;
   return { cities, metals, metalsAsOf };
+}
+
+// The wire stays current all day: the same RSS feeds the nightly ingest
+// archives, fetched here with a 15-minute cache. The evening pack is the
+// fallback when every feed is down.
+const rssParser = new XMLParser({ ignoreAttributes: false });
+const TOP_PER_CATEGORY = 14;
+
+async function fetchFreshNews(): Promise<BriefingPack["news"] | null> {
+  const perFeed = await Promise.all(
+    FEEDS.map(async (feed) => {
+      try {
+        const res = await fetch(feed.url, {
+          headers: { "user-agent": USER_AGENT },
+          next: { revalidate: 900 },
+          signal: AbortSignal.timeout(8_000),
+        });
+        if (!res.ok) return [];
+        const doc = rssParser.parse(await res.text()) as {
+          rss?: { channel?: { item?: Array<{ title?: unknown; link?: unknown; pubDate?: unknown }> | { title?: unknown } } };
+        };
+        const raw = doc?.rss?.channel?.item;
+        const items = Array.isArray(raw) ? raw : raw ? [raw] : [];
+        return items.flatMap((item: { title?: unknown; link?: unknown; pubDate?: unknown }) => {
+          const title = String(item.title ?? "").trim();
+          if (!title) return [];
+          const ts = item.pubDate ? new Date(String(item.pubDate)) : new Date();
+          return [{
+            category: feed.category,
+            ts: (Number.isNaN(ts.getTime()) ? new Date() : ts).toISOString(),
+            source: feed.name,
+            title,
+            url: item.link ? String(item.link) : undefined,
+          }];
+        });
+      } catch {
+        return [];
+      }
+    }),
+  );
+  const all = perFeed.flat().sort((a, b) => (a.ts < b.ts ? 1 : -1));
+  if (all.length === 0) return null;
+  const news: BriefingPack["news"] = {};
+  const seenTitles = new Set<string>();
+  for (const item of all) {
+    if (seenTitles.has(item.title)) continue;
+    seenTitles.add(item.title);
+    const list = (news[item.category] ??= []);
+    if (list.length >= TOP_PER_CATEGORY) continue;
+    list.push({ ts: item.ts, source: item.source, title: item.title, url: item.url });
+  }
+  return news;
 }
 
 // Trending songs, India — iTunes RSS, keyless. Pure gen-z garnish.
@@ -205,7 +260,12 @@ export async function getWarRoomData(): Promise<WarRoomData | null> {
   if (!packRow) return null;
   const pack = packRow.pack as unknown as BriefingPack;
 
-  const [weather, songs, cityPulse] = await Promise.all([fetchWeather(), fetchSongs(), fetchCityPulse()]);
+  const [weather, songs, cityPulse, freshNews] = await Promise.all([
+    fetchWeather(),
+    fetchSongs(),
+    fetchCityPulse(),
+    fetchFreshNews(),
+  ]);
   const { readSongMood } = await import("./song-mood");
   const songMood = songs ? await readSongMood(songs.map((s) => ({ title: s.title, artist: s.artist }))) : null;
 
@@ -430,7 +490,7 @@ export async function getWarRoomData(): Promise<WarRoomData | null> {
     synthesis: pack.synthesis ?? null,
     regimeTrend,
     strip,
-    news: pack.news,
+    news: freshNews ?? pack.news,
     flows,
     fiiStreak,
     sectors,

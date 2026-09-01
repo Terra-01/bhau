@@ -1,16 +1,42 @@
 import { NextResponse } from "next/server";
+import YahooFinance from "yahoo-finance2";
 import { prisma } from "@/lib/db";
 
-// EOD quotes for the watchlist marquee — straight from the bhavcopy archive.
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const symbols = (searchParams.get("symbols") ?? "")
-    .split(",")
-    .map((s) => s.trim().toUpperCase())
-    .filter(Boolean)
-    .slice(0, 20);
-  if (symbols.length === 0) return NextResponse.json({ quotes: [] });
+// Watchlist quotes — Yahoo's NSE feed (measured seconds-fresh; the same
+// source as the chart's last bar, so rows and chart always agree), with
+// the bhavcopy archive as the fallback when Yahoo is unreachable.
+const yf = new YahooFinance({ suppressNotices: ["yahooSurvey"] });
 
+const toYahoo = (s: string) => (s.startsWith("^") || s.includes("=") || s.includes(".") ? s : `${s}.NS`);
+
+interface QuoteOut {
+  symbol: string;
+  found: boolean;
+  close?: number;
+  changePct?: number;
+  date?: string;
+}
+
+async function fromYahoo(symbols: string[]): Promise<QuoteOut[]> {
+  const rows = await yf.quote(symbols.map(toYahoo));
+  const byYahoo = new Map(rows.map((r) => [r.symbol, r]));
+  return symbols.map((symbol) => {
+    const q = byYahoo.get(toYahoo(symbol));
+    if (!q || typeof q.regularMarketPrice !== "number") return { symbol, found: false };
+    return {
+      symbol,
+      found: true,
+      close: q.regularMarketPrice,
+      changePct:
+        typeof q.regularMarketChangePercent === "number"
+          ? Number(q.regularMarketChangePercent.toFixed(2))
+          : undefined,
+      date: q.regularMarketTime?.toISOString(),
+    };
+  });
+}
+
+async function fromArchive(symbols: string[]): Promise<QuoteOut[]> {
   const rows = await prisma.dailyBar.findMany({
     where: { symbol: { in: symbols }, source: "bhavcopy" },
     orderBy: { date: "desc" },
@@ -22,23 +48,37 @@ export async function GET(request: Request) {
     if (list.length < 2) list.push(row);
     bySymbol.set(row.symbol, list);
   }
-
-  const quotes = symbols.map((symbol) => {
+  return symbols.map((symbol) => {
     const [last, prev] = bySymbol.get(symbol) ?? [];
-    if (!last) return { symbol, found: false as const };
+    if (!last) return { symbol, found: false };
     return {
       symbol,
-      found: true as const,
+      found: true,
       close: last.close,
       changePct: prev ? Number((((last.close - prev.close) / prev.close) * 100).toFixed(2)) : undefined,
-      dayHigh: last.high,
-      dayLow: last.low,
       date: last.date.toISOString().slice(0, 10),
     };
   });
+}
+
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const symbols = (searchParams.get("symbols") ?? "")
+    .split(",")
+    .map((s) => s.trim().toUpperCase())
+    .filter(Boolean)
+    .slice(0, 24);
+  if (symbols.length === 0) return NextResponse.json({ quotes: [] });
+
+  let quotes: QuoteOut[];
+  try {
+    quotes = await fromYahoo(symbols);
+  } catch {
+    quotes = await fromArchive(symbols);
+  }
 
   return NextResponse.json(
     { quotes },
-    { headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600" } },
+    { headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120" } },
   );
 }

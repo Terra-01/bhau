@@ -3,6 +3,7 @@
 import { LineChart, Line } from "@/components/charts/line-chart";
 import { RingChart } from "@/components/charts/ring-chart";
 import { Ring } from "@/components/charts/ring";
+import { InsightLine } from "@/components/insight-line";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { WarRoomData } from "@/lib/warroom";
 import { dateIST, deltaClass, inr, signedPct, timeIST } from "@/lib/format";
@@ -139,6 +140,14 @@ export function FloorTile({
             )}
           </ul>
         </div>
+        {agents.length > 0 && benchmark && (
+          <InsightLine meta="PAPER · EOD">
+            Leader {agents[0].name.replace("The ", "")}{" "}
+            <span className={deltaClass(agents[0].totalReturnPct)}>{signedPct(agents[0].totalReturnPct)}</span> ·{" "}
+            {agents[0].totalReturnPct >= benchmark.totalReturnPct ? "ahead of" : "behind"} the Nifty by{" "}
+            {Math.abs(agents[0].totalReturnPct - benchmark.totalReturnPct).toFixed(2)} pp
+          </InsightLine>
+        )}
       </div>
     </Tile>
   );

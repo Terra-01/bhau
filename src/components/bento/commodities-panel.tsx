@@ -1,3 +1,4 @@
+import { InsightLine } from "@/components/insight-line";
 import type { WarRoomData } from "@/lib/warroom";
 import { deltaClass, signedPct } from "@/lib/format";
 import { Sparkline } from "../sparkline";
@@ -7,8 +8,12 @@ const fmt = new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFr
 
 /** Futures & major commodities — Name / LTP / Δ / Δ% (USD, labeled honestly). */
 export function CommoditiesPanel({ items }: { items: WarRoomData["commodities"] }) {
+  const moved = items.filter((i) => i.change1dPct !== undefined);
+  const best = [...moved].sort((a, b) => b.change1dPct! - a.change1dPct!)[0];
+  const worst = [...moved].sort((a, b) => a.change1dPct! - b.change1dPct!)[0];
   return (
     <Tile title="Futures & commodities" meta="COMEX · NYMEX · ICE · USD">
+      <div className="flex h-full flex-col">
       <table className="w-full border-collapse">
         <thead>
           <tr className="border-b border-ash">
@@ -41,6 +46,13 @@ export function CommoditiesPanel({ items }: { items: WarRoomData["commodities"] 
           })}
         </tbody>
       </table>
+      {best && worst && best !== worst && (
+        <InsightLine meta="1D">
+          {best.name} <span className={deltaClass(best.change1dPct!)}>{signedPct(best.change1dPct!, 1)}</span> leads ·{" "}
+          {worst.name} <span className={deltaClass(worst.change1dPct!)}>{signedPct(worst.change1dPct!, 1)}</span> lags
+        </InsightLine>
+      )}
+      </div>
     </Tile>
   );
 }

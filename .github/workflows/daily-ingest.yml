@@ -9,7 +9,11 @@ name: daily-ingest
 
 on:
   schedule:
-    - cron: "30 11 * * 1-5" # 17:00 IST, Mon–Fri (after the 15:30 close)
+    # Off-peak minutes fire with far less GitHub jitter than :30 (observed
+    # multi-hour drift). Second firing is a safety net — ingest is
+    # idempotent and the floor loop is once-per-session guarded.
+    - cron: "47 11 * * 1-5" # ~17:17 IST, Mon–Fri (after the 15:30 close)
+    - cron: "17 14 * * 1-5" # ~19:47 IST fallback
   workflow_dispatch: {}
 
 concurrency: daily-ingest

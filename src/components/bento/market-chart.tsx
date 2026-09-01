@@ -109,24 +109,28 @@ export function MarketChart({ symbol }: { symbol: string }) {
     };
   }, []);
 
+  const loading = points === undefined;
+
   useEffect(() => {
     const inst = instance.current;
-    if (!inst) return;
+    if (!inst || loading) return; // keep the outgoing series while the next symbol loads
     inst.area.setData(data);
     inst.chart.timeScale().fitContent();
-  }, [data]);
+  }, [data, loading]);
 
-  const empty = failed || data.length < 2;
+  const empty = failed || (!loading && data.length < 2);
 
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="relative min-h-0 flex-1">
         <div ref={container} className="absolute inset-0" />
-        {empty && (
+        {loading ? (
+          <div className="absolute inset-0 flex items-center justify-center bg-canvas/60 text-[10px] text-fog">Loading…</div>
+        ) : empty ? (
           <div className="absolute inset-0 flex items-center justify-center bg-canvas text-[11px] text-fog">
-            {failed ? `No chart data for ${symbol}.` : points === undefined ? "Loading…" : "Not enough history yet."}
+            {failed ? `No chart data for ${symbol}.` : "Not enough history yet."}
           </div>
-        )}
+        ) : null}
       </div>
       <div className="flex shrink-0 items-center gap-1 px-2 pb-1 pt-0.5">
         {TIMEFRAMES.map((tf) => (
@@ -141,7 +145,7 @@ export function MarketChart({ symbol }: { symbol: string }) {
             {tf.label}
           </button>
         ))}
-        <span className="ml-auto font-mono text-[9px] text-silver">{symbol} · EOD</span>
+        <span className="ml-auto font-mono text-[9px] text-silver">{symbol} · DAILY</span>
       </div>
     </div>
   );

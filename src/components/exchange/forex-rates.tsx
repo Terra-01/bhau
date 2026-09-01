@@ -1,3 +1,4 @@
+import { InsightLine } from "@/components/insight-line";
 import type { ExchangeData } from "@/lib/exchange";
 import { deltaClass, signedPct } from "@/lib/format";
 import { Sparkline } from "../sparkline";
@@ -60,9 +61,7 @@ export function ForexRates({ forex }: { forex: ExchangeData["forex"] }) {
             })}
           </tbody>
         </table>
-        {insight(forex) && (
-          <div className="mt-auto shrink-0 border-t border-ash px-2.5 py-[3px] text-[8.5px] leading-tight text-fog">{insight(forex)}</div>
-        )}
+        {insight(forex) && <InsightLine meta="ECB">{insight(forex)}</InsightLine>}
         </div>
       )}
     </Tile>

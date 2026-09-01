@@ -1,3 +1,4 @@
+import { InsightLine } from "@/components/insight-line";
 import type { RatesData } from "@/lib/rates";
 import { deltaClass } from "@/lib/format";
 import { Tile } from "../tiles/tile";
@@ -32,7 +33,8 @@ export function RatesPanel({ rates }: { rates: RatesData | null }) {
 
   return (
     <Tile title="India rates & macro" meta={`RBI · ${asOf.slice(5).replace("-", "/")}`}>
-      <div className="flex h-full min-h-0 flex-col overflow-y-auto">
+      <div className="flex h-full min-h-0 flex-col">
+      <div className="min-h-0 flex-1 overflow-y-auto">
         <SectionHeader left="G-sec yields" right="Cut-off / EOD" />
         <ul>
           {tenors.map((t) => {
@@ -77,6 +79,21 @@ export function RatesPanel({ rates }: { rates: RatesData | null }) {
             </li>
           ))}
         </ul>
+      </div>
+      {y10 && (
+        <InsightLine meta="RBI">
+          {(() => {
+            const oneY = curve.find((c) => c.label === "1Y");
+            const inverted = oneY !== undefined && y10.value < oneY.yield;
+            return (
+              <>
+                Curve {inverted ? <span className="text-loss">inverted</span> : "normal"} · 10Y {y10.value.toFixed(2)}% ·{" "}
+                {Math.round((y10.value - repo.value) * 100)} bp over repo
+              </>
+            );
+          })()}
+        </InsightLine>
+      )}
       </div>
     </Tile>
   );

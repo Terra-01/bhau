@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { InsightLine } from "@/components/insight-line";
 import type { ExchangeData, StockRow } from "@/lib/exchange";
 import { deltaClass, signedPct } from "@/lib/format";
 import { compactInr } from "@/lib/heat";
+import { useCarousel } from "@/lib/use-carousel";
+import type { WarRoomData } from "@/lib/warroom";
 import { Tile } from "../tiles/tile";
 
 const TABS = [
@@ -22,20 +24,29 @@ function Pill({ pct }: { pct: number }) {
   );
 }
 
-export function MoversPanel({ data }: { data: Pick<ExchangeData, "mostTraded" | "gainers" | "losers" | "etfs" | "asOf"> }) {
-  const [tab, setTab] = useState<(typeof TABS)[number]["id"]>("mostTraded");
+export function MoversPanel({
+  data,
+  sectors,
+}: {
+  data: Pick<ExchangeData, "mostTraded" | "gainers" | "losers" | "etfs" | "asOf">;
+  sectors: WarRoomData["sectors"];
+}) {
+  const { index, select, pauseProps } = useCarousel(TABS.length, 14_000);
+  const tab = TABS[index].id;
   const rows: StockRow[] = data[tab] ?? [];
+  const lead = sectors[0];
+  const lag = sectors.at(-1);
 
   return (
     <Tile
       title="Stocks"
       meta={
         <span className="flex gap-1">
-          {TABS.map(({ id, label }) => (
+          {TABS.map(({ id, label }, i) => (
             <button
               key={id}
               type="button"
-              onClick={() => setTab(id)}
+              onClick={() => select(i)}
               className={`rounded-full px-2 py-px font-sans text-[9.5px] font-semibold transition-colors duration-150 ${
                 tab === id ? "bg-charcoal text-canvas" : "text-fog [@media(hover:hover)]:hover:bg-paper"
               }`}
@@ -46,7 +57,7 @@ export function MoversPanel({ data }: { data: Pick<ExchangeData, "mostTraded" | 
         </span>
       }
     >
-      <div className="flex h-full min-h-0 flex-col">
+      <div className="flex h-full min-h-0 flex-col" {...pauseProps}>
         <ul className="min-h-0 flex-1 overflow-y-auto">
           {rows.map((row) => (
             <li key={row.symbol} className="flex items-baseline gap-2 border-b border-ash px-2.5 py-[3px]">
@@ -82,9 +93,16 @@ export function MoversPanel({ data }: { data: Pick<ExchangeData, "mostTraded" | 
           </div>
         )}
 
-        <div className="shrink-0 border-t border-ash px-2.5 py-0.5 text-right font-mono text-[8.5px] text-silver">
-          EOD · {data.asOf} · FULL NSE UNIVERSE
-        </div>
+        <InsightLine meta={`EOD · ${data.asOf.slice(5).replace("-", "/")}`}>
+          {lead && lag ? (
+            <>
+              Sectors: {lead.sector} <span className={deltaClass(lead.avgChangePct)}>{signedPct(lead.avgChangePct, 1)}</span> leads ·{" "}
+              {lag.sector} <span className={deltaClass(lag.avgChangePct)}>{signedPct(lag.avgChangePct, 1)}</span> lags
+            </>
+          ) : (
+            "Full NSE universe, ranked from the daily bhavcopy"
+          )}
+        </InsightLine>
       </div>
     </Tile>
   );

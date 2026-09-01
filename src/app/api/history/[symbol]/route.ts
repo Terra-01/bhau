@@ -7,7 +7,7 @@ import YahooFinance from "yahoo-finance2";
 const yf = new YahooFinance({ suppressNotices: ["yahooSurvey"] });
 
 const cache = new Map<string, { at: number; body: unknown }>();
-const TTL_MS = 60 * 60 * 1000;
+const TTL_MS = 5 * 60 * 1000; // short: the last bar is today's forming session
 
 export async function GET(_request: Request, { params }: { params: Promise<{ symbol: string }> }) {
   const { symbol: raw } = await params;
@@ -28,7 +28,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ sym
       .map((q) => ({ date: q.date.toISOString().slice(0, 10), close: q.close as number }));
     const body = { symbol, points };
     cache.set(symbol, { at: Date.now(), body });
-    return NextResponse.json(body, { headers: { "Cache-Control": "public, s-maxage=1800, stale-while-revalidate=3600" } });
+    return NextResponse.json(body, { headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600" } });
   } catch (err) {
     return NextResponse.json(
       { symbol, error: err instanceof Error ? err.message : "lookup failed" },

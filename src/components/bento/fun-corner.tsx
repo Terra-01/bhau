@@ -1,10 +1,10 @@
 "use client";
 
 import { Music } from "lucide-react";
-import { useState } from "react";
 import type { ExchangeData } from "@/lib/exchange";
 import type { WarRoomData } from "@/lib/warroom";
 import { deltaClass, signedPct } from "@/lib/format";
+import { useCarousel } from "@/lib/use-carousel";
 import { Tile } from "../tiles/tile";
 
 // The fun corner: trending songs + the famous tongue-in-cheek recession
@@ -19,7 +19,8 @@ export function FunCorner({
   baskets: ExchangeData["funBaskets"];
 }) {
   const tabs = [{ id: "songs", label: "Songs" }, ...baskets.map((b) => ({ id: b.id, label: b.name.split(" ")[0] }))];
-  const [tab, setTab] = useState("songs");
+  const { index, select, pauseProps } = useCarousel(tabs.length, 23_000);
+  const tab = tabs[index]?.id ?? "songs";
   const basket = baskets.find((b) => b.id === tab);
 
   return (
@@ -27,11 +28,11 @@ export function FunCorner({
       title="Off the tape"
       meta={
         <span className="flex gap-1">
-          {tabs.map(({ id, label }) => (
+          {tabs.map(({ id, label }, i) => (
             <button
               key={id}
               type="button"
-              onClick={() => setTab(id)}
+              onClick={() => select(i)}
               className={`rounded-full px-2 py-px font-sans text-[9.5px] font-semibold transition-colors duration-150 ${
                 tab === id ? "bg-charcoal text-canvas" : "text-fog [@media(hover:hover)]:hover:bg-paper"
               }`}
@@ -43,6 +44,7 @@ export function FunCorner({
       }
       scroll
     >
+      <div {...pauseProps}>
       {tab === "songs" ? (
         !songs || songs.length === 0 ? (
           <p className="px-3 py-3 text-[11.5px] text-fog">Charts unavailable.</p>
@@ -104,6 +106,7 @@ export function FunCorner({
           <p className="pt-1 text-[9px] text-silver">Equal-weight 1D basket · not a real index · definitely not advice</p>
         </div>
       ) : null}
+      </div>
     </Tile>
   );
 }

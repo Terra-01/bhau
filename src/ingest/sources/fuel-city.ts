@@ -16,6 +16,20 @@ const CITY_MAP: Record<string, string> = {
 
 const todayIST = () => new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
 
+// Pune is missing from the main tables — its dedicated city pages carry a
+// clean headline ("Today's Pune Petrol Price is Rs. 112.02 per litre").
+async function fetchPune(fuel: "petrol" | "diesel", date: string): Promise<IngestBar[]> {
+  const res = await fetch(`https://www.goodreturns.in/${fuel}-price-in-pune.html`, {
+    headers: { "user-agent": USER_AGENT, accept: "text/html" },
+    signal: AbortSignal.timeout(20_000),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status} on pune ${fuel}`);
+  const html = await res.text();
+  const m = html.match(new RegExp(`Today's Pune ${fuel} Price is Rs\\.?\\s*([\\d.]+)`, "i"));
+  if (!m) throw new Error(`pune ${fuel} headline not found — layout changed?`);
+  return [{ date, symbol: `${fuel.toUpperCase()}:PUNE`, close: Number(m[1]), source: "goodreturns" }];
+}
+
 async function fetchFuelPage(url: string, prefix: string, date: string): Promise<IngestBar[]> {
   const res = await fetch(url, {
     headers: { "user-agent": USER_AGENT, accept: "text/html" },
@@ -42,10 +56,13 @@ export const fuelCityFetcher: Fetcher = {
 
   async fetch(): Promise<SourceResult> {
     const date = todayIST();
-    const [petrol, diesel] = await Promise.all([
+    const [petrol, diesel, ...pune] = await Promise.all([
       fetchFuelPage("https://www.goodreturns.in/petrol-price.html", "PETROL", date),
       fetchFuelPage("https://www.goodreturns.in/diesel-price.html", "DIESEL", date),
+      // Pune failing must not take down the six table cities.
+      fetchPune("petrol", date).catch(() => [] as IngestBar[]),
+      fetchPune("diesel", date).catch(() => [] as IngestBar[]),
     ]);
-    return { events: [], bars: [...petrol, ...diesel] };
+    return { events: [], bars: [...petrol, ...diesel, ...pune.flat()] };
   },
 };

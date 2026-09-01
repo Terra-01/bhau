@@ -55,33 +55,33 @@ export default async function Feed() {
           </div>
         </div>
 
-        {/* Center stack — stocks · calendar · intelligence */}
+        {/* Center stack — stocks · the floor (hero) · intelligence */}
         <div className="flex min-h-0 flex-col gap-1 xl:col-span-1">
           <div className="max-xl:h-[420px] min-h-0 xl:h-auto xl:flex-[1.1]">
-            <MoversPanel data={exchange} />
+            <MoversPanel data={exchange} sectors={data.sectors} />
           </div>
           <div className="max-xl:h-[300px] min-h-0 xl:h-auto xl:flex-[0.85]">
-            <CalendarPanel data={exchange} todayIso={todayIso} />
+            <FloorTile floor={data.floor} race={data.race} />
           </div>
           <div className="max-xl:h-[360px] min-h-0 xl:h-auto xl:flex-[1.15]">
             <WhatMattersPanel synthesis={data.synthesis} news={data.news} flows={data.flows} fiiStreak={data.fiiStreak} />
           </div>
         </div>
 
-        {/* Right stack — (city pulse | forex) · floor · commodities · live TV */}
+        {/* Right stack — (city pulse | forex) · calendar · commodities · live TV */}
         <div className="flex min-h-0 flex-col gap-1 xl:col-span-1">
           {/* Fixed height: the city tabs must not re-flow the rail below */}
           <div className="grid shrink-0 grid-cols-2 gap-1 xl:h-[190px]">
             <CityTile weather={data.weather} pulse={data.cityPulse} />
             <ForexRates forex={exchange.forex} />
           </div>
-          <div className="max-xl:h-[300px] min-h-0 xl:h-auto xl:flex-1">
-            <FloorTile floor={data.floor} race={data.race} />
+          <div className="max-xl:h-[300px] min-h-0 xl:h-auto xl:flex-[0.8]">
+            <CalendarPanel data={exchange} todayIso={todayIso} />
           </div>
           <div className="min-h-0 shrink-0">
             <CommoditiesPanel items={data.commodities} />
           </div>
-          <div className="max-xl:h-[360px] min-h-0 xl:h-auto xl:flex-1">
+          <div className="max-xl:h-[360px] min-h-0 xl:h-auto xl:flex-[1.2]">
             <TvTile />
           </div>
         </div>

@@ -5,18 +5,22 @@ import { useState } from "react";
 import { Tile } from "./tile";
 
 // Click-to-load: no dead black iframe off-hours, no autoplay bandwidth.
+// Channel IDs verified against the official YouTube channels.
 const CHANNELS = [
   { id: "ndtv-profit", name: "NDTV Profit", channelId: "UCZFMm1mMw0F81Z37aaEzTUA" },
+  { id: "cnbc-awaaz", name: "CNBC Awaaz", channelId: "UCQIycDaLsBpMKjOCeaKUYVg" },
+  { id: "aaj-tak", name: "Aaj Tak", channelId: "UCYPvAwZP8pZhSMW8qs7cVCw" },
+  { id: "abp-news", name: "ABP News", channelId: "UCRWFSbif-RFENbBrSiez1DA" },
 ] as const;
 
 const LINKOUTS = [
-  { name: "CNBC-TV18", url: "https://www.youtube.com/results?search_query=cnbc+tv18+live" },
+  { name: "Zee Business", url: "https://www.youtube.com/results?search_query=zee+business+live" },
   { name: "ET Now", url: "https://www.youtube.com/results?search_query=et+now+live" },
 ] as const;
 
 export function TvTile() {
   const [playing, setPlaying] = useState(false);
-  const channel = CHANNELS[0];
+  const [channel, setChannel] = useState<(typeof CHANNELS)[number]>(CHANNELS[0]);
 
   return (
     <Tile title="Live TV" meta="MARKET HOURS">
@@ -24,6 +28,7 @@ export function TvTile() {
         <div className="relative min-h-0 flex-1 bg-paper">
           {playing ? (
             <iframe
+              key={channel.id}
               className="h-full w-full"
               src={`https://www.youtube.com/embed/live_stream?channel=${channel.channelId}&autoplay=1`}
               title={`${channel.name} live`}
@@ -44,7 +49,19 @@ export function TvTile() {
             </button>
           )}
         </div>
-        <div className="flex shrink-0 items-center gap-1.5 border-t border-ash px-2.5 py-1.5">
+        <div className="flex shrink-0 flex-wrap items-center gap-1.5 border-t border-ash px-2.5 py-1.5">
+          {CHANNELS.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              onClick={() => setChannel(c)}
+              className={`rounded-full px-2 py-px text-[9.5px] font-semibold transition-colors duration-150 ${
+                channel.id === c.id ? "bg-charcoal text-canvas" : "border border-ash text-steel [@media(hover:hover)]:hover:bg-paper"
+              }`}
+            >
+              {c.name}
+            </button>
+          ))}
           {LINKOUTS.map((c) => (
             <a
               key={c.name}

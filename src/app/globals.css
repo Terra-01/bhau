@@ -71,6 +71,42 @@
   --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
 }
 
+/* Dark theme — a designed variant (DESIGN.md), not an inversion. Toggled
+   via data-theme on <html>; light stays the default identity. Chart
+   strokes, washes, and hairlines all flow from these same tokens. */
+[data-theme="dark"] {
+  --color-canvas: #12161b;
+  --color-paper: #1a1f26;
+  --color-ash: #262c35;
+  --color-smoke: #313945;
+  --color-pebble: #3e4753;
+  --color-ink: #eceae3;
+  --color-charcoal: #d9d7d0;
+  --color-graphite: #c0beb7;
+  --color-slate: #a6a69f;
+  --color-steel: #8e9299;
+  --color-fog: #70757d;
+  --color-silver: #545962;
+  --color-blue: #6b9aef;
+  --color-sapphire: #3d6fd1;
+  --color-mint: rgba(63, 194, 143, 0.16);
+  --color-tangerine: #f08a4c;
+  --color-lavender: #a78bfa;
+  --color-gain: #3fc28f;
+  --color-gain-wash: rgba(63, 194, 143, 0.16);
+  --color-loss: #e0605e;
+  --color-loss-wash: rgba(224, 96, 94, 0.16);
+  --color-warn: #e3a94a;
+  --color-warn-wash: rgba(227, 169, 74, 0.16);
+  --color-agent-macro: #6b9aef;
+  --color-agent-momentum: #f08a4c;
+  --color-agent-value: #c7c5be;
+  --color-agent-contrarian: #a78bfa;
+}
+[data-theme="dark"] body {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+}
+
 /* The Deck: fills the first viewport on desktop (below the sticky header);
    its tiles scroll internally. The page itself scrolls on to the Exchange
    sections below — Deck + Exchange architecture. */

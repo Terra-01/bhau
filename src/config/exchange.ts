@@ -37,3 +37,22 @@ export const ECON_RELEASES: Array<{ name: string; source: string; rule: { dayOfM
  * MPC decision days (the policy news stream will carry it).
  */
 export const POLICY_RATE = { value: 5.25, label: "RBI repo rate", asOf: "2026-08" };
+
+/**
+ * The fun corner's tongue-in-cheek recession indicators — computed for
+ * real as equal-weight baskets of listed names, daily from bhavcopy.
+ */
+export const FUN_BASKETS: Array<{ id: string; name: string; blurb: string; symbols: string[] }> = [
+  {
+    id: "lipstick",
+    name: "Lipstick Index",
+    blurb: "Leonard Lauder's theory: small luxuries rally when times get tight.",
+    symbols: ["NYKAA", "HONASA", "EMAMILTD", "DABUR", "GODREJCP", "COLPAL"],
+  },
+  {
+    id: "underwear",
+    name: "Men's Underwear Index",
+    blurb: "Greenspan's favorite: innerwear sales stall first in a downturn.",
+    symbols: ["PAGEIND", "LUXIND", "DOLLAR", "RUPA"],
+  },
+];

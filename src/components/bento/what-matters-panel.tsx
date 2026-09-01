@@ -1,0 +1,132 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import type { WarRoomData } from "@/lib/warroom";
+import { crore, deltaClass, timeIST } from "@/lib/format";
+import { Tile } from "../tiles/tile";
+
+// The intelligence panel: desk synthesis first, the wire behind tabs,
+// with FII/DII as a single always-visible strip (the daily ritual).
+const TABS = [
+  { id: "synthesis", label: "What matters" },
+  { id: "all", label: "All" },
+  { id: "markets", label: "Markets" },
+  { id: "policy", label: "Policy" },
+  { id: "economy", label: "Economy" },
+  { id: "corporate", label: "Corporate" },
+] as const;
+
+const TONE_COLOR: Record<string, string> = {
+  risk: "var(--color-loss)",
+  constructive: "var(--color-gain)",
+  neutral: "var(--color-silver)",
+};
+
+export function WhatMattersPanel({
+  synthesis,
+  news,
+  flows,
+  fiiStreak,
+}: {
+  synthesis: WarRoomData["synthesis"];
+  news: WarRoomData["news"];
+  flows: WarRoomData["flows"];
+  fiiStreak: WarRoomData["fiiStreak"];
+}) {
+  const [tab, setTab] = useState<string>("synthesis");
+
+  const items = useMemo(() => {
+    if (tab === "synthesis") return [];
+    const merged = Object.entries(news).flatMap(([category, list]) =>
+      (tab === "all" || tab === category ? list : []).map((item) => ({ ...item, category })),
+    );
+    return merged.sort((a, b) => (a.ts < b.ts ? 1 : -1));
+  }, [news, tab]);
+
+  const latestFlowDate = flows[0]?.date;
+  const fii = flows.find((f) => f.date === latestFlowDate && f.category.startsWith("FII"));
+  const dii = flows.find((f) => f.date === latestFlowDate && f.category === "DII");
+
+  return (
+    <Tile
+      title="Intelligence"
+      meta={
+        <span className="flex gap-1">
+          {TABS.map(({ id, label }) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setTab(id)}
+              className={`rounded-full px-2 py-px font-sans text-[9.5px] font-semibold transition-colors duration-150 ${
+                tab === id ? "bg-charcoal text-canvas" : "text-fog [@media(hover:hover)]:hover:bg-paper"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </span>
+      }
+    >
+      <div className="flex h-full min-h-0 flex-col">
+        {/* FII/DII — the ritual, one row, always visible */}
+        <div className="flex shrink-0 flex-wrap items-baseline gap-x-4 gap-y-0.5 border-b border-ash bg-paper/60 px-3 py-1.5">
+          <span className="font-mono text-[9px] font-semibold uppercase tracking-[0.08em] text-fog">
+            Flows {latestFlowDate ?? ""}
+          </span>
+          {fii && (
+            <span className="text-[10.5px] text-fog">
+              FII <span className={`font-mono text-[11px] font-medium tabular-nums ${deltaClass(fii.net)}`}>{crore(fii.net)}</span>
+            </span>
+          )}
+          {dii && (
+            <span className="text-[10.5px] text-fog">
+              DII <span className={`font-mono text-[11px] font-medium tabular-nums ${deltaClass(dii.net)}`}>{crore(dii.net)}</span>
+            </span>
+          )}
+          {fiiStreak && (
+            <span className="font-mono text-[9.5px] uppercase text-silver">
+              FII {fiiStreak.direction} · day {fiiStreak.days}
+            </span>
+          )}
+        </div>
+
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          {tab === "synthesis" ? (
+            synthesis ? (
+              <div className="px-3 py-2.5">
+                <p className="text-[13px] font-medium leading-snug text-ink">{synthesis.headline}</p>
+                <ul className="mt-2 flex flex-col gap-1.5">
+                  {synthesis.bullets.map((bullet) => (
+                    <li key={bullet.text} className="flex gap-2 text-[11.5px] leading-relaxed text-steel">
+                      <span className="mt-[6px] h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: TONE_COLOR[bullet.tone] }} />
+                      {bullet.text}
+                    </li>
+                  ))}
+                </ul>
+                <p className="pt-2 text-[9px] text-silver">DESK SYNTHESIS · GENERATED WITH THE EVENING PACK · NOT ADVICE</p>
+              </div>
+            ) : (
+              <p className="px-3 py-4 text-[11.5px] text-fog">Synthesis lands with the evening pipeline run.</p>
+            )
+          ) : (
+            <ul>
+              {items.map((item) => (
+                <li key={`${item.source}-${item.title}`} className="border-b border-ash last:border-b-0">
+                  <a
+                    href={item.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-baseline gap-1.5 px-3 py-[5px] transition-colors duration-150 [@media(hover:hover)]:hover:bg-paper"
+                  >
+                    <span className="min-w-0 flex-1 truncate text-[11.5px] leading-snug text-charcoal">{item.title}</span>
+                    <span className="shrink-0 font-mono text-[9px] tabular-nums text-silver">{timeIST(new Date(item.ts))}</span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+    </Tile>
+  );
+}

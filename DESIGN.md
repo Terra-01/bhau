@@ -6,7 +6,8 @@
 
 **The morning broadsheet, not another dark terminal.** Every trading product is dark-mode neon (TradingView, every crypto dashboard, Bloomberg itself). Bhau is light, printed, and hairline-bordered — because the product's rhythm is daily-at-close (an edition, not a tape) and because printed-document aesthetics read as *trustworthy*, which is the entire brand (receipts, append-only log, published methodology). Light is the identity, not the default.
 
-- **Light-only in v1.** A committed single theme, executed well. Dark mode, if ever, is a designed variant later — never an inversion.
+- **Light is the identity.** The default theme, executed well.
+- **Dark is a designed variant** (since v1.1): a toggle, not an inversion — its own palette lives in `globals.css` under `[data-theme="dark"]` (blue-black canvas, warm off-white ink, brightened accents; the Value agent flips to a light neutral). Every component styles through tokens, so both themes resolve from one set.
 - This supersedes the "dark-first war room at night" line that briefly lived in CONCEPT.md §6.
 
 ## Fonts & sourcing

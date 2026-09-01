@@ -11,11 +11,13 @@ const SynthesisSchema = z.object({
   bullets: z
     .array(
       z.object({
-        text: z.string().describe("One specific, concrete observation. ≤26 words. No hedging filler."),
+        text: z
+          .string()
+          .describe("One connected observation with the specific numbers that carry it. 1-2 sentences, ≤40 words. No hedging filler."),
         tone: z.enum(["risk", "constructive", "neutral"]),
       }),
     )
-    .describe("3 to 5 bullets, most important first."),
+    .describe("4 to 7 bullets, most important first, each earning its place with a number."),
 });
 
 export type Synthesis = z.infer<typeof SynthesisSchema>;

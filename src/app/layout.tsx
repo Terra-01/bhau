@@ -24,10 +24,18 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={cn("h-full antialiased font-sans", inter.variable, geistMono.variable)}>
+    <html lang="en" className={cn("h-full antialiased font-sans", inter.variable, geistMono.variable)} suppressHydrationWarning>
       {/* h-full (definite) so the war-room shell's flex sizing resolves; page
           scrolling still works below xl via html overflow. */}
-      <body className="h-full flex flex-col font-sans">{children}</body>
+      <body className="h-full flex flex-col font-sans">
+        {/* Theme before first paint — no flash; light is the default. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{if(localStorage.getItem("bhau-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}`,
+          }}
+        />
+        {children}
+      </body>
     </html>
   );
 }

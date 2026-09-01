@@ -77,6 +77,10 @@ const CITIES = [
   { city: "Chennai", lat: 13.083, lon: 80.27 },
   { city: "Kolkata", lat: 22.573, lon: 88.364 },
   { city: "Hyderabad", lat: 17.385, lon: 78.487 },
+  { city: "Pune", lat: 18.52, lon: 73.856 },
+  { city: "Ahmedabad", lat: 23.023, lon: 72.571 },
+  { city: "Jaipur", lat: 26.912, lon: 75.787 },
+  { city: "Surat", lat: 21.17, lon: 72.831 },
 ];
 
 async function fetchWeather(): Promise<WarRoomData["weather"]> {

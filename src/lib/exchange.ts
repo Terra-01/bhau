@@ -1,4 +1,4 @@
-import { ECON_RELEASES, ETF_LIST, HERO_INDICES, INDEX_ROW, POLICY_RATE } from "@/config/exchange";
+import { ECON_RELEASES, ETF_LIST, FUN_BASKETS, HERO_INDICES, INDEX_ROW, POLICY_RATE } from "@/config/exchange";
 import { SYMBOL_NAMES } from "@/ingest/symbols";
 import { prisma } from "./db";
 
@@ -37,6 +37,13 @@ export interface ExchangeData {
     tiles: Array<{ label: string; value: string; sub?: string }>;
     gdpSeries: Array<{ date: Date; value: number }>;
   } | null;
+  funBaskets: Array<{
+    id: string;
+    name: string;
+    blurb: string;
+    changePct: number;
+    constituents: Array<{ symbol: string; changePct: number }>;
+  }>;
 }
 
 const MIN_TURNOVER = 500_000; // ₹5L floor keeps zero-liquidity noise out of the lists
@@ -260,6 +267,36 @@ export async function getExchangeData(): Promise<ExchangeData> {
   }
   earnings.sort((a, b) => Number(b.isResults) - Number(a.isResults) || a.date.localeCompare(b.date));
 
+  // --- fun baskets: equal-weight daily change of curated real names
+  const basketRows =
+    bhavDates.length === 2
+      ? await prisma.dailyBar.findMany({
+          where: {
+            source: "bhavcopy",
+            date: { in: bhavDates.map((d) => d.date) },
+            symbol: { in: FUN_BASKETS.flatMap((b) => b.symbols) },
+          },
+          select: { symbol: true, date: true, close: true },
+        })
+      : [];
+  const basketCloses = new Map<string, { l?: number; p?: number }>();
+  const latestDate = bhavDates[0]?.date.getTime();
+  for (const row of basketRows) {
+    const entry = basketCloses.get(row.symbol) ?? {};
+    if (row.date.getTime() === latestDate) entry.l = row.close;
+    else entry.p = row.close;
+    basketCloses.set(row.symbol, entry);
+  }
+  const funBaskets: ExchangeData["funBaskets"] = FUN_BASKETS.map((basket) => {
+    const constituents = basket.symbols.flatMap((symbol) => {
+      const { l, p } = basketCloses.get(symbol) ?? {};
+      return l !== undefined && p ? [{ symbol, changePct: ((l - p) / p) * 100 }] : [];
+    });
+    const changePct =
+      constituents.length > 0 ? constituents.reduce((a, c) => a + c.changePct, 0) / constituents.length : 0;
+    return { id: basket.id, name: basket.name, blurb: basket.blurb, changePct, constituents };
+  });
+
   return {
     asOf,
     indices,
@@ -274,5 +311,6 @@ export async function getExchangeData(): Promise<ExchangeData> {
     ipos: ipos.slice(0, 6),
     econCalendar: nextOccurrences(),
     economy,
+    funBaskets,
   };
 }

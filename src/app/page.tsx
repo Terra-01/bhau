@@ -1,65 +1,24 @@
-import type { CSSProperties, ReactNode } from "react";
-import { ExchangeSections } from "@/components/exchange/exchange-sections";
-import { WatchlistMarquee } from "@/components/watchlist-marquee";
-import { BriefTile } from "@/components/tiles/brief-tile";
-import { CandlesTile } from "@/components/tiles/candles-tile";
-import { CommoditiesTile } from "@/components/tiles/commodities-tile";
+import { AppHeader } from "@/components/bento/app-header";
+import { CalendarPanel } from "@/components/bento/calendar-panel";
+import { CommoditiesPanel } from "@/components/bento/commodities-panel";
+import { FunCorner } from "@/components/bento/fun-corner";
+import { MoversPanel } from "@/components/bento/movers-panel";
+import { WatchlistPanel } from "@/components/bento/watchlist-panel";
+import { WhatMattersPanel } from "@/components/bento/what-matters-panel";
+import { WorldView } from "@/components/bento/world-view";
+import { ForexMatrix } from "@/components/exchange/forex-matrix";
+import { Fresh } from "@/components/exchange/section";
 import { FloorTile } from "@/components/tiles/floor-tile";
-import { FlowsTile } from "@/components/tiles/flows-tile";
-import { MoversTile } from "@/components/tiles/movers-tile";
-import { NewsTile } from "@/components/tiles/news-tile";
-import { RegimeTile } from "@/components/tiles/regime-tile";
-import { SectorsTile } from "@/components/tiles/sectors-tile";
-import { SongTile } from "@/components/tiles/song-tile";
-import { Ticker } from "@/components/tiles/ticker";
 import { TvTile } from "@/components/tiles/tv-tile";
 import { WeatherTile } from "@/components/tiles/weather-tile";
-import { WAR_ROOM_TILES } from "@/config/panels";
-import { getWarRoomData, type WarRoomData } from "@/lib/warroom";
+import { getExchangeData } from "@/lib/exchange";
+import { getWarRoomData } from "@/lib/warroom";
 
 export const revalidate = 300; // data changes once per trading day
 
-const REGIME_COLOR: Record<string, string> = {
-  Calm: "var(--color-regime-calm)",
-  Steady: "var(--color-regime-steady)",
-  Watchful: "var(--color-regime-watchful)",
-  Strained: "var(--color-regime-strained)",
-  Stressed: "var(--color-regime-stressed)",
-};
-
-function renderTile(id: string, data: WarRoomData): ReactNode {
-  switch (id) {
-    case "floor":
-      return <FloorTile floor={data.floor} race={data.race} />;
-    case "brief":
-      return <BriefTile synthesis={data.synthesis} />;
-    case "news":
-      return <NewsTile news={data.news} />;
-    case "candles":
-      return <CandlesTile candles={data.candles} />;
-    case "sectors":
-      return <SectorsTile sectors={data.sectors} />;
-    case "commodities":
-      return <CommoditiesTile items={data.commodities} />;
-    case "weather":
-      return <WeatherTile weather={data.weather} />;
-    case "song":
-      return <SongTile songs={data.songs} />;
-    case "regime":
-      return <RegimeTile regime={data.regime} trend={data.regimeTrend} />;
-    case "flows":
-      return <FlowsTile flows={data.flows} streak={data.fiiStreak} />;
-    case "movers":
-      return <MoversTile movers={data.movers} />;
-    case "tv":
-      return <TvTile />;
-    default:
-      return null;
-  }
-}
-
-export default async function WarRoom() {
-  const data = await getWarRoomData();
+// The v1.1 feed — the mockup's bento: fewer, larger, deeper panels.
+export default async function Feed() {
+  const [data, exchange] = await Promise.all([getWarRoomData(), getExchangeData()]);
 
   if (!data) {
     return (
@@ -71,70 +30,71 @@ export default async function WarRoom() {
     );
   }
 
-  const unhealthy = data.health.filter((h) => !h.healthy);
-  const tiles = WAR_ROOM_TILES.filter((t) => t.enabled).sort((a, b) => a.order - b.order);
+  const todayIso = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+  const pinnedQuotes = data.strip
+    .filter((s) => s.symbol === "^NSEI" || s.symbol === "^BSESN")
+    .map((s) => ({ symbol: s.symbol, close: s.close, changePct: s.change1dPct }));
 
   return (
     <div className="flex w-full flex-1 flex-col px-3 pb-2">
-      <header className="sticky top-0 z-40 flex shrink-0 flex-wrap items-baseline gap-x-3 gap-y-0.5 border-b border-charcoal bg-canvas py-2">
-        <h1 className="text-[17px] font-semibold tracking-tight text-ink">Bhau</h1>
-        <span className="text-[11px] text-fog">the Indian market war room</span>
-        <nav className="ml-4 hidden items-baseline gap-2.5 font-mono text-[10px] text-steel lg:flex">
-          {[["#deck", "DECK"], ["#indices", "INDICES"], ["#stocks", "STOCKS"], ["#forex", "FOREX"], ["#calendars", "CALENDARS"], ["#economy", "ECONOMY"]].map(([href, label]) => (
-            <a key={href} href={href} className="transition-colors duration-150 [@media(hover:hover)]:hover:text-ink">
-              {label}
-            </a>
-          ))}
-        </nav>
-        <span className="ml-auto flex flex-wrap items-center gap-2.5 font-mono text-[10px] text-fog">
-          <span>
-            EDITION {data.packDate} · {data.tradingDay ? "TRADING DAY" : "AWAITING SESSION"}
-          </span>
-          {data.regime && (
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-ash px-2 py-px">
-              <span className="h-1.5 w-1.5 rounded-full" style={{ background: REGIME_COLOR[data.regime.band] }} />
-              REGIME {data.regime.score.toFixed(1)}
-              {data.regimeTrend.delta !== undefined && (
-                <span className="text-silver">Δ{data.regimeTrend.delta > 0 ? "+" : ""}{data.regimeTrend.delta}</span>
-              )}
-              · {data.regime.band.toUpperCase()}
-            </span>
-          )}
-          <span className={unhealthy.length > 0 ? "text-warn" : "text-silver"}>
-            {unhealthy.length > 0 ? `${unhealthy.length} SRC DEGRADED` : "SOURCES OK"}
-          </span>
-        </span>
-      </header>
+      <AppHeader data={data} />
 
-      <section id="deck" className="war-room-deck flex scroll-mt-12 flex-col">
-      <div className="flex shrink-0 flex-col gap-1.5 pt-1.5">
-        <Ticker items={data.strip} />
-        <WatchlistMarquee />
-      </div>
-
-      <main className="mt-1.5 grid min-h-0 flex-1 grid-cols-1 gap-1.5 md:grid-cols-2 xl:grid-cols-12 xl:grid-rows-4">
-        {tiles.map((tile) => {
-          const [colStart, colSpan, rowStart, rowSpan] = tile.grid;
-          const style: CSSProperties = {
-            ["--tile-col" as string]: `${colStart} / span ${colSpan}`,
-            ["--tile-row" as string]: `${rowStart} / span ${rowSpan}`,
-          };
-          return (
-            <div
-              key={tile.id}
-              style={style}
-              className={`min-h-0 ${tile.flowHeight} xl:[grid-column:var(--tile-col)] xl:[grid-row:var(--tile-row)]`}
-            >
-              {renderTile(tile.id, data)}
+      <main className="mt-1.5 flex flex-col gap-1.5">
+        {/* Row 1 — watchlist hero · stocks · weather + floor */}
+        <div className="grid grid-cols-1 gap-1.5 md:grid-cols-2 xl:h-[480px] xl:grid-cols-12">
+          <div className="h-[420px] md:h-auto xl:col-span-5">
+            <WatchlistPanel pinnedQuotes={pinnedQuotes} />
+          </div>
+          <div className="h-[420px] md:h-auto xl:col-span-4">
+            <MoversPanel data={exchange} />
+          </div>
+          <div className="flex min-h-0 flex-col gap-1.5 md:col-span-2 xl:col-span-3">
+            <div className="h-[170px] shrink-0">
+              <WeatherTile weather={data.weather} />
             </div>
-          );
-        })}
+            <div className="min-h-[280px] flex-1">
+              <FloorTile floor={data.floor} race={data.race} />
+            </div>
+          </div>
+        </div>
+
+        {/* Row 2 — world view · calendar · commodities */}
+        <div className="grid grid-cols-1 gap-1.5 md:grid-cols-2 xl:h-[360px] xl:grid-cols-12">
+          <div className="h-[340px] md:h-auto xl:col-span-5">
+            <WorldView />
+          </div>
+          <div className="h-[340px] md:h-auto xl:col-span-4">
+            <CalendarPanel data={exchange} todayIso={todayIso} />
+          </div>
+          <div className="md:col-span-2 xl:col-span-3">
+            <CommoditiesPanel items={data.commodities} />
+          </div>
+        </div>
+
+        {/* Row 3 — fun corner · intelligence + forex · live TV */}
+        <div className="grid grid-cols-1 gap-1.5 md:grid-cols-2 xl:grid-cols-12">
+          <div className="h-[360px] md:h-auto xl:col-span-3">
+            <FunCorner songs={data.songs} baskets={exchange.funBaskets} />
+          </div>
+          <div className="flex flex-col gap-1.5 xl:col-span-6">
+            <div className="h-[360px]">
+              <WhatMattersPanel synthesis={data.synthesis} news={data.news} flows={data.flows} fiiStreak={data.fiiStreak} />
+            </div>
+            <div>
+              <div className="mb-1 flex items-baseline gap-2 px-1">
+                <span className="text-[10px] font-semibold uppercase tracking-[0.07em] text-steel">Forex vs INR</span>
+                <Fresh label="ECB REFERENCE · DAILY" />
+              </div>
+              <ForexMatrix forex={exchange.forex} />
+            </div>
+          </div>
+          <div className="h-[420px] md:col-span-2 md:h-[360px] xl:col-span-3 xl:h-auto">
+            <TvTile />
+          </div>
+        </div>
       </main>
-      </section>
 
-      <ExchangeSections />
-
-      <footer className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t border-ash pt-2 font-mono text-[9.5px] tracking-wide text-silver">
+      <footer className="mt-3 flex shrink-0 flex-wrap items-center justify-between gap-2 border-t border-ash pt-2 font-mono text-[9.5px] tracking-wide text-silver">
         <span>BHAU · PAPER CAPITAL ONLY · NOT INVESTMENT ADVICE</span>
         <span>DATA DELAYED / EOD · EVERY DECISION ON A PUBLIC HASH-CHAINED LEDGER</span>
       </footer>

@@ -1,6 +1,8 @@
 "use client";
 
+import { ChartCandlestick } from "lucide-react";
 import type { LiveMovers } from "@/app/api/live/movers/route";
+import { AssetPopover } from "@/components/asset-popover";
 import { InsightLine } from "@/components/insight-line";
 import { LiveChip } from "@/components/live-chip";
 import { FlipView } from "@/components/motion/flip-view";
@@ -48,6 +50,7 @@ export function MoversPanel({
   return (
     <Tile
       title="Stocks"
+      icon={<ChartCandlestick size={10} strokeWidth={2} />}
       meta={
         <span className="flex gap-1">
           {TABS.map(({ id, label }, i) => (
@@ -69,16 +72,26 @@ export function MoversPanel({
         <FlipView id={tab} className="flex-1">
         <ul className="h-full overflow-y-auto">
           {rows.map((row) => (
-            <li key={row.symbol} className="flex items-baseline gap-2 border-b border-ash px-2.5 py-[3px]">
-              <span className="min-w-0 flex-1 truncate font-mono text-[11px] font-medium text-charcoal">{row.symbol}</span>
-              {tab === "mostTraded" && <span className="font-mono text-[9.5px] tabular-nums text-silver">{compactInr(row.turnover)}</span>}
-              <span className="font-mono text-[11px] tabular-nums text-ink">₹{fmt.format(row.close)}</span>
-              {tab === "mostTraded" ? (
-                <span className={`w-14 text-right font-mono text-[10px] tabular-nums ${deltaClass(row.changePct)}`}>{signedPct(row.changePct)}</span>
-              ) : (
-                <Pill pct={row.changePct} />
-              )}
-            </li>
+            <AssetPopover
+              key={row.symbol}
+              symbol={row.symbol}
+              render={
+                <li
+                  role="button"
+                  tabIndex={0}
+                  className="flex cursor-pointer items-baseline gap-2 border-b border-ash px-2.5 py-[3px] transition-colors duration-150 [@media(hover:hover)]:hover:bg-paper/60"
+                >
+                  <span className="min-w-0 flex-1 truncate font-mono text-[11px] font-medium text-charcoal">{row.symbol}</span>
+                  {tab === "mostTraded" && <span className="font-mono text-[9.5px] tabular-nums text-silver">{compactInr(row.turnover)}</span>}
+                  <span className="font-mono text-[11px] tabular-nums text-ink">₹{fmt.format(row.close)}</span>
+                  {tab === "mostTraded" ? (
+                    <span className={`w-14 text-right font-mono text-[10px] tabular-nums ${deltaClass(row.changePct)}`}>{signedPct(row.changePct)}</span>
+                  ) : (
+                    <Pill pct={row.changePct} />
+                  )}
+                </li>
+              }
+            />
           ))}
           {rows.length === 0 && <li className="px-2.5 py-3 text-[11px] text-fog">Accumulating sessions…</li>}
         </ul>
@@ -92,12 +105,22 @@ export function MoversPanel({
             </div>
             <ul>
               {data.etfs.map((etf) => (
-                <li key={etf.symbol} className="flex items-baseline gap-2 border-b border-ash px-2.5 py-[2.5px] last:border-b-0">
-                  <span className="min-w-0 flex-1 truncate font-mono text-[10.5px] font-medium text-charcoal">{etf.symbol}</span>
-                  <span className="font-mono text-[9px] tabular-nums text-silver">{compactInr(etf.turnover)}</span>
-                  <span className="font-mono text-[10.5px] tabular-nums text-ink">₹{fmt.format(etf.close)}</span>
-                  <span className={`w-14 text-right font-mono text-[9.5px] tabular-nums ${deltaClass(etf.changePct)}`}>{signedPct(etf.changePct)}</span>
-                </li>
+                <AssetPopover
+                  key={etf.symbol}
+                  symbol={etf.symbol}
+                  render={
+                    <li
+                      role="button"
+                      tabIndex={0}
+                      className="flex cursor-pointer items-baseline gap-2 border-b border-ash px-2.5 py-[2.5px] transition-colors duration-150 last:border-b-0 [@media(hover:hover)]:hover:bg-paper/60"
+                    >
+                      <span className="min-w-0 flex-1 truncate font-mono text-[10.5px] font-medium text-charcoal">{etf.symbol}</span>
+                      <span className="font-mono text-[9px] tabular-nums text-silver">{compactInr(etf.turnover)}</span>
+                      <span className="font-mono text-[10.5px] tabular-nums text-ink">₹{fmt.format(etf.close)}</span>
+                      <span className={`w-14 text-right font-mono text-[9.5px] tabular-nums ${deltaClass(etf.changePct)}`}>{signedPct(etf.changePct)}</span>
+                    </li>
+                  }
+                />
               ))}
             </ul>
           </div>

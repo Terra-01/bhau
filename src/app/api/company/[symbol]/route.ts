@@ -1,31 +1,43 @@
 import { NextResponse } from "next/server";
 import YahooFinance from "yahoo-finance2";
 
-// Company essentials for the watchlist popover — yahoo quoteSummary for
-// NSE tickers. Deep fundamentals (statements, peers, shareholding) are a
-// dedicated future phase; this serves the at-a-glance card + deep links.
+// Asset essentials for the details popover — yahoo quoteSummary. NSE
+// equities get the .NS suffix; indices (^NSEI), futures (GC=F) and FX
+// crosses (EURINR=X) pass through and gracefully skip the fundamentals
+// modules they don't have. Deep fundamentals remain a future phase.
 const yf = new YahooFinance({ suppressNotices: ["yahooSurvey"] });
 
 const cache = new Map<string, { at: number; body: unknown }>();
-const TTL_MS = 6 * 60 * 60 * 1000;
+const TTL_MS = 30 * 60 * 1000;
+
+const EQUITY_MODULES = ["price", "summaryDetail", "summaryProfile", "defaultKeyStatistics", "financialData"] as const;
+const PRICE_MODULES = ["price", "summaryDetail"] as const;
 
 export async function GET(_request: Request, { params }: { params: Promise<{ symbol: string }> }) {
   const { symbol: raw } = await params;
-  const symbol = raw.toUpperCase().replace(/[^A-Z0-9\-&]/g, "");
+  const symbol = decodeURIComponent(raw).toUpperCase().replace(/[^A-Z0-9^=.\-&]/g, "");
   if (!symbol) return NextResponse.json({ error: "bad symbol" }, { status: 400 });
 
   const cached = cache.get(symbol);
   if (cached && Date.now() - cached.at < TTL_MS) return NextResponse.json(cached.body);
 
+  const isEquity = !symbol.startsWith("^") && !symbol.includes("=") && !symbol.includes(".");
+  const yahooSymbol = isEquity ? `${symbol}.NS` : symbol;
+
   try {
-    const q = await yf.quoteSummary(`${symbol}.NS`, {
-      modules: ["price", "summaryDetail", "summaryProfile", "defaultKeyStatistics", "financialData"],
-    });
+    let q;
+    try {
+      q = await yf.quoteSummary(yahooSymbol, { modules: [...EQUITY_MODULES] });
+    } catch {
+      q = await yf.quoteSummary(yahooSymbol, { modules: [...PRICE_MODULES] });
+    }
     const body = {
       symbol,
+      kind: isEquity ? "equity" : symbol.includes("=X") ? "currency" : symbol.startsWith("^") ? "index" : "future",
       name: q.price?.longName ?? q.price?.shortName ?? symbol,
       currency: q.price?.currency,
       price: q.price?.regularMarketPrice,
+      changePct: q.price?.regularMarketChangePercent,
       dayHigh: q.summaryDetail?.dayHigh,
       dayLow: q.summaryDetail?.dayLow,
       fiftyTwoWeekHigh: q.summaryDetail?.fiftyTwoWeekHigh,
@@ -36,11 +48,9 @@ export async function GET(_request: Request, { params }: { params: Promise<{ sym
       priceToBook: q.defaultKeyStatistics?.priceToBook,
       dividendYield: q.summaryDetail?.dividendYield,
       returnOnEquity: q.financialData?.returnOnEquity,
-      profitMargins: q.financialData?.profitMargins,
       sector: q.summaryProfile?.sector,
       industry: q.summaryProfile?.industry,
-      about: q.summaryProfile?.longBusinessSummary?.slice(0, 420),
-      website: q.summaryProfile?.website,
+      about: q.summaryProfile?.longBusinessSummary?.slice(0, 500),
     };
     cache.set(symbol, { at: Date.now(), body });
     return NextResponse.json(body);

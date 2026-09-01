@@ -77,6 +77,7 @@ export function TvTile() {
   return (
     <Tile
       title="Live TV"
+      icon={<Tv size={10} strokeWidth={2} />}
       meta={
         live ? (
           <span className="flex items-center gap-1 text-gain">

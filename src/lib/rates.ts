@@ -23,8 +23,11 @@ export interface RatesData {
   curve: Array<{ tenor: number; label: string; yield: number; prevYield?: number }>;
   y10: { value: number; changeBps?: number; history: Array<{ date: string; value: number }> } | null;
   repo: { value: number; label: string };
+  ratios: { crr?: number; slr?: number };
   spreads: Array<{ id: string; label: string; bps: number }>;
   macro: Array<{ label: string; value: string; sub: string }> | null;
+  /** Tickertape Market Mood Index — India's fear/greed gauge, 0–100. */
+  mmi: { value: number; zone: string } | null;
 }
 
 interface WorldBankRow {
@@ -62,15 +65,33 @@ async function fetchMacro(): Promise<RatesData["macro"]> {
   }
 }
 
+async function fetchMmi(): Promise<RatesData["mmi"]> {
+  try {
+    const res = await fetch("https://api.tickertape.in/mmi/now", {
+      next: { revalidate: 1800 },
+      signal: AbortSignal.timeout(8_000),
+    });
+    if (!res.ok) return null;
+    const d = (await res.json()) as { data?: { indicator?: number } };
+    const v = d.data?.indicator;
+    if (typeof v !== "number") return null;
+    const zone = v < 30 ? "Extreme Fear" : v < 50 ? "Fear" : v < 70 ? "Greed" : "Extreme Greed";
+    return { value: Number(v.toFixed(1)), zone };
+  } catch {
+    return null;
+  }
+}
+
 export async function getRatesData(): Promise<RatesData | null> {
-  const symbols = [...CURVE.map((c) => c.symbol), "RBIREPO", "US10Y"];
+  const symbols = [...CURVE.map((c) => c.symbol), "RBIREPO", "RBICRR", "RBISLR", "US10Y"];
   const since = new Date(Date.now() - 120 * 86_400_000);
-  const [rows, macro] = await Promise.all([
+  const [rows, macro, mmi] = await Promise.all([
     prisma.dailyBar.findMany({
       where: { symbol: { in: symbols }, date: { gte: since } },
       orderBy: { date: "asc" },
     }),
     fetchMacro(),
+    fetchMmi(),
   ]);
 
   const bySymbol = new Map<string, Array<{ date: string; close: number }>>();
@@ -104,6 +125,10 @@ export async function getRatesData(): Promise<RatesData | null> {
 
   const repoBar = bySymbol.get("RBIREPO")?.at(-1);
   const repo = { value: repoBar?.close ?? POLICY_RATE.value, label: "RBI repo" };
+  const ratios = {
+    crr: bySymbol.get("RBICRR")?.at(-1)?.close,
+    slr: bySymbol.get("RBISLR")?.at(-1)?.close,
+  };
 
   const spreads: RatesData["spreads"] = [];
   const oneY = curve.find((c) => c.label === "1Y");
@@ -114,5 +139,5 @@ export async function getRatesData(): Promise<RatesData | null> {
     if (us10) spreads.push({ id: "inus", label: "vs US 10Y", bps: Math.round((y10.value - us10.close) * 100) });
   }
 
-  return { asOf, curve, y10, repo, spreads, macro };
+  return { asOf, curve, y10, repo, ratios, spreads, macro, mmi };
 }

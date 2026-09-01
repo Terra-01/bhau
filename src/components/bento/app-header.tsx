@@ -13,8 +13,6 @@ const REGIME_COLOR: Record<string, string> = {
 const TICKER: Array<{ symbol: string; label: string }> = [
   { symbol: "^NSEI", label: "Nifty" },
   { symbol: "^BSESN", label: "Sensex" },
-  { symbol: "^NSEBANK", label: "Bank" },
-  { symbol: "^INDIAVIX", label: "VIX" },
   { symbol: "INR=X", label: "USD" },
 ];
 

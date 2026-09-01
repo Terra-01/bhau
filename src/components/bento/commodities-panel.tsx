@@ -1,6 +1,8 @@
 "use client";
 
+import { Flame } from "lucide-react";
 import type { LiveMarket } from "@/app/api/live/market/route";
+import { AssetPopover } from "@/components/asset-popover";
 import { InsightLine } from "@/components/insight-line";
 import { LiveChip } from "@/components/live-chip";
 import { TickFlash } from "@/components/motion/tick-flash";
@@ -32,6 +34,7 @@ export function CommoditiesPanel({ items }: { items: WarRoomData["commodities"] 
   return (
     <Tile
       title="Futures & commodities"
+      icon={<Flame size={10} strokeWidth={2} />}
       meta={
         <span className="flex items-center gap-1.5">
           <LiveChip on={anyLive} source="yahoo" />
@@ -52,7 +55,12 @@ export function CommoditiesPanel({ items }: { items: WarRoomData["commodities"] 
           </thead>
           <tbody>
             {rows.map((item) => (
-              <tr key={item.symbol} className="border-b border-ash last:border-b-0">
+              <AssetPopover
+                key={item.symbol}
+                symbol={item.symbol}
+                name={item.name}
+                render={
+                  <tr role="button" tabIndex={0} className="cursor-pointer border-b border-ash transition-colors duration-150 last:border-b-0 [@media(hover:hover)]:hover:bg-paper/60">
                 <td className="px-2.5 py-[3px] text-[11px] font-medium text-charcoal">{item.name}</td>
                 <td className="py-[5px]">
                   <Sparkline values={item.spark} width={44} height={16} />
@@ -66,7 +74,9 @@ export function CommoditiesPanel({ items }: { items: WarRoomData["commodities"] 
                 <td className={`px-2.5 py-[3px] text-right font-mono text-[10.5px] tabular-nums ${item.change1dPct !== undefined ? deltaClass(item.change1dPct) : "text-fog"}`}>
                   {item.change1dPct !== undefined ? signedPct(item.change1dPct) : "—"}
                 </td>
-              </tr>
+                  </tr>
+                }
+              />
             ))}
           </tbody>
         </table>

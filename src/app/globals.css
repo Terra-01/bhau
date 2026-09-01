@@ -411,3 +411,19 @@ body {
     @apply font-sans;
   }
 }
+/* shadcn semantic tokens follow the terminal theme — the stock shadcn
+   dark block targets `.dark`, which we never set, so popovers were stuck
+   light. Placed after the shadcn :root block so it wins the cascade.
+   Popup surfaces use paper for a hint of elevation. */
+[data-theme="dark"] {
+  --background: #12161b;
+  --foreground: #eceae3;
+  --popover: #1a1f26;
+  --popover-foreground: #eceae3;
+  --card: #1a1f26;
+  --card-foreground: #eceae3;
+  --border: #262c35;
+  --input: #262c35;
+  --muted: #1a1f26;
+  --muted-foreground: #70757d;
+}

@@ -1,5 +1,6 @@
 "use client";
 
+import { ArrowDownRight, ArrowUpRight, Newspaper } from "lucide-react";
 import { useMemo } from "react";
 import { FlipView } from "@/components/motion/flip-view";
 import type { WarRoomData } from "@/lib/warroom";
@@ -53,6 +54,7 @@ export function WhatMattersPanel({
   return (
     <Tile
       title="Intelligence"
+      icon={<Newspaper size={10} strokeWidth={2} />}
       meta={
         <span className="flex gap-1">
           {TABS.map(({ id, label }, i) => (
@@ -77,13 +79,15 @@ export function WhatMattersPanel({
             Flows {latestFlowDate ?? ""}
           </span>
           {fii && (
-            <span className="text-[10.5px] text-fog">
+            <span className="flex items-center gap-0.5 text-[10.5px] text-fog">
               FII <span className={`font-mono text-[11px] font-medium tabular-nums ${deltaClass(fii.net)}`}>{crore(fii.net)}</span>
+              {fii.net < 0 ? <ArrowDownRight size={10} className="text-loss" /> : <ArrowUpRight size={10} className="text-gain" />}
             </span>
           )}
           {dii && (
-            <span className="text-[10.5px] text-fog">
+            <span className="flex items-center gap-0.5 text-[10.5px] text-fog">
               DII <span className={`font-mono text-[11px] font-medium tabular-nums ${deltaClass(dii.net)}`}>{crore(dii.net)}</span>
+              {dii.net < 0 ? <ArrowDownRight size={10} className="text-loss" /> : <ArrowUpRight size={10} className="text-gain" />}
             </span>
           )}
           {fiiStreak && (

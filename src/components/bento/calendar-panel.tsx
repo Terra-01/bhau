@@ -1,5 +1,6 @@
 "use client";
 
+import { CalendarDays, FileText, Megaphone, Rocket } from "lucide-react";
 import { useMemo } from "react";
 import { InsightLine } from "@/components/insight-line";
 import { FlipView } from "@/components/motion/flip-view";
@@ -69,6 +70,7 @@ export function CalendarPanel({ data, todayIso }: { data: ExchangeData; todayIso
   return (
     <Tile
       title="Calendar"
+      icon={<CalendarDays size={10} strokeWidth={2} />}
       meta={
         <span className="flex gap-1">
           {TABS.map(({ id, label }, i) => (
@@ -107,6 +109,10 @@ export function CalendarPanel({ data, todayIso }: { data: ExchangeData; todayIso
                   </>
                 )}
               </span>
+              {(() => {
+                const RowIcon = tab === "ipos" ? Rocket : tab === "econ" ? Megaphone : item.badge ? FileText : null;
+                return RowIcon ? <RowIcon size={9} strokeWidth={2} className="shrink-0 text-silver" /> : null;
+              })()}
               <span className={`min-w-0 flex-1 truncate text-[11px] font-medium ${item.emphasized ? "text-charcoal" : "text-steel"}`}>
                 {item.primary}
               </span>

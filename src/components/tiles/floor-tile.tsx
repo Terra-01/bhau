@@ -1,5 +1,6 @@
 "use client";
 
+import { Bot } from "lucide-react";
 import { LineChart, Line } from "@/components/charts/line-chart";
 import { RingChart } from "@/components/charts/ring-chart";
 import { Ring } from "@/components/charts/ring";
@@ -46,7 +47,7 @@ export function FloorTile({
   const thesesOf = (agentId: string) => floor.theses.filter((t) => t.agentId === agentId).slice(0, 2);
 
   return (
-    <Tile title="The Floor — agents vs. the Nifty" meta={`MARKED ${floor.date}`}>
+    <Tile title="The Floor — agents vs. the Nifty" icon={<Bot size={10} strokeWidth={2} />} meta={`MARKED ${floor.date}`}>
       <div className="flex h-full min-h-0 flex-col">
         <div className="min-h-0 flex-1 px-2 pt-1">
           {race.length >= 2 ? (

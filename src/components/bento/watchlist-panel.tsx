@@ -1,7 +1,8 @@
 "use client";
 
+import { Eye } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { CompanyCard } from "@/components/company-card";
+import { AssetPopover } from "@/components/asset-popover";
 import { InsightLine } from "@/components/insight-line";
 import { LiveChip } from "@/components/live-chip";
 import { FlipView } from "@/components/motion/flip-view";
@@ -157,6 +158,7 @@ export function WatchlistPanel({
   return (
     <Tile
       title="Watchlist"
+      icon={<Eye size={10} strokeWidth={2} />}
       meta={
         <span className="flex items-center gap-2">
           <span>{list ? `${list.length}/${MAX}` : ""}</span>
@@ -210,58 +212,60 @@ export function WatchlistPanel({
               ? { close: live.close!, changePct: live.changePct }
               : pinnedQuotes.find((q) => q.symbol === pin.symbol);
             return (
-              <button key={pin.symbol} type="button" onClick={() => selectSymbol(pin.symbol)} className={rowClass(pin.symbol)}>
-                <span className="min-w-0 flex-1 truncate text-[12px] font-semibold text-charcoal">{pin.label}</span>
-                {quote && (
-                  <>
-                    <TickFlash value={quote.close} className="font-mono text-[12px] font-medium tabular-nums text-ink">
-                      {fmt.format(quote.close)}
-                    </TickFlash>
-                    {quote.changePct !== undefined && (
-                      <span className={`w-16 text-right font-mono text-[10.5px] tabular-nums ${deltaClass(quote.changePct)}`}>
-                        {signedPct(quote.changePct)}
-                      </span>
+              <AssetPopover
+                key={pin.symbol}
+                symbol={pin.symbol}
+                name={pin.label}
+                onOpen={() => selectSymbol(pin.symbol)}
+                render={
+                  <div role="button" tabIndex={0} className={`cursor-pointer ${rowClass(pin.symbol)}`}>
+                    <span className="min-w-0 flex-1 truncate text-[12px] font-semibold text-charcoal">{pin.label}</span>
+                    {quote && (
+                      <>
+                        <TickFlash value={quote.close} className="font-mono text-[12px] font-medium tabular-nums text-ink">
+                          {fmt.format(quote.close)}
+                        </TickFlash>
+                        {quote.changePct !== undefined && (
+                          <span className={`w-16 text-right font-mono text-[10.5px] tabular-nums ${deltaClass(quote.changePct)}`}>
+                            {signedPct(quote.changePct)}
+                          </span>
+                        )}
+                      </>
                     )}
-                  </>
-                )}
-              </button>
+                  </div>
+                }
+              />
             );
           })}
           <FlipView id={page}>
           {visible.map((symbol) => {
             const quote = quotes.get(symbol);
             return (
-              <div key={symbol} className={rowClass(symbol)}>
-                <button
-                  type="button"
-                  onClick={() => selectSymbol(symbol)}
-                  className="min-w-0 flex-1 truncate text-left font-mono text-[11.5px] font-medium text-charcoal"
-                >
-                  {symbol}
-                </button>
-                {quote?.found ? (
-                  <>
-                    <TickFlash value={quote.close} className="font-mono text-[11.5px] tabular-nums text-ink">
-                      ₹{fmt.format(quote.close!)}
-                    </TickFlash>
-                    {quote.changePct !== undefined && (
-                      <span className={`w-16 text-right font-mono text-[10.5px] tabular-nums ${deltaClass(quote.changePct)}`}>
-                        {signedPct(quote.changePct)}
-                      </span>
+              <AssetPopover
+                key={symbol}
+                symbol={symbol}
+                onOpen={() => selectSymbol(symbol)}
+                onRemove={() => list && setList(list.filter((s) => s !== symbol))}
+                render={
+                  <div role="button" tabIndex={0} className={`cursor-pointer ${rowClass(symbol)}`}>
+                    <span className="min-w-0 flex-1 truncate text-left font-mono text-[11.5px] font-medium text-charcoal">{symbol}</span>
+                    {quote?.found ? (
+                      <>
+                        <TickFlash value={quote.close} className="font-mono text-[11.5px] tabular-nums text-ink">
+                          ₹{fmt.format(quote.close!)}
+                        </TickFlash>
+                        {quote.changePct !== undefined && (
+                          <span className={`w-16 text-right font-mono text-[10.5px] tabular-nums ${deltaClass(quote.changePct)}`}>
+                            {signedPct(quote.changePct)}
+                          </span>
+                        )}
+                      </>
+                    ) : (
+                      <span className="text-[9px] text-silver">{quote ? "no data" : "…"}</span>
                     )}
-                  </>
-                ) : (
-                  <span className="text-[9px] text-silver">{quote ? "no data" : "…"}</span>
-                )}
-                <Popover>
-                  <PopoverTrigger className="rounded-full px-1 font-mono text-[10px] text-silver transition-colors [@media(hover:hover)]:hover:bg-paper [@media(hover:hover)]:hover:text-charcoal">
-                    ⓘ
-                  </PopoverTrigger>
-                  <PopoverContent align="start" className="p-0">
-                    <CompanyCard symbol={symbol} onRemove={() => list && setList(list.filter((s) => s !== symbol))} />
-                  </PopoverContent>
-                </Popover>
-              </div>
+                  </div>
+                }
+              />
             );
           })}
           </FlipView>

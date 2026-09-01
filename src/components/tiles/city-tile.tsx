@@ -1,6 +1,6 @@
 "use client";
 
-import { Cloud, CloudDrizzle, CloudFog } from "lucide-react";
+import { Cloud, CloudDrizzle, CloudFog, Coins, MapPin } from "lucide-react";
 import { InsightLine } from "@/components/insight-line";
 import { FlipView } from "@/components/motion/flip-view";
 import { CloudLightningIcon } from "@/components/ui/cloud-lightning";
@@ -58,6 +58,7 @@ export function CityTile({
   return (
     <Tile
       title="City pulse"
+      icon={<MapPin size={10} strokeWidth={2} />}
       meta={
         <span className="flex items-center gap-1">
           {TABS.map((t, i) => (
@@ -103,10 +104,11 @@ export function CityTile({
                 </tbody>
               </table>
               {pulse!.metals.length > 0 && (
-                <div className="mt-auto shrink-0 border-t border-ash px-2.5 py-[2px]">
+                <div className="mt-auto shrink-0 border-t border-ash px-2.5 py-px">
                   {pulse!.metals.map((m) => (
                     <div key={m.name} className="flex items-baseline justify-between gap-1 leading-tight">
-                      <span className="whitespace-nowrap text-[8.5px] text-fog">
+                      <span className="flex items-center gap-1 whitespace-nowrap text-[8.5px] text-fog">
+                        <Coins size={8} strokeWidth={2} className="text-silver" />
                         {m.name.split(" ")[0]} <span className="text-silver">{m.unit} · IBJA</span>
                       </span>
                       <span className="whitespace-nowrap font-mono text-[10px] font-medium tabular-nums text-ink">

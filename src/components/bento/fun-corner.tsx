@@ -1,6 +1,7 @@
 "use client";
 
-import { Music } from "lucide-react";
+import { Music, Sparkles } from "lucide-react";
+import { AssetPopover } from "@/components/asset-popover";
 import { FlipView } from "@/components/motion/flip-view";
 import type { ExchangeData } from "@/lib/exchange";
 import type { WarRoomData } from "@/lib/warroom";
@@ -27,6 +28,7 @@ export function FunCorner({
   return (
     <Tile
       title="Off the tape"
+      icon={<Sparkles size={10} strokeWidth={2} />}
       meta={
         <span className="flex gap-1">
           {tabs.map(({ id, label }, i) => (
@@ -98,10 +100,20 @@ export function FunCorner({
           <p className="mt-0.5 text-[9.5px] leading-snug text-fog">{basket.blurb}</p>
           <ul className="mt-1.5">
             {basket.constituents.map((c) => (
-              <li key={c.symbol} className="flex items-baseline justify-between border-b border-ash py-[3px] last:border-b-0">
-                <span className="font-mono text-[10.5px] text-charcoal">{c.symbol}</span>
-                <span className={`font-mono text-[10px] tabular-nums ${deltaClass(c.changePct)}`}>{signedPct(c.changePct)}</span>
-              </li>
+              <AssetPopover
+                key={c.symbol}
+                symbol={c.symbol}
+                render={
+                  <li
+                    role="button"
+                    tabIndex={0}
+                    className="flex cursor-pointer items-baseline justify-between border-b border-ash py-[3px] transition-colors duration-150 last:border-b-0 [@media(hover:hover)]:hover:bg-paper/60"
+                  >
+                    <span className="font-mono text-[10.5px] text-charcoal">{c.symbol}</span>
+                    <span className={`font-mono text-[10px] tabular-nums ${deltaClass(c.changePct)}`}>{signedPct(c.changePct)}</span>
+                  </li>
+                }
+              />
             ))}
             {basket.constituents.length === 0 && <li className="py-2 text-[10.5px] text-fog">Accumulating sessions…</li>}
           </ul>

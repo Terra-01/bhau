@@ -97,7 +97,7 @@ export function CalendarPanel({ data, todayIso }: { data: ExchangeData; todayIso
       <div className="flex h-full min-h-0 flex-col">
         <div className="grid shrink-0 grid-cols-7 border-b border-ash">
           {week.map((day) => (
-            <div key={day.iso} className={`flex flex-col items-center border-r border-ash py-1 last:border-r-0 ${day.iso === todayIso ? "bg-paper" : ""}`}>
+            <div key={day.iso} className={`flex flex-col items-center border-r border-ash py-1 last:border-r-0 ${day.iso === todayIso ? "bg-paper" : ""}`} style={{paddingTop:2,paddingBottom:2}}>
               <span className="text-[8.5px] font-semibold uppercase text-fog">{dayLabel(day.iso, todayIso)}</span>
               <span className={`font-mono text-[10.5px] tabular-nums ${day.count > 0 ? "text-ink" : "text-silver"}`}>{day.count || "·"}</span>
             </div>
@@ -107,11 +107,11 @@ export function CalendarPanel({ data, todayIso }: { data: ExchangeData; todayIso
           {byDate.length === 0 && <li className="px-3 py-4 text-[11.5px] text-fog">Nothing scheduled.</li>}
           {byDate.map(([date, dayItems]) => (
             <li key={date}>
-              <div className="bg-paper/70 px-3 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-[0.08em] text-fog">
+              <div className="bg-paper/70 px-2.5 py-px font-mono text-[9px] font-semibold uppercase tracking-[0.08em] text-fog">
                 {dayLabel(date, todayIso)} · {date}
               </div>
               {dayItems.map((item) => (
-                <div key={`${item.primary}-${item.date}`} className="flex items-baseline gap-2 border-b border-ash px-3 py-[4.5px] last:border-b-0">
+                <div key={`${item.primary}-${item.date}`} className="flex items-baseline gap-2 border-b border-ash px-2.5 py-[3px] last:border-b-0">
                   <span className="min-w-0 flex-1 truncate text-[11px] font-medium text-charcoal">{item.primary}</span>
                   {item.badge && (
                     <span className={`rounded-full px-1.5 py-px text-[8.5px] font-semibold ${item.badgeTone === "gain" ? "bg-gain-wash text-gain" : "bg-paper text-fog"}`}>

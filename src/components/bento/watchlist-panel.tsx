@@ -49,6 +49,10 @@ export function WatchlistPanel({
   const [quotes, setQuotes] = useState<Map<string, Quote>>(new Map());
   const [selected, setSelected] = useState<string>("^NSEI");
   const [draft, setDraft] = useState("");
+  const [page, setPage] = useState(0);
+  const PAGE_SIZE = 6;
+  const pages = Math.max(1, Math.ceil((list?.length ?? 0) / PAGE_SIZE));
+  const visible = list?.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE) ?? [];
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setList(loadList()));
@@ -77,7 +81,7 @@ export function WatchlistPanel({
   }, [draft, list]);
 
   const rowClass = (symbol: string) =>
-    `flex w-full items-baseline gap-2 border-b border-ash px-3 py-[5px] text-left transition-colors duration-150 last:border-b-0 ${
+    `flex w-full items-baseline gap-2 border-b border-ash px-2.5 py-[3px] text-left transition-colors duration-150 last:border-b-0 ${
       selected === symbol ? "bg-paper" : "[@media(hover:hover)]:hover:bg-paper/60"
     }`;
 
@@ -119,7 +123,7 @@ export function WatchlistPanel({
       }
     >
       <div className="flex h-full min-h-0 flex-col">
-        <div className="h-[180px] shrink-0 border-b border-ash pt-1">
+        <div className="h-[160px] shrink-0 border-b border-ash pt-0.5 xl:h-auto xl:min-h-0 xl:flex-[0.85]">
           <HistoryChart symbol={selected} />
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto">
@@ -141,7 +145,7 @@ export function WatchlistPanel({
               </button>
             );
           })}
-          {list?.map((symbol) => {
+          {visible.map((symbol) => {
             const quote = quotes.get(symbol);
             return (
               <div key={symbol} className={rowClass(symbol)}>
@@ -172,6 +176,19 @@ export function WatchlistPanel({
             );
           })}
         </div>
+        {pages > 1 && (
+          <div className="flex shrink-0 items-center justify-end gap-1 border-t border-ash px-2.5 py-0.5 font-mono text-[9.5px] text-fog">
+            <button type="button" onClick={() => setPage((p) => Math.max(0, p - 1))} disabled={page === 0} className="px-1 disabled:opacity-30 [@media(hover:hover)]:hover:text-ink">
+              ‹
+            </button>
+            <span className="tabular-nums">
+              {page + 1}/{pages}
+            </span>
+            <button type="button" onClick={() => setPage((p) => Math.min(pages - 1, p + 1))} disabled={page === pages - 1} className="px-1 disabled:opacity-30 [@media(hover:hover)]:hover:text-ink">
+              ›
+            </button>
+          </div>
+        )}
       </div>
     </Tile>
   );

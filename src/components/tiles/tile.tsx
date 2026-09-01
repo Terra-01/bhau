@@ -15,7 +15,7 @@ export function Tile({
 }) {
   return (
     <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-card border border-ash bg-canvas">
-      <header className="flex shrink-0 items-baseline justify-between gap-2 border-b border-ash px-3 py-1.5">
+      <header className="flex shrink-0 items-baseline justify-between gap-2 border-b border-ash px-2.5 py-1">
         <h2 className="text-[10px] font-semibold uppercase tracking-[0.07em] text-steel">{title}</h2>
         {meta ? <span className="font-mono text-[10px] text-fog whitespace-nowrap">{meta}</span> : null}
       </header>

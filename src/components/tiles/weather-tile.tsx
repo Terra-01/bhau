@@ -22,11 +22,11 @@ export function WeatherTile({ weather }: { weather: WarRoomData["weather"] }) {
       {!weather ? (
         <p className="px-3 py-3 text-[11.5px] text-fog">Forecast unavailable.</p>
       ) : (
-        <ul className="grid grid-cols-2 gap-x-3 px-2.5 py-1">
+        <ul className="grid grid-cols-2 gap-x-3 px-2.5 py-0.5">
           {weather.map((w) => {
             const Icon = iconFor(w.code);
             return (
-              <li key={w.city} className="flex items-center gap-1.5 border-b border-ash py-[5px] [&:nth-last-child(-n+2)]:border-b-0">
+              <li key={w.city} className="flex items-center gap-1.5 border-b border-ash py-[3px] [&:nth-last-child(-n+2)]:border-b-0">
                 <Icon size={13} className="shrink-0 text-steel" strokeWidth={1.75} />
                 <span className="min-w-0 truncate text-[10.5px] text-charcoal">{w.city}</span>
                 <span className="ml-auto font-mono text-[10.5px] tabular-nums text-ink">

@@ -69,7 +69,7 @@ export function WhatMattersPanel({
     >
       <div className="flex h-full min-h-0 flex-col">
         {/* FII/DII — the ritual, one row, always visible */}
-        <div className="flex shrink-0 flex-wrap items-baseline gap-x-4 gap-y-0.5 border-b border-ash bg-paper/60 px-3 py-1.5">
+        <div className="flex shrink-0 flex-wrap items-baseline gap-x-4 gap-y-0.5 border-b border-ash bg-paper/60 px-2.5 py-1">
           <span className="font-mono text-[9px] font-semibold uppercase tracking-[0.08em] text-fog">
             Flows {latestFlowDate ?? ""}
           </span>
@@ -93,9 +93,9 @@ export function WhatMattersPanel({
         <div className="min-h-0 flex-1 overflow-y-auto">
           {tab === "synthesis" ? (
             synthesis ? (
-              <div className="px-3 py-2.5">
+              <div className="px-2.5 py-1.5">
                 <p className="text-[13px] font-medium leading-snug text-ink">{synthesis.headline}</p>
-                <ul className="mt-2 flex flex-col gap-1.5">
+                <ul className="mt-1.5 flex flex-col gap-1">
                   {synthesis.bullets.map((bullet) => (
                     <li key={bullet.text} className="flex gap-2 text-[11.5px] leading-relaxed text-steel">
                       <span className="mt-[6px] h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: TONE_COLOR[bullet.tone] }} />

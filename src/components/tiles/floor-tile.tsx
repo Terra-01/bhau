@@ -63,9 +63,9 @@ export function FloorTile({
           )}
         </div>
 
-        <div className="flex shrink-0 items-center gap-1 border-t border-ash px-2 py-1.5">
-          <div className="hidden h-[104px] w-[104px] shrink-0 sm:block">
-            <RingChart data={rings} size={104} strokeWidth={7} ringGap={3} baseInnerRadius={18}>
+        <div className="flex shrink-0 items-center gap-1 border-t border-ash px-1.5 py-1">
+          <div className="hidden h-[92px] w-[92px] shrink-0 sm:block">
+            <RingChart data={rings} size={92} strokeWidth={7} ringGap={3} baseInnerRadius={18}>
               {rings.map((ring, i) => (
                 <Ring key={ring.label} index={i} color={ring.color} />
               ))}
@@ -80,7 +80,7 @@ export function FloorTile({
                     <li
                       role="button"
                       tabIndex={0}
-                      className="flex cursor-pointer items-baseline gap-1.5 rounded-[4px] px-1.5 py-[3px] transition-colors duration-150 [@media(hover:hover)]:hover:bg-paper"
+                      className="flex cursor-pointer items-baseline gap-1.5 rounded-[4px] px-1.5 py-[2px] transition-colors duration-150 [@media(hover:hover)]:hover:bg-paper"
                     >
                       <span className="w-4 font-mono text-[9.5px] tabular-nums text-silver">{String(i + 1).padStart(2, "0")}</span>
                       <span className="inline-flex min-w-0 items-center gap-1.5 truncate text-[11.5px] font-medium text-charcoal">
@@ -130,7 +130,7 @@ export function FloorTile({
               </Popover>
             ))}
             {benchmark && (
-              <li className="flex items-baseline gap-1.5 rounded-[4px] bg-paper px-1.5 py-[3px]">
+              <li className="flex items-baseline gap-1.5 rounded-[4px] bg-paper px-1.5 py-[2px]">
                 <span className="w-4 font-mono text-[9.5px] text-silver">—</span>
                 <span className="min-w-0 truncate text-[11.5px] font-medium text-fog">{benchmark.name}</span>
                 <span className="ml-auto font-mono text-[11.5px] tabular-nums text-steel">{inr(benchmark.equity)}</span>

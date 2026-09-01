@@ -54,7 +54,7 @@ export function MoversPanel({ data }: { data: Pick<ExchangeData, "mostTraded" | 
       }
     >
       <div className="flex h-full min-h-0 flex-col">
-        <div className="h-[150px] shrink-0 border-b border-ash pt-1">
+        <div className="h-[130px] shrink-0 border-b border-ash pt-0.5 xl:h-auto xl:min-h-0 xl:flex-[0.75]">
           {shown ? <HistoryChart symbol={shown} /> : <div className="flex h-full items-center justify-center text-[11px] text-fog">Accumulating sessions…</div>}
         </div>
         <ul className="min-h-0 flex-1 overflow-y-auto">
@@ -63,7 +63,7 @@ export function MoversPanel({ data }: { data: Pick<ExchangeData, "mostTraded" | 
               <button
                 type="button"
                 onClick={() => setSelected(row.symbol)}
-                className={`flex w-full items-baseline gap-2 border-b border-ash px-3 py-[4.5px] text-left transition-colors duration-150 ${
+                className={`flex w-full items-baseline gap-2 border-b border-ash px-2.5 py-[3px] text-left transition-colors duration-150 ${
                   shown === row.symbol ? "bg-paper" : "[@media(hover:hover)]:hover:bg-paper/60"
                 }`}
               >
@@ -79,7 +79,7 @@ export function MoversPanel({ data }: { data: Pick<ExchangeData, "mostTraded" | 
             </li>
           ))}
         </ul>
-        <div className="shrink-0 border-t border-ash px-3 py-1 text-right font-mono text-[9px] text-silver">
+        <div className="shrink-0 border-t border-ash px-2.5 py-0.5 text-right font-mono text-[8.5px] text-silver">
           EOD · {data.asOf} · FULL NSE UNIVERSE
         </div>
       </div>

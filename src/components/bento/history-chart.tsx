@@ -54,7 +54,7 @@ export function HistoryChart({ symbol, accent = "var(--color-charcoal)" }: { sym
           <div className="flex h-full items-center justify-center text-[11px] text-fog">{stillLoading ? "Loading…" : "Not enough history yet."}</div>
         )}
       </div>
-      <div className="flex shrink-0 items-center gap-1 px-2 pb-1.5 pt-0.5">
+      <div className="flex shrink-0 items-center gap-1 px-2 pb-1 pt-0">
         {TIMEFRAMES.map((tf) => (
           <button
             key={tf.label}

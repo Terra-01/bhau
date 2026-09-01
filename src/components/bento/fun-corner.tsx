@@ -47,7 +47,7 @@ export function FunCorner({
         ) : (
           <ul className="px-2.5 py-1">
             {songs.map((song, i) => (
-              <li key={song.title} className="flex items-center gap-2 border-b border-ash py-[4px] last:border-b-0">
+              <li key={song.title} className="flex items-center gap-2 border-b border-ash py-[3px] last:border-b-0">
                 <span className="w-3 font-mono text-[9.5px] tabular-nums text-silver">{i + 1}</span>
                 {song.art ? (
                   // eslint-disable-next-line @next/next/no-img-element

@@ -68,7 +68,7 @@ export function WorldView() {
           }}
         >
           {geo ? (
-            <ChoroplethChart data={geo} className="mx-auto h-full max-w-full" aspectRatio="1.9 / 1" center={[18, 16]}>
+            <ChoroplethChart data={geo} className="h-full" aspectRatio={undefined} scale={230} center={[63, 17]}>
               <ChoroplethFeature
                 stroke="var(--color-canvas)"
                 strokeWidth={0.5}
@@ -92,9 +92,9 @@ export function WorldView() {
             <div className="flex h-full items-center justify-center text-[11px] text-fog">Loading map…</div>
           )}
         </div>
-        <div className="shrink-0 border-t border-ash px-3 py-2">
-          <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-            <span className="text-[12.5px] font-semibold text-ink">{selected.name}</span>
+        <div className="shrink-0 border-t border-ash px-2.5 py-1">
+          <div className="flex flex-wrap items-baseline gap-x-3.5 gap-y-0.5">
+            <span className="text-[12px] font-semibold text-ink">{selected.name}</span>
             {STAT_LABELS.map(([key, label]) => (
               <span key={key} className="text-[10.5px] text-fog">
                 {label}{" "}

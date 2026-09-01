@@ -6,7 +6,7 @@ import { MoversPanel } from "@/components/bento/movers-panel";
 import { WatchlistPanel } from "@/components/bento/watchlist-panel";
 import { WhatMattersPanel } from "@/components/bento/what-matters-panel";
 import { WorldView } from "@/components/bento/world-view";
-import { ForexMatrix } from "@/components/exchange/forex-matrix";
+import { ForexRates } from "@/components/exchange/forex-matrix";
 import { FloorTile } from "@/components/tiles/floor-tile";
 import { TvTile } from "@/components/tiles/tv-tile";
 import { WeatherTile } from "@/components/tiles/weather-tile";
@@ -49,15 +49,8 @@ export default async function Feed() {
           <div className="max-xl:h-[360px] min-h-0 xl:h-auto xl:flex-1">
             <WorldView />
           </div>
-          <div className="max-xl:h-[240px] min-h-0 xl:h-auto xl:flex-[0.62]">
-            <div className="grid h-full min-h-0 grid-cols-2 gap-1">
-              <div className="min-h-0">
-                <FunCorner songs={data.songs} mood={data.songMood} baskets={exchange.funBaskets} />
-              </div>
-              <div className="min-h-0">
-                <ForexMatrix forex={exchange.forex} />
-              </div>
-            </div>
+          <div className="max-xl:h-[240px] min-h-0 xl:h-auto xl:flex-[0.6]">
+            <FunCorner songs={data.songs} mood={data.songMood} baskets={exchange.funBaskets} />
           </div>
         </div>
 
@@ -74,10 +67,11 @@ export default async function Feed() {
           </div>
         </div>
 
-        {/* Right stack — weather · floor · commodities · live TV */}
+        {/* Right stack — (weather | forex) · floor · commodities · live TV */}
         <div className="flex min-h-0 flex-col gap-1 xl:col-span-1">
-          <div className="shrink-0">
+          <div className="grid shrink-0 grid-cols-2 gap-1">
             <WeatherTile weather={data.weather} />
+            <ForexRates forex={exchange.forex} />
           </div>
           <div className="max-xl:h-[300px] min-h-0 xl:h-auto xl:flex-1">
             <FloorTile floor={data.floor} race={data.race} />

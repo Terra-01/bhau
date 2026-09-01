@@ -29,7 +29,7 @@ export function CommoditiesPanel({ items }: { items: WarRoomData["commodities"] 
                 <td className="py-[5px]">
                   <Sparkline values={item.spark} width={44} height={16} />
                 </td>
-                <td className="px-1.5 py-[3px] text-right font-mono text-[11px] font-medium tabular-nums text-ink">{fmt.format(item.close)}</td>
+                <td className="px-1.5 py-[3px] text-right font-mono text-[11px] font-medium tabular-nums text-ink">${fmt.format(item.close)}</td>
                 <td className={`px-1.5 py-[3px] text-right font-mono text-[10.5px] tabular-nums ${change !== undefined ? deltaClass(change) : "text-fog"}`}>
                   {change !== undefined ? `${change > 0 ? "+" : change < 0 ? "−" : ""}${fmt.format(Math.abs(change))}` : "—"}
                 </td>

@@ -9,7 +9,6 @@ import { HistoryChart } from "./history-chart";
 
 const TABS = [
   { id: "mostTraded", label: "Most traded" },
-  { id: "volatile", label: "Volatile" },
   { id: "gainers", label: "Gainers" },
   { id: "losers", label: "Losers" },
 ] as const;
@@ -24,7 +23,7 @@ function Pill({ pct }: { pct: number }) {
   );
 }
 
-export function MoversPanel({ data }: { data: Pick<ExchangeData, "mostTraded" | "volatile" | "gainers" | "losers" | "asOf"> }) {
+export function MoversPanel({ data }: { data: Pick<ExchangeData, "mostTraded" | "gainers" | "losers" | "asOf"> }) {
   const [tab, setTab] = useState<(typeof TABS)[number]["id"]>("mostTraded");
   const rows: StockRow[] = data[tab] ?? [];
   const [selected, setSelected] = useState<string | null>(null);
@@ -69,7 +68,7 @@ export function MoversPanel({ data }: { data: Pick<ExchangeData, "mostTraded" | 
               >
                 <span className="min-w-0 flex-1 truncate font-mono text-[11px] font-medium text-charcoal">{row.symbol}</span>
                 {tab === "mostTraded" && <span className="font-mono text-[9.5px] tabular-nums text-silver">{compactInr(row.turnover)}</span>}
-                <span className="font-mono text-[11px] tabular-nums text-ink">{fmt.format(row.close)}</span>
+                <span className="font-mono text-[11px] tabular-nums text-ink">₹{fmt.format(row.close)}</span>
                 {tab === "mostTraded" ? (
                   <span className={`w-14 text-right font-mono text-[10px] tabular-nums ${deltaClass(row.changePct)}`}>{signedPct(row.changePct)}</span>
                 ) : (

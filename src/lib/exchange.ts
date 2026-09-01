@@ -25,7 +25,6 @@ export interface ExchangeData {
   indices: IndexChip[];
   indicesHistory: Record<string, Array<{ date: Date; value: number }>>;
   mostTraded: StockRow[];
-  volatile: StockRow[];
   gainers: StockRow[];
   losers: StockRow[];
   etfs: StockRow[];
@@ -207,7 +206,6 @@ export async function getExchangeData(): Promise<ExchangeData> {
     select: { date: true },
   });
   let mostTraded: StockRow[] = [];
-  let volatile: StockRow[] = [];
   let gainers: StockRow[] = [];
   let losers: StockRow[] = [];
   let etfs: StockRow[] = [];
@@ -232,7 +230,6 @@ export async function getExchangeData(): Promise<ExchangeData> {
     );
     const liquid = all.filter((r) => r.turnover >= MIN_TURNOVER);
     mostTraded = [...all].sort((a, b) => b.turnover - a.turnover).slice(0, 6);
-    volatile = [...liquid].sort((a, b) => Math.abs(b.changePct) - Math.abs(a.changePct)).slice(0, 6);
     gainers = [...liquid].sort((a, b) => b.changePct - a.changePct).slice(0, 6);
     losers = [...liquid].sort((a, b) => a.changePct - b.changePct).slice(0, 6);
     const etfSet = new Set<string>(ETF_LIST);
@@ -302,7 +299,6 @@ export async function getExchangeData(): Promise<ExchangeData> {
     indices,
     indicesHistory,
     mostTraded,
-    volatile,
     gainers,
     losers,
     etfs,

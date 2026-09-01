@@ -154,7 +154,7 @@ export function WatchlistPanel({
                 </button>
                 {quote?.found ? (
                   <>
-                    <span className="font-mono text-[11.5px] tabular-nums text-ink">{fmt.format(quote.close!)}</span>
+                    <span className="font-mono text-[11.5px] tabular-nums text-ink">₹{fmt.format(quote.close!)}</span>
                     {quote.changePct !== undefined && (
                       <span className={`w-16 text-right font-mono text-[10.5px] tabular-nums ${deltaClass(quote.changePct)}`}>
                         {signedPct(quote.changePct)}

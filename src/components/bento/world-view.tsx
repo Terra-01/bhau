@@ -75,17 +75,11 @@ export function WorldView() {
             if (hovered.current) setSelected(hovered.current);
           }}
         >
+          {/* Stock bklit framing — custom scale/center desynced the hover
+              hit-testing from the render (hovering seas highlighted islands).
+              Users reach India by zoom/pan gestures instead. */}
           {geo ? (
-            <ChoroplethChart
-              data={geo}
-              className="h-full"
-              aspectRatio={undefined}
-              scale={230}
-              center={[63, 17]}
-              zoomEnabled
-              zoomMin={0.6}
-              zoomMax={8}
-            >
+            <ChoroplethChart data={geo} className="h-full" aspectRatio={undefined} zoomEnabled zoomMin={0.7} zoomMax={8}>
               <ChoroplethFeature
                 stroke="var(--color-canvas)"
                 strokeWidth={0.5}

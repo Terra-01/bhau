@@ -110,7 +110,11 @@ function resolveTimeSeriesYDomain(
 
   const { minValue, maxValue } = collectNumericExtents(data, dataKeys);
 
-  if (minValue >= 0) {
+  // Local patch (Bhau): only baseline at zero when the data genuinely
+  // lives near zero. Price/index series (min ≫ 0, narrow relative range)
+  // get a fitted domain — a 24,000-point index must not render as a flat
+  // line above a giant empty fill.
+  if (minValue >= 0 && minValue < maxValue * 0.15) {
     const top = maxValue <= 0 ? 100 : maxValue * 1.1;
     return [0, top];
   }

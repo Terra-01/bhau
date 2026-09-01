@@ -50,11 +50,12 @@ async function fetchMacro(): Promise<RatesData["macro"]> {
       get("SL.UEM.TOTL.ZS"),
     ]);
     const latest = (rows: WorldBankRow[]) => rows[0];
+    const yr = (rows: WorldBankRow[]) => `'${latest(rows).date.slice(2)}`;
     return [
-      { label: "GDP growth", value: `${latest(growth).value!.toFixed(1)}%`, sub: latest(growth).date },
-      { label: "CPI", value: `${latest(inflation).value!.toFixed(1)}%`, sub: `${latest(inflation).date} avg` },
-      { label: "Unemployment", value: `${latest(unemployment).value!.toFixed(1)}%`, sub: latest(unemployment).date },
-      { label: "GDP", value: `$${(latest(gdp).value! / 1e12).toFixed(2)}T`, sub: latest(gdp).date },
+      { label: "GDP growth", value: `${latest(growth).value!.toFixed(1)}%`, sub: yr(growth) },
+      { label: "CPI inflation", value: `${latest(inflation).value!.toFixed(1)}%`, sub: `${yr(inflation)} avg` },
+      { label: "Unemployment", value: `${latest(unemployment).value!.toFixed(1)}%`, sub: yr(unemployment) },
+      { label: "GDP", value: `$${(latest(gdp).value! / 1e12).toFixed(2)}T`, sub: yr(gdp) },
     ];
   } catch {
     return null;

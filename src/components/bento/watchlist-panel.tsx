@@ -6,7 +6,7 @@ import { CompanyCard } from "@/components/company-card";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { deltaClass, signedPct } from "@/lib/format";
 import { Tile } from "../tiles/tile";
-import { HistoryChart } from "./history-chart";
+import { MarketChart } from "./market-chart";
 
 // The mockup's hero watchlist: chart of the selected row on top, quote
 // rows below. NIFTY 50 and SENSEX are pinned; the rest is the user's
@@ -124,7 +124,7 @@ export function WatchlistPanel({
     >
       <div className="flex h-full min-h-0 flex-col">
         <div className="h-[160px] shrink-0 border-b border-ash pt-0.5 xl:h-auto xl:min-h-0 xl:flex-[0.85]">
-          <HistoryChart symbol={selected} />
+          <MarketChart symbol={selected} />
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto">
           {PINNED.map((pin) => {

@@ -1,4 +1,4 @@
-import { ECON_RELEASES, FUN_BASKETS, HERO_INDICES, INDEX_ROW } from "@/config/exchange";
+import { ECON_RELEASES, ETF_LIST, FUN_BASKETS, HERO_INDICES, INDEX_ROW } from "@/config/exchange";
 import { SYMBOL_NAMES } from "@/ingest/symbols";
 import { prisma } from "./db";
 
@@ -27,6 +27,7 @@ export interface ExchangeData {
   mostTraded: StockRow[];
   gainers: StockRow[];
   losers: StockRow[];
+  etfs: StockRow[];
   forex: Array<{
     pair: string;
     price: number;
@@ -169,6 +170,7 @@ export async function getExchangeData(): Promise<ExchangeData> {
   let mostTraded: StockRow[] = [];
   let gainers: StockRow[] = [];
   let losers: StockRow[] = [];
+  let etfs: StockRow[] = [];
   const asOf = bhavDates[0]?.date.toISOString().slice(0, 10) ?? todayIST();
   if (bhavDates.length === 2) {
     const [latest, previous] = bhavDates.map((d) => d.date);
@@ -192,6 +194,8 @@ export async function getExchangeData(): Promise<ExchangeData> {
     mostTraded = [...all].sort((a, b) => b.turnover - a.turnover).slice(0, 6);
     gainers = [...liquid].sort((a, b) => b.changePct - a.changePct).slice(0, 6);
     losers = [...liquid].sort((a, b) => a.changePct - b.changePct).slice(0, 6);
+    const etfSet = new Set<string>(ETF_LIST);
+    etfs = all.filter((r) => etfSet.has(r.symbol)).sort((a, b) => b.turnover - a.turnover).slice(0, 5);
   }
 
   // --- NSE calendars (upcoming only)
@@ -259,6 +263,7 @@ export async function getExchangeData(): Promise<ExchangeData> {
     mostTraded,
     gainers,
     losers,
+    etfs,
     forex,
     earnings: earnings.slice(0, 6),
     ipos: ipos.slice(0, 6),

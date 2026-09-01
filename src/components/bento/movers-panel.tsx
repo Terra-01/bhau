@@ -5,7 +5,6 @@ import type { ExchangeData, StockRow } from "@/lib/exchange";
 import { deltaClass, signedPct } from "@/lib/format";
 import { compactInr } from "@/lib/heat";
 import { Tile } from "../tiles/tile";
-import { HistoryChart } from "./history-chart";
 
 const TABS = [
   { id: "mostTraded", label: "Most traded" },
@@ -23,11 +22,9 @@ function Pill({ pct }: { pct: number }) {
   );
 }
 
-export function MoversPanel({ data }: { data: Pick<ExchangeData, "mostTraded" | "gainers" | "losers" | "asOf"> }) {
+export function MoversPanel({ data }: { data: Pick<ExchangeData, "mostTraded" | "gainers" | "losers" | "etfs" | "asOf"> }) {
   const [tab, setTab] = useState<(typeof TABS)[number]["id"]>("mostTraded");
   const rows: StockRow[] = data[tab] ?? [];
-  const [selected, setSelected] = useState<string | null>(null);
-  const shown = selected ?? rows[0]?.symbol;
 
   return (
     <Tile
@@ -38,10 +35,7 @@ export function MoversPanel({ data }: { data: Pick<ExchangeData, "mostTraded" | 
             <button
               key={id}
               type="button"
-              onClick={() => {
-                setTab(id);
-                setSelected(null);
-              }}
+              onClick={() => setTab(id)}
               className={`rounded-full px-2 py-px font-sans text-[9.5px] font-semibold transition-colors duration-150 ${
                 tab === id ? "bg-charcoal text-canvas" : "text-fog [@media(hover:hover)]:hover:bg-paper"
               }`}
@@ -53,31 +47,41 @@ export function MoversPanel({ data }: { data: Pick<ExchangeData, "mostTraded" | 
       }
     >
       <div className="flex h-full min-h-0 flex-col">
-        <div className="h-[130px] shrink-0 border-b border-ash pt-0.5 xl:h-auto xl:min-h-0 xl:flex-[0.75]">
-          {shown ? <HistoryChart symbol={shown} /> : <div className="flex h-full items-center justify-center text-[11px] text-fog">Accumulating sessions…</div>}
-        </div>
         <ul className="min-h-0 flex-1 overflow-y-auto">
           {rows.map((row) => (
-            <li key={row.symbol}>
-              <button
-                type="button"
-                onClick={() => setSelected(row.symbol)}
-                className={`flex w-full items-baseline gap-2 border-b border-ash px-2.5 py-[3px] text-left transition-colors duration-150 ${
-                  shown === row.symbol ? "bg-paper" : "[@media(hover:hover)]:hover:bg-paper/60"
-                }`}
-              >
-                <span className="min-w-0 flex-1 truncate font-mono text-[11px] font-medium text-charcoal">{row.symbol}</span>
-                {tab === "mostTraded" && <span className="font-mono text-[9.5px] tabular-nums text-silver">{compactInr(row.turnover)}</span>}
-                <span className="font-mono text-[11px] tabular-nums text-ink">₹{fmt.format(row.close)}</span>
-                {tab === "mostTraded" ? (
-                  <span className={`w-14 text-right font-mono text-[10px] tabular-nums ${deltaClass(row.changePct)}`}>{signedPct(row.changePct)}</span>
-                ) : (
-                  <Pill pct={row.changePct} />
-                )}
-              </button>
+            <li key={row.symbol} className="flex items-baseline gap-2 border-b border-ash px-2.5 py-[3px]">
+              <span className="min-w-0 flex-1 truncate font-mono text-[11px] font-medium text-charcoal">{row.symbol}</span>
+              {tab === "mostTraded" && <span className="font-mono text-[9.5px] tabular-nums text-silver">{compactInr(row.turnover)}</span>}
+              <span className="font-mono text-[11px] tabular-nums text-ink">₹{fmt.format(row.close)}</span>
+              {tab === "mostTraded" ? (
+                <span className={`w-14 text-right font-mono text-[10px] tabular-nums ${deltaClass(row.changePct)}`}>{signedPct(row.changePct)}</span>
+              ) : (
+                <Pill pct={row.changePct} />
+              )}
             </li>
           ))}
+          {rows.length === 0 && <li className="px-2.5 py-3 text-[11px] text-fog">Accumulating sessions…</li>}
         </ul>
+
+        {data.etfs.length > 0 && (
+          <div className="shrink-0 border-t border-ash">
+            <div className="flex items-baseline justify-between bg-paper/70 px-2.5 py-px">
+              <span className="text-[8.5px] font-semibold uppercase tracking-[0.07em] text-fog">ETFs</span>
+              <span className="font-mono text-[8px] uppercase text-silver">By turnover</span>
+            </div>
+            <ul>
+              {data.etfs.map((etf) => (
+                <li key={etf.symbol} className="flex items-baseline gap-2 border-b border-ash px-2.5 py-[2.5px] last:border-b-0">
+                  <span className="min-w-0 flex-1 truncate font-mono text-[10.5px] font-medium text-charcoal">{etf.symbol}</span>
+                  <span className="font-mono text-[9px] tabular-nums text-silver">{compactInr(etf.turnover)}</span>
+                  <span className="font-mono text-[10.5px] tabular-nums text-ink">₹{fmt.format(etf.close)}</span>
+                  <span className={`w-14 text-right font-mono text-[9.5px] tabular-nums ${deltaClass(etf.changePct)}`}>{signedPct(etf.changePct)}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         <div className="shrink-0 border-t border-ash px-2.5 py-0.5 text-right font-mono text-[8.5px] text-silver">
           EOD · {data.asOf} · FULL NSE UNIVERSE
         </div>

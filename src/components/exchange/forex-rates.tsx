@@ -8,12 +8,26 @@ const fmt = new Intl.NumberFormat("en-IN", { minimumFractionDigits: 2, maximumFr
 // Forex vs INR: where INR sits (₹ per unit), the 30-day shape, and the
 // 1-month move — the horizon on which ECB reference rates are actually
 // informative. JPY follows market convention (per ¥100).
+
+/** One honest sentence computed from the table itself. */
+function insight(forex: NonNullable<ExchangeData["forex"]>): string | null {
+  const moved = forex.filter((r) => r.m1 !== null);
+  if (moved.length < 2) return null;
+  const weaker = moved.filter((r) => r.m1! > 0).length; // pair up = INR down
+  const biggest = [...moved].sort((a, b) => Math.abs(b.m1!) - Math.abs(a.m1!))[0];
+  const dir = biggest.m1! > 0 ? "weakest vs" : "strongest vs";
+  return `1M: ₹ ${weaker > moved.length / 2 ? "softer" : "firmer"} vs ${
+    weaker > moved.length / 2 ? weaker : moved.length - weaker
+  }/${moved.length} majors · ${dir} ${biggest.pair} ${Math.abs(biggest.m1!).toFixed(1)}%`;
+}
+
 export function ForexRates({ forex }: { forex: ExchangeData["forex"] }) {
   return (
     <Tile title="Forex vs INR" meta="ECB REF">
       {!forex ? (
         <p className="px-2.5 py-3 text-[11px] text-fog">Rates unavailable.</p>
       ) : (
+        <div className="flex h-full flex-col">
         <table className="w-full border-collapse">
           <thead>
             <tr className="border-b border-ash">
@@ -46,6 +60,10 @@ export function ForexRates({ forex }: { forex: ExchangeData["forex"] }) {
             })}
           </tbody>
         </table>
+        {insight(forex) && (
+          <div className="mt-auto shrink-0 border-t border-ash px-2.5 py-[3px] text-[8.5px] leading-tight text-fog">{insight(forex)}</div>
+        )}
+        </div>
       )}
     </Tile>
   );

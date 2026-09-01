@@ -1,5 +1,12 @@
 // Exchange-section configuration: curated, versioned, honest.
 
+/** Liquid NSE ETFs for the stocks panel's ETF section (ranked by turnover). */
+export const ETF_LIST = [
+  "NIFTYBEES", "GOLDBEES", "SILVERBEES", "LIQUIDBEES", "LIQUIDCASE",
+  "JUNIORBEES", "BANKBEES", "ITBEES", "MON100", "CPSEETF",
+  "GOLDIETF", "SILVERIETF", "HDFCSILVER", "TATAGOLD", "INFRAIETF",
+] as const;
+
 /** Indices hero-chart set (must match HISTORY_INDICES in nse-indices.ts). */
 export const HERO_INDICES = ["^NSEI", "^NSEBANK", "NIFTY500", "NIFTYMID100", "NIFTYIT"] as const;
 

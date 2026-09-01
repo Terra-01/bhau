@@ -97,7 +97,7 @@ export function CalendarPanel({ data, todayIso }: { data: ExchangeData; todayIso
       <div className="flex h-full min-h-0 flex-col">
         <div className="grid shrink-0 grid-cols-7 border-b border-ash">
           {week.map((day) => (
-            <div key={day.iso} className={`flex flex-col items-center border-r border-ash py-1 last:border-r-0 ${day.iso === todayIso ? "bg-paper" : ""}`} style={{paddingTop:2,paddingBottom:2}}>
+            <div key={day.iso} className={`flex flex-col items-center border-r border-ash py-[2px] last:border-r-0 ${day.iso === todayIso ? "bg-paper" : ""}`}>
               <span className="text-[8.5px] font-semibold uppercase text-fog">{dayLabel(day.iso, todayIso)}</span>
               <span className={`font-mono text-[10.5px] tabular-nums ${day.count > 0 ? "text-ink" : "text-silver"}`}>{day.count || "·"}</span>
             </div>
@@ -112,7 +112,10 @@ export function CalendarPanel({ data, todayIso }: { data: ExchangeData; todayIso
               </div>
               {dayItems.map((item) => (
                 <div key={`${item.primary}-${item.date}`} className="flex items-baseline gap-2 border-b border-ash px-2.5 py-[3px] last:border-b-0">
-                  <span className="min-w-0 flex-1 truncate text-[11px] font-medium text-charcoal">{item.primary}</span>
+                  {/* Results outrank AGM/board-meeting noise */}
+                  <span className={`min-w-0 flex-1 truncate text-[11px] font-medium ${tab === "earnings" && !item.badge ? "text-steel" : "text-charcoal"}`}>
+                    {item.primary}
+                  </span>
                   {item.badge && (
                     <span className={`rounded-full px-1.5 py-px text-[8.5px] font-semibold ${item.badgeTone === "gain" ? "bg-gain-wash text-gain" : "bg-paper text-fog"}`}>
                       {item.badge}

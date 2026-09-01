@@ -69,11 +69,11 @@ export function CityTile({
             <tbody>
               {pulse!.cities.map((c) => (
                 <tr key={c.city} className="border-b border-ash last:border-b-0">
-                  <td className="truncate px-2.5 py-[2.5px] text-[10px] text-charcoal">{c.city}</td>
-                  <td className="px-1 py-[2.5px] text-right font-mono text-[10px] tabular-nums text-ink">
+                  <td className="truncate px-2.5 py-[2.5px] text-[10px] leading-none text-charcoal">{c.city}</td>
+                  <td className="px-1 py-[2.5px] text-right font-mono text-[10px] leading-none tabular-nums text-ink">
                     {c.petrol !== undefined ? inr2.format(c.petrol) : "—"}
                   </td>
-                  <td className="px-2.5 py-[2.5px] text-right font-mono text-[10px] tabular-nums text-ink">
+                  <td className="px-2.5 py-[2.5px] text-right font-mono text-[10px] leading-none tabular-nums text-ink">
                     {c.diesel !== undefined ? inr2.format(c.diesel) : "—"}
                   </td>
                 </tr>
@@ -81,13 +81,13 @@ export function CityTile({
             </tbody>
           </table>
           {pulse!.metals.length > 0 && (
-            <div className="mt-auto shrink-0 border-t border-ash px-2.5 py-1">
+            <div className="mt-auto shrink-0 border-t border-ash px-2.5 py-[3px]">
               {pulse!.metals.map((m) => (
-                <div key={m.name} className="flex items-baseline justify-between gap-1">
-                  <span className="text-[9px] text-fog">
-                    {m.name} <span className="text-silver">{m.unit}</span>
+                <div key={m.name} className="flex items-baseline justify-between gap-1 leading-tight">
+                  <span className="whitespace-nowrap text-[8.5px] text-fog">
+                    {m.name.split(" ")[0]} <span className="text-silver">{m.unit} · IBJA</span>
                   </span>
-                  <span className="font-mono text-[10px] font-medium tabular-nums text-ink">
+                  <span className="whitespace-nowrap font-mono text-[10px] font-medium tabular-nums text-ink">
                     ₹{inr0.format(m.value)}
                     {m.changePct !== undefined && (
                       <span className={`ml-1 text-[8.5px] ${deltaClass(m.changePct)}`}>{signedPct(m.changePct, 1)}</span>
@@ -95,13 +95,12 @@ export function CityTile({
                   </span>
                 </div>
               ))}
-              <div className="text-[7.5px] text-silver">IBJA fix · pump ₹/L</div>
             </div>
           )}
         </div>
       ) : weather ? (
         <ul className="px-2.5 py-0.5">
-          {weather.slice(0, 6).map((w) => {
+          {weather.slice(0, 7).map((w) => {
             const Icon = iconFor(w.code);
             return (
               <li key={w.city} className="flex items-center gap-1.5 border-b border-ash py-[2.5px] last:border-b-0">

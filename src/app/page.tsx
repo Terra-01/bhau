@@ -70,7 +70,8 @@ export default async function Feed() {
 
         {/* Right stack — (city pulse | forex) · floor · commodities · live TV */}
         <div className="flex min-h-0 flex-col gap-1 xl:col-span-1">
-          <div className="grid shrink-0 grid-cols-2 gap-1">
+          {/* Fixed height: the city tabs must not re-flow the rail below */}
+          <div className="grid shrink-0 grid-cols-2 gap-1 xl:h-[178px]">
             <CityTile weather={data.weather} pulse={data.cityPulse} />
             <ForexRates forex={exchange.forex} />
           </div>

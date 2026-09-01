@@ -13,7 +13,7 @@ import { HistoryChart } from "./history-chart";
 // list (localStorage, max 20).
 const STORAGE_KEY = "bhau-watchlist";
 const MAX = 20;
-const DEFAULTS = ["RELIANCE", "HDFCBANK", "TCS", "INFY", "TATAMOTORS"];
+const DEFAULTS = ["RELIANCE", "HDFCBANK", "TCS", "INFY", "ICICIBANK"];
 const PINNED = [
   { symbol: "^NSEI", label: "NIFTY 50" },
   { symbol: "^BSESN", label: "SENSEX" },

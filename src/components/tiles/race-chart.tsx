@@ -1,6 +1,6 @@
 "use client";
 
-import { createChart, LineSeries, type IChartApi, type ISeriesApi } from "lightweight-charts";
+import { createChart, LineSeries, LineType, type IChartApi, type ISeriesApi } from "lightweight-charts";
 import { useEffect, useRef } from "react";
 import { baseChartOptions, cssVar, themeTokens } from "@/lib/lw-theme";
 
@@ -33,9 +33,12 @@ export function RaceChart({
       chart.addSeries(LineSeries, {
         color: cssVar(def.colorVar) || t.fog,
         lineWidth: def.benchmark ? 1 : 2,
+        lineType: def.benchmark ? LineType.Simple : LineType.Curved,
+        pointMarkersVisible: !def.benchmark,
+        pointMarkersRadius: 2.5,
         priceLineVisible: false,
-        lastValueVisible: false,
-        crosshairMarkerRadius: 2.5,
+        lastValueVisible: !def.benchmark,
+        crosshairMarkerRadius: 3,
         priceFormat: {
           type: "custom" as const,
           minMove: 0.01,

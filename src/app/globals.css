@@ -44,8 +44,8 @@
   /* Agent identity (DESIGN.md extension) — identity elements only */
   --color-agent-macro: #2563eb;
   --color-agent-momentum: #ea580c;
-  --color-agent-contrarian: #7c3aed;
-  --color-agent-value: #262626;
+  --color-agent-contrarian: #db2777;
+  --color-agent-value: #0d9488;
 
   /* Regime scale — the dial and map tint only */
   --color-regime-calm: #16a34a;
@@ -100,8 +100,8 @@
   --color-warn-wash: rgba(227, 169, 74, 0.16);
   --color-agent-macro: #6b9aef;
   --color-agent-momentum: #f08a4c;
-  --color-agent-value: #c7c5be;
-  --color-agent-contrarian: #a78bfa;
+  --color-agent-value: #2dd4bf;
+  --color-agent-contrarian: #f472b6;
 }
 [data-theme="dark"] body {
   background-image: radial-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1px);
@@ -426,4 +426,21 @@ body {
   --input: #1e1e1e;
   --muted: #101010;
   --muted-foreground: #70757d;
+}
+
+/* Terminal scrollbars: hairline, token-colored, invisible until needed */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklab, var(--color-pebble) 55%, transparent) transparent;
+}
+*::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background: color-mix(in oklab, var(--color-pebble) 55%, transparent);
+  border-radius: 999px;
 }

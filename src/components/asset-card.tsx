@@ -2,6 +2,7 @@
 
 import { Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { MarketChart } from "@/components/bento/market-chart";
 import { deltaClass, signedPct } from "@/lib/format";
 
 // The details view behind every clickable row — equities, indices,
@@ -129,6 +130,11 @@ export function AssetCard({ symbol, fallbackName, onRemove }: { symbol: string; 
             </div>
           )}
         </div>
+      </div>
+
+      {/* the same TradingView engine as the watchlist, scoped to this asset */}
+      <div className="h-[130px] border-b border-ash">
+        <MarketChart symbol={symbol} label={asset?.name ?? fallbackName ?? symbol} />
       </div>
 
       {!asset ? (

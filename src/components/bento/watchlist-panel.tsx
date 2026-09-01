@@ -28,7 +28,7 @@ const DEFAULTS = [
   "AXISBANK", "ULTRACEMCO", "NTPC", "TITAN", "ADANIENT",
 ];
 const NAME_OF: Record<string, string> = { "^NSEI": "NIFTY 50", "^BSESN": "SENSEX" };
-const ROTATE_MS = 12_000;
+const ROTATE_MS = 5_000;
 const HOLD_MS = 45_000;
 
 interface Quote {
@@ -60,10 +60,13 @@ export function WatchlistPanel() {
   const [draft, setDraft] = useState("");
   const holdUntil = useRef(0);
   const hovering = useRef(false);
-  const PAGE_SIZE = 6;
+  const PAGE_SIZE = 10;
   const { selected, page } = view;
   const pages = Math.max(1, Math.ceil((list?.length ?? 0) / PAGE_SIZE));
-  const visible = list?.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE) ?? [];
+  // Full windows: the last page slides back so every page shows PAGE_SIZE
+  // rows — no dead space under a short final page.
+  const start = list ? (page === pages - 1 ? Math.max(0, list.length - PAGE_SIZE) : page * PAGE_SIZE) : 0;
+  const visible = list?.slice(start, start + PAGE_SIZE) ?? [];
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setList(loadList()));
@@ -196,8 +199,8 @@ export function WatchlistPanel() {
           hovering.current = false;
         }}
       >
-        <div className="h-[160px] shrink-0 border-b border-ash pt-0.5 xl:h-auto xl:min-h-0 xl:flex-[0.85]">
-          <MarketChart symbol={selected} />
+        <div className="min-h-0 flex-[0.8] border-b border-ash pt-0.5">
+          <MarketChart symbol={selected} label={NAME_OF[selected] ?? selected} />
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto">
           <FlipView id={page}>
@@ -242,27 +245,46 @@ export function WatchlistPanel() {
           })}
           </FlipView>
         </div>
-        {pages > 1 && (
-          <div className="flex shrink-0 items-center justify-end gap-1 border-t border-ash px-2.5 py-0.5 font-mono text-[9.5px] text-fog">
-            <button type="button" onClick={() => goPage(-1)} disabled={page === 0} className="px-1 disabled:opacity-30 [@media(hover:hover)]:hover:text-ink">
-              ‹
-            </button>
-            <span className="tabular-nums">
-              {page + 1}/{pages}
-            </span>
-            <button type="button" onClick={() => goPage(1)} disabled={page === pages - 1} className="px-1 disabled:opacity-30 [@media(hover:hover)]:hover:text-ink">
-              ›
-            </button>
-          </div>
-        )}
-        {listQuotes.length > 0 && (
+
+        {(
           <InsightLine
             meta={
-              liveMeta.phase && liveMeta.phase !== "closed" ? (
-                <LiveChip phase={liveMeta.phase} source={liveMeta.source} />
-              ) : (
-                (liveMeta.source ?? "yahoo").toUpperCase()
-              )
+              <span className="flex items-center gap-1.5">
+                {liveMeta.phase && liveMeta.phase !== "closed" ? (
+                  <LiveChip phase={liveMeta.phase} source={liveMeta.source} />
+                ) : (
+                  (liveMeta.source ?? "yahoo").toUpperCase()
+                )}
+                {pages > 1 && (
+                  <span className="flex items-center gap-0.5 font-mono text-[9px] text-fog">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        goPage(-1);
+                      }}
+                      disabled={page === 0}
+                      className="px-0.5 disabled:opacity-30 [@media(hover:hover)]:hover:text-ink"
+                    >
+                      ‹
+                    </button>
+                    <span className="tabular-nums">
+                      {page + 1}/{pages}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        goPage(1);
+                      }}
+                      disabled={page === pages - 1}
+                      className="px-0.5 disabled:opacity-30 [@media(hover:hover)]:hover:text-ink"
+                    >
+                      ›
+                    </button>
+                  </span>
+                )}
+              </span>
             }
           >
             {up}/{listQuotes.length} watched up

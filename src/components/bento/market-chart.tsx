@@ -32,7 +32,7 @@ interface HistoryPoint {
   close: number;
 }
 
-export function MarketChart({ symbol }: { symbol: string }) {
+export function MarketChart({ symbol, label }: { symbol: string; label?: string }) {
   const container = useRef<HTMLDivElement | null>(null);
   const instance = useRef<{ chart: IChartApi; area: ISeriesApi<"Area"> } | null>(null);
 
@@ -118,6 +118,10 @@ export function MarketChart({ symbol }: { symbol: string }) {
     <div className="flex h-full min-h-0 flex-col">
       <div className="relative min-h-0 flex-1">
         <div ref={container} className="absolute inset-0" />
+        {/* the instrument, where every trading terminal puts it */}
+        <div className="pointer-events-none absolute left-2 top-1 z-10 text-[10.5px] font-semibold tracking-tight text-ink/80">
+          {label ?? symbol}
+        </div>
         {loading ? (
           <div className="absolute inset-0 flex items-center justify-center bg-canvas/60 text-[10px] text-fog">Loading…</div>
         ) : empty ? (
@@ -139,9 +143,7 @@ export function MarketChart({ symbol }: { symbol: string }) {
             {tf.label}
           </button>
         ))}
-        <span className="ml-auto font-mono text-[9px] text-silver">
-          {symbol} · {intraday ? "1D · IST" : "DAILY"}
-        </span>
+        <span className="ml-auto font-mono text-[9px] text-silver">{intraday ? "1D · IST" : "DAILY"}</span>
       </div>
     </div>
   );

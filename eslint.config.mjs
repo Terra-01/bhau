@@ -15,9 +15,6 @@ const eslintConfig = defineConfig([
     // Generated Prisma client and local ingest output
     "src/generated/**",
     "data/**",
-    // Vendored bklit-ui chart components (installed via shadcn registry)
-    "src/components/charts/**",
-    "src/components/shimmering-text.tsx",
     "src/components/ui/**",
   ]),
 ]);

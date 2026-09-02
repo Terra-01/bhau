@@ -19,13 +19,13 @@ import { MarketChart } from "./market-chart";
 // rows like any stock, removable and re-addable. Defaults: NIFTY, SENSEX
 // and the top-20 NSE names. The chart tours the list on its own.
 const STORAGE_KEY = "bhau-watchlist-v2";
-const MAX = 25;
+const MAX = 20;
 const DEFAULTS = [
   "^NSEI", "^BSESN",
   "RELIANCE", "HDFCBANK", "TCS", "BHARTIARTL", "ICICIBANK",
   "SBIN", "INFY", "HINDUNILVR", "BAJFINANCE", "ITC",
   "LT", "HCLTECH", "KOTAKBANK", "SUNPHARMA", "MARUTI",
-  "AXISBANK", "ULTRACEMCO", "NTPC", "TITAN", "ADANIENT",
+  "AXISBANK", "ULTRACEMCO", "NTPC",
 ];
 const NAME_OF: Record<string, string> = { "^NSEI": "NIFTY 50", "^BSESN": "SENSEX" };
 const ROTATE_MS = 5_000;

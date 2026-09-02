@@ -31,7 +31,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         {/* Theme before first paint — no flash; light is the default. */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `try{if(localStorage.getItem("bhau-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}`,
+            __html: `try{document.documentElement.dataset.theme=localStorage.getItem("bhau-theme")==="light"?"light":"dark"}catch(e){document.documentElement.dataset.theme="dark"}`,
           }}
         />
         {children}

@@ -117,3 +117,11 @@ model EquitySnapshot {
   @@id([date, agentId])
   @@index([agentId, date])
 }
+
+/// Last-known live videoId per TV channel — resolved by ingest (home/CI
+/// IPs), served as the fallback where YouTube blocks the runtime scrape.
+model TvStream {
+  channelId String   @id
+  videoId   String?
+  checkedAt DateTime
+}

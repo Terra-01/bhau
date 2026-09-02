@@ -55,10 +55,10 @@ export default async function Feed() {
       <main className="mt-1 grid min-h-0 flex-1 grid-cols-[minmax(0,4fr)_minmax(0,4.5fr)_minmax(0,3.5fr)] gap-1">
         {/* Left stack — watchlist · rates & macro · off the tape */}
         <div className="flex min-h-0 flex-col gap-1">
-          <div className="tile-in min-h-0 flex-[1.5]">
+          <div className="tile-in min-h-0 flex-[1.42]">
             <WatchlistPanel />
           </div>
-          <div className="tile-in min-h-0 flex-[0.72]" style={{ animationDelay: "120ms" }}>
+          <div className="tile-in min-h-0 flex-[0.82]" style={{ animationDelay: "120ms" }}>
             <RatesPanel rates={rates} />
           </div>
           <div className="tile-in min-h-0 flex-[0.6]" style={{ animationDelay: "240ms" }}>

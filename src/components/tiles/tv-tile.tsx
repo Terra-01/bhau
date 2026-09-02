@@ -4,19 +4,14 @@ import { ExternalLink, Play, Tv, Volume2, VolumeX } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { PauseIcon } from "@/components/ui/pause";
 import { PlayIcon } from "@/components/ui/play";
+import { TV_CHANNELS } from "@/lib/tv";
 import { Tile } from "./tile";
 
 // Custom player, paused by default: while paused we render our own
 // facade (stream thumbnail + play), so no YouTube chrome ever shows.
 // Pressing play mounts a fresh chrome-less embed (controls=0,
 // pointer-events none) — a live stream always joins at the live edge.
-const CHANNELS = [
-  { id: "cnbc-awaaz", name: "CNBC Awaaz", channelId: "UCQIycDaLsBpMKjOCeaKUYVg" },
-  { id: "ndtv-profit", name: "NDTV Profit", channelId: "UCZFMm1mMw0F81Z37aaEzTUA" },
-  { id: "india-today", name: "India Today", channelId: "UCYPvAwZP8pZhSMW8qs7cVCw" },
-  { id: "aaj-tak", name: "Aaj Tak", channelId: "UCt4t-jeY85JegMlZ-E5UWtA" },
-  { id: "abp-news", name: "ABP News", channelId: "UCRWFSbif-RFENbBrSiez1DA" },
-] as const;
+const CHANNELS = TV_CHANNELS;
 
 type Channel = (typeof CHANNELS)[number];
 type StreamState =

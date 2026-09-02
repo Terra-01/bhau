@@ -92,27 +92,37 @@ const CITIES = [
   { city: "Surat", lat: 21.17, lon: 72.831 },
 ];
 
+// Open-Meteo flakes occasionally from datacenter egress — retry once and
+// keep the last good forecast (weather ages gracefully; a few-hours-old
+// forecast beats an empty tile for a whole ISR window).
+let lastWeather: { at: number; data: NonNullable<WarRoomData["weather"]> } | null = null;
+
 async function fetchWeather(): Promise<WarRoomData["weather"]> {
-  try {
-    const lats = CITIES.map((c) => c.lat).join(",");
-    const lons = CITIES.map((c) => c.lon).join(",");
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lats}&longitude=${lons}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Asia%2FKolkata&forecast_days=1`;
-    const res = await fetch(url, { next: { revalidate: 1800 }, signal: AbortSignal.timeout(10_000) });
-    if (!res.ok) return null;
-    const data = (await res.json()) as Array<{
-      daily?: { weather_code?: number[]; temperature_2m_max?: number[]; temperature_2m_min?: number[]; precipitation_probability_max?: number[] };
-    }>;
-    const list = Array.isArray(data) ? data : [data];
-    return CITIES.map(({ city }, i) => ({
-      city,
-      code: list[i]?.daily?.weather_code?.[0] ?? 0,
-      tmax: Math.round(list[i]?.daily?.temperature_2m_max?.[0] ?? 0),
-      tmin: Math.round(list[i]?.daily?.temperature_2m_min?.[0] ?? 0),
-      rainProb: list[i]?.daily?.precipitation_probability_max?.[0] ?? 0,
-    }));
-  } catch {
-    return null;
+  const lats = CITIES.map((c) => c.lat).join(",");
+  const lons = CITIES.map((c) => c.lon).join(",");
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lats}&longitude=${lons}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Asia%2FKolkata&forecast_days=1`;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const res = await fetch(url, { next: { revalidate: 1800 }, signal: AbortSignal.timeout(8_000) });
+      if (!res.ok) continue;
+      const data = (await res.json()) as Array<{
+        daily?: { weather_code?: number[]; temperature_2m_max?: number[]; temperature_2m_min?: number[]; precipitation_probability_max?: number[] };
+      }>;
+      const list = Array.isArray(data) ? data : [data];
+      const out = CITIES.map(({ city }, i) => ({
+        city,
+        code: list[i]?.daily?.weather_code?.[0] ?? 0,
+        tmax: Math.round(list[i]?.daily?.temperature_2m_max?.[0] ?? 0),
+        tmin: Math.round(list[i]?.daily?.temperature_2m_min?.[0] ?? 0),
+        rainProb: list[i]?.daily?.precipitation_probability_max?.[0] ?? 0,
+      }));
+      lastWeather = { at: Date.now(), data: out };
+      return out;
+    } catch {
+      /* retry once, then fall through to last-good */
+    }
   }
+  return lastWeather && Date.now() - lastWeather.at < 12 * 60 * 60 * 1000 ? lastWeather.data : null;
 }
 
 // Fuel is city-level (state taxes); bullion is IBJA's national fix.

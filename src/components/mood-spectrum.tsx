@@ -16,8 +16,8 @@ const TICKS = [0, 30, 50, 70, 100];
 export function MoodSpectrum({ mmi }: { mmi: RatesData["mmi"] }) {
   if (!mmi) return null;
   return (
-    <div className="shrink-0 border-t border-ash px-2.5 pb-0.5 pt-1">
-      <div className="mb-1 flex items-baseline justify-between">
+    <div className="shrink-0 border-t border-ash px-2.5 pb-0.5 pt-0.5">
+      <div className="mb-0.5 flex items-baseline justify-between">
         <span className="text-[8.5px] font-semibold uppercase tracking-[0.07em] text-fog">Fear &amp; greed</span>
         <span className="font-mono text-[9px] tabular-nums text-fog">
           <span className="font-semibold text-ink">{mmi.value}</span> · {mmi.zone.toUpperCase()}
@@ -41,7 +41,7 @@ export function MoodSpectrum({ mmi }: { mmi: RatesData["mmi"] }) {
           style={{ left: `calc(${Math.min(100, Math.max(0, mmi.value))}% - 1px)` }}
         />
       </div>
-      <div className="relative mt-0.5 h-[10px] font-mono text-[7.5px] text-silver">
+      <div className="relative mt-0.5 h-[9px] font-mono text-[7.5px] text-silver">
         {TICKS.map((t) => (
           <span
             key={t}

@@ -12,6 +12,7 @@ import { macroRatesFetcher } from "./sources/macro-rates";
 import { nseCalendarsFetcher } from "./sources/nse-calendars";
 import { nseIndicesFetcher } from "./sources/nse-indices";
 import { rbiRatesFetcher } from "./sources/rbi-rates";
+import { tvLiveFetcher } from "./sources/tv-live";
 import { yahooMarketsFetcher } from "./sources/yahoo";
 import type { Fetcher, IngestBar, IngestEvent, IngestFlow } from "./types";
 
@@ -29,6 +30,7 @@ const FETCHERS: Fetcher[] = [
   rbiRatesFetcher,
   ibjaFetcher,
   fuelCityFetcher,
+  tvLiveFetcher,
 ];
 
 interface SourceRun {
@@ -145,6 +147,7 @@ async function main() {
   const events: IngestEvent[] = [];
   const bars: IngestBar[] = [];
   const flows: IngestFlow[] = [];
+  const tvStreams: Array<{ channelId: string; videoId: string | null }> = [];
   const health: Record<string, SourceRun> = {};
 
   for (const fetcher of FETCHERS) {
@@ -153,6 +156,7 @@ async function main() {
       events.push(...result.events);
       bars.push(...result.bars);
       if (result.flows) flows.push(...result.flows);
+      if (result.tvStreams) tvStreams.push(...result.tvStreams);
       health[fetcher.id] = { ok: true, events: result.events.length, bars: result.bars.length };
     } catch (err) {
       health[fetcher.id] = { ok: false, error: err instanceof Error ? err.message : String(err), events: 0, bars: 0 };
@@ -204,6 +208,18 @@ async function main() {
     console.log(`[dry-run] no database write — briefing pack saved to ${out}`);
   } else {
     await persist(events, bars, health, pack.date, pack, regime);
+    if (tvStreams.length > 0) {
+      const { prisma } = await import("@/lib/db");
+      const now = new Date();
+      for (const stream of tvStreams) {
+        await prisma.tvStream.upsert({
+          where: { channelId: stream.channelId },
+          update: { videoId: stream.videoId, checkedAt: now },
+          create: { channelId: stream.channelId, videoId: stream.videoId, checkedAt: now },
+        });
+      }
+      console.log(`[db] ${tvStreams.length} tv streams upserted`);
+    }
     if (flows.length > 0) {
       const { prisma } = await import("@/lib/db");
       for (const flow of flows) {

@@ -35,6 +35,8 @@ export interface SourceResult {
   events: IngestEvent[];
   bars: IngestBar[];
   flows?: IngestFlow[];
+  /** Live TV videoIds resolved from a non-blocked host (see tv-live). */
+  tvStreams?: Array<{ channelId: string; videoId: string | null }>;
 }
 
 /**

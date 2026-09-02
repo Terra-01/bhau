@@ -61,8 +61,11 @@ export function RatesPanel({ rates }: { rates: RatesData | null }) {
   return (
     <Tile title="India rates & macro" icon={<Landmark size={10} strokeWidth={2} className="text-sapphire" />} meta={`RBI · ${asOf.slice(5).replace("-", "/")}`}>
       <div className="flex h-full min-h-0 flex-col">
-        <div className="grid min-h-0 flex-1 grid-cols-2">
-          <div className="flex min-h-0 flex-col border-r border-ash">
+        {/* If squeezed, the data area scrolls — rows must never paint
+            over the spectrum below. */}
+        <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="grid grid-cols-2">
+          <div className="flex flex-col border-r border-ash">
             <SectionHeader left="G-sec yields" right="EOD" />
             <ul>
               {tenors.map((t) => {
@@ -82,7 +85,7 @@ export function RatesPanel({ rates }: { rates: RatesData | null }) {
                       <li
                         role="button"
                         tabIndex={0}
-                        className="flex cursor-pointer items-baseline gap-1 border-b border-ash px-2 py-[2px] transition-colors duration-150 [@media(hover:hover)]:hover:bg-paper/60"
+                        className="flex cursor-pointer items-baseline gap-1 border-b border-ash px-2 py-[1.5px] transition-colors duration-150 [@media(hover:hover)]:hover:bg-paper/60"
                       >
                         <span className={`w-7 font-mono text-[10px] leading-tight ${is10 ? "font-semibold text-ink" : "font-medium text-charcoal"}`}>
                           {t.label}
@@ -100,9 +103,9 @@ export function RatesPanel({ rates }: { rates: RatesData | null }) {
               })}
             </ul>
             {y10 && spreads.length > 0 && (
-              <ul className="mt-auto">
+              <ul>
                 {spreads.map((s) => (
-                  <li key={s.id} className="flex items-baseline justify-between border-t border-ash px-2 py-[2px]">
+                  <li key={s.id} className="flex items-baseline justify-between border-t border-ash px-2 py-[1.5px]">
                     <span className="text-[8.5px] leading-tight text-fog">{s.label}</span>
                     <span className={`font-mono text-[9px] font-medium leading-tight tabular-nums ${s.bps < 0 ? "text-loss" : "text-charcoal"}`}>
                       {bp(s.bps)}
@@ -113,7 +116,7 @@ export function RatesPanel({ rates }: { rates: RatesData | null }) {
             )}
           </div>
 
-          <div className="flex min-h-0 flex-col">
+          <div className="flex flex-col">
             <SectionHeader left="Economy" right="Latest" />
             <ul>
               {economy.map((m) => (
@@ -127,7 +130,7 @@ export function RatesPanel({ rates }: { rates: RatesData | null }) {
                     <li
                       role="button"
                       tabIndex={0}
-                      className="flex cursor-pointer items-baseline gap-1 border-b border-ash px-2 py-[2px] transition-colors duration-150 last:border-b-0 [@media(hover:hover)]:hover:bg-paper/60"
+                      className="flex cursor-pointer items-baseline gap-1 border-b border-ash px-2 py-[1.5px] transition-colors duration-150 last:border-b-0 [@media(hover:hover)]:hover:bg-paper/60"
                     >
                       <span className="min-w-0 flex-1 truncate text-[9.5px] leading-tight text-charcoal">{m.label}</span>
                       <span className="font-mono text-[10px] leading-tight tabular-nums text-ink">{m.value}</span>
@@ -138,6 +141,7 @@ export function RatesPanel({ rates }: { rates: RatesData | null }) {
               ))}
             </ul>
           </div>
+        </div>
         </div>
 
         <MoodSpectrum mmi={mmi} />

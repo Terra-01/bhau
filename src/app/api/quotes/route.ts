@@ -38,15 +38,20 @@ async function fromYahoo(symbols: string[]): Promise<QuoteOut[]> {
 }
 
 async function fromArchive(symbols: string[]): Promise<QuoteOut[]> {
+  // Any source: equities live in bhavcopy rows, but the indices are only
+  // written by the nse/yahoo ingests — filtering to bhavcopy would leave
+  // ^NSEI/^BSESN with no EOD fallback at all.
   const rows = await prisma.dailyBar.findMany({
-    where: { symbol: { in: symbols }, source: "bhavcopy" },
+    where: { symbol: { in: symbols } },
     orderBy: { date: "desc" },
-    take: symbols.length * 6,
+    take: symbols.length * 8,
   });
   const bySymbol = new Map<string, typeof rows>();
   for (const row of rows) {
     const list = bySymbol.get(row.symbol) ?? [];
-    if (list.length < 2) list.push(row);
+    const day = row.date.toISOString().slice(0, 10);
+    // one bar per day — two sources can both cover an index date
+    if (list.length < 2 && !list.some((r) => r.date.toISOString().slice(0, 10) === day)) list.push(row);
     bySymbol.set(row.symbol, list);
   }
   return symbols.map((symbol) => {

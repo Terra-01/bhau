@@ -4,6 +4,7 @@ import { Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { MarketChart } from "@/components/bento/market-chart";
 import { deltaClass, signedPct } from "@/lib/format";
+import { compactInr } from "@/lib/heat";
 
 // The details view behind every clickable row — equities, indices,
 // futures, FX crosses. Theme-token surfaces (dark-safe), a hard width,
@@ -39,8 +40,7 @@ const KIND_LABEL: Record<string, string> = {
   currency: "FX",
 };
 
-const compactCr = (n?: number) =>
-  n === undefined ? "—" : n >= 1e12 ? `₹${(n / 1e12).toFixed(1)} L Cr` : `₹${(n / 1e7).toFixed(0)} Cr`;
+const compactCr = (n?: number) => (n === undefined ? "—" : compactInr(n));
 
 function ccySign(currency?: string) {
   if (currency === "INR") return "₹";
@@ -48,7 +48,11 @@ function ccySign(currency?: string) {
   return "";
 }
 
-const num = (n?: number | null, d = 2) => (n === undefined || n === null ? "—" : n.toFixed(d));
+// en-IN grouping, matching every other price surface in the app
+const num = (n?: number | null, d = 2) =>
+  n === undefined || n === null
+    ? "—"
+    : new Intl.NumberFormat("en-IN", { minimumFractionDigits: d, maximumFractionDigits: d }).format(n);
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (

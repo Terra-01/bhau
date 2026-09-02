@@ -37,7 +37,7 @@ function dateCol(iso: string): [string, string] {
 }
 
 export function CalendarPanel({ data, todayIso }: { data: ExchangeData; todayIso: string }) {
-  const { index, select, pauseProps } = useCarousel(TABS.length, 17_000);
+  const { index, select, pauseProps, hold } = useCarousel(TABS.length, 17_000);
   const tab = TABS[index].id;
 
   const items: CalItem[] = useMemo(() => {
@@ -128,13 +128,14 @@ export function CalendarPanel({ data, todayIso }: { data: ExchangeData; todayIso
           // Earnings rows open the company card; IPOs and releases carry
           // their own event details.
           if (tab === "earnings") {
-            return <AssetPopover key={key} symbol={item.primary} render={row} />;
+            return <AssetPopover key={key} symbol={item.primary} onOpenChange={(open) => hold(open ? 60_000 : 3_000)} render={row} />;
           }
           if (tab === "ipos") {
             const ipo = data.ipos.find((p) => `${p.symbol} IPO` === item.primary && p.date === item.date);
             return (
               <InfoPopover
                 key={key}
+                onOpenChange={(open) => hold(open ? 60_000 : 3_000)}
                 title={ipo?.company ?? item.primary}
                 sub="Public issue · NSE"
                 rows={[
@@ -152,6 +153,7 @@ export function CalendarPanel({ data, todayIso }: { data: ExchangeData; todayIso
           return (
             <InfoPopover
               key={key}
+              onOpenChange={(open) => hold(open ? 60_000 : 3_000)}
               title={item.primary}
               sub={`Data release · ${item.secondary ?? ""}`}
               rows={[["Expected", item.date]]}

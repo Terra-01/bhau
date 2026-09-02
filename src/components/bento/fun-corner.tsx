@@ -33,7 +33,7 @@ export function FunCorner({
   baskets: ExchangeData["funBaskets"];
 }) {
   const tabs = [{ id: "songs", label: "Songs" }, ...baskets.map((b) => ({ id: b.id, label: b.name.split(" ")[0] }))];
-  const { index, select, pauseProps } = useCarousel(tabs.length, 23_000);
+  const { index, select, pauseProps, hold } = useCarousel(tabs.length, 23_000);
   const tab = tabs[index]?.id ?? "songs";
   const basket = baskets.find((b) => b.id === tab);
 
@@ -131,6 +131,7 @@ export function FunCorner({
               <AssetPopover
                 key={c.symbol}
                 symbol={c.symbol}
+                onOpenChange={(open) => hold(open ? 60_000 : 3_000)}
                 render={
                   <li
                     role="button"

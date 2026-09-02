@@ -1,3 +1,5 @@
+import { USER_AGENT } from "@/ingest/types";
+
 // Shared TV channel registry + the live-videoId resolver. YouTube blocks
 // the /live scrape from some datacenter IPs (Vercel), so the ingest run
 // (home IP / CI) persists resolved ids for the API route to fall back on
@@ -20,11 +22,7 @@ export interface LiveResolution {
 export async function resolveLiveVideoId(channelId: string): Promise<LiveResolution> {
   try {
     const res = await fetch(`https://www.youtube.com/channel/${channelId}/live`, {
-      headers: {
-        "user-agent":
-          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36",
-        "accept-language": "en",
-      },
+      headers: { "user-agent": USER_AGENT, "accept-language": "en" },
       signal: AbortSignal.timeout(12_000),
     });
     if (!res.ok) return { ok: false, videoId: null };

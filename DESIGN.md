@@ -4,10 +4,10 @@
 
 ## Direction
 
-**The morning broadsheet, not another dark terminal.** Every trading product is dark-mode neon (TradingView, every crypto dashboard, Bloomberg itself). Bhau is light, printed, and hairline-bordered — because the product's rhythm is daily-at-close (an edition, not a tape) and because printed-document aesthetics read as *trustworthy*, which is the entire brand (receipts, append-only log, published methodology). Light is the identity, not the default.
+**The morning broadsheet, not another dark terminal.** Every trading product is dark-mode neon (TradingView, every crypto dashboard, Bloomberg itself). Bhau is light, printed, and hairline-bordered — because the product's rhythm is daily-at-close (an edition, not a tape) and because printed-document aesthetics read as *trustworthy*, which is the entire brand (receipts, append-only log, published methodology). Light is the identity; since v1.2 the terminal *defaults* to the dark variant (a product call for a live market screen), with light one toggle away.
 
-- **Light is the identity.** The default theme, executed well.
-- **Dark is a designed variant** (since v1.1): a toggle, not an inversion — its own palette lives in `globals.css` under `[data-theme="dark"]` (blue-black canvas, warm off-white ink, brightened accents; the Value agent flips to a light neutral). Every component styles through tokens, so both themes resolve from one set.
+- **Light is the identity.** The morning-broadsheet look, executed well — one toggle away.
+- **Dark is the default** (since v1.2): a designed variant, not an inversion — its own palette lives in `globals.css` under `[data-theme="dark"]` (pure-black canvas #000, warm off-white ink, brightened accents), applied pre-paint by layout.tsx unless "light" is stored. Every component styles through tokens, so both themes resolve from one set.
 - This supersedes the "dark-first war room at night" line that briefly lived in CONCEPT.md §6.
 
 ## Fonts & sourcing
@@ -34,8 +34,8 @@ Dub has no red and no semantic market colors — a finance product needs them. A
 /* Agent identity — identity elements ONLY (pill dot, avatar ring, card keyline, chart series) */
 --agent-macro: #2563eb;       /* Electric Blue — top-down, systemic */
 --agent-momentum: #ea580c;    /* Tangerine — heat, chase */
---agent-contrarian: #7c3aed;  /* Lavender — against the grain */
---agent-value: #262626;       /* Graphite — old-money monochrome; also avoids colliding with gain-green */
+--agent-contrarian: #db2777;  /* Magenta — against the grain (dark: #f472b6) */
+--agent-value: #0d9488;       /* Teal — patient, distinct from gain-green on the race chart (dark: #2dd4bf) */
 
 /* Regime scale — the dial and the map tint ONLY */
 --regime-1-calm: #16a34a;

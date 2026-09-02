@@ -32,6 +32,15 @@ interface HistoryPoint {
   close: number;
 }
 
+// Session cache: the watchlist chart tours 20 symbols every 5s — a
+// revisit inside the server's own TTL window must not refetch.
+const historyCache = new Map<string, { at: number; points: HistoryPoint[] }>();
+const clientTtl = (intraday: boolean) => (intraday ? 60_000 : 5 * 60_000);
+const freshCached = (key: string, intraday: boolean) => {
+  const hit = historyCache.get(key);
+  return hit && Date.now() - hit.at < clientTtl(intraday) ? hit.points : null;
+};
+
 export function MarketChart({ symbol, label }: { symbol: string; label?: string }) {
   const container = useRef<HTMLDivElement | null>(null);
   const instance = useRef<{ chart: IChartApi; area: ISeriesApi<"Area"> } | null>(null);
@@ -42,6 +51,12 @@ export function MarketChart({ symbol, label }: { symbol: string; label?: string 
   const [timeframe, setTimeframe] = useState<(typeof TIMEFRAMES)[number]>(TIMEFRAMES[2]);
   const intraday = timeframe.label === "1D";
   const key = `${symbol}|${intraday ? "1d" : "daily"}`;
+  // Serve a fresh cache hit during render (guarded set — settles in one
+  // pass) so symbol revisits never flash "Loading…" or refetch.
+  if (loaded?.key !== key) {
+    const hit = freshCached(key, intraday);
+    if (hit) setLoaded({ key, points: hit });
+  }
   const points = loaded?.key === key ? loaded.points : undefined; // undefined = loading, null = failed
   const failed = points === null;
 
@@ -54,11 +69,16 @@ export function MarketChart({ symbol, label }: { symbol: string; label?: string 
   }, []);
 
   useEffect(() => {
+    if (freshCached(key, intraday)) return; // served during render
     let alive = true;
     const url = `/api/history/${encodeURIComponent(symbol)}${intraday ? "?range=1d" : ""}`;
     fetch(url)
       .then((r) => (r.ok ? r.json() : Promise.reject()))
-      .then((d) => alive && setLoaded({ key, points: d.points ?? [] }))
+      .then((d) => {
+        const points: HistoryPoint[] = d.points ?? [];
+        historyCache.set(key, { at: Date.now(), points });
+        if (alive) setLoaded({ key, points });
+      })
       .catch(() => alive && setLoaded({ key, points: null }));
     return () => {
       alive = false;

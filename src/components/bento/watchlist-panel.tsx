@@ -41,9 +41,18 @@ interface Quote {
 function loadList(): string[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return DEFAULTS;
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed.slice(0, MAX) : DEFAULTS;
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed.slice(0, MAX) : DEFAULTS;
+    }
+    // v1 stored a curated stock list with the indices pinned outside it —
+    // migrate it rather than silently replacing it with the defaults.
+    const v1 = JSON.parse(localStorage.getItem("bhau-watchlist") ?? "null");
+    if (Array.isArray(v1) && v1.length > 0) {
+      const stocks = v1.filter((s): s is string => typeof s === "string" && s !== "^NSEI" && s !== "^BSESN");
+      return ["^NSEI", "^BSESN", ...stocks].slice(0, MAX);
+    }
+    return DEFAULTS;
   } catch {
     return DEFAULTS;
   }
@@ -61,8 +70,11 @@ export function WatchlistPanel() {
   const holdUntil = useRef(0);
   const hovering = useRef(false);
   const PAGE_SIZE = 10;
-  const { selected, page } = view;
+  const { selected } = view;
   const pages = Math.max(1, Math.ceil((list?.length ?? 0) / PAGE_SIZE));
+  // Removals can shrink the list under a stale page index — clamp at use,
+  // or a stranded page renders zero rows with the pager unmounted.
+  const page = Math.min(view.page, pages - 1);
   // Full windows: the last page slides back so every page shows PAGE_SIZE
   // rows — no dead space under a short final page.
   const start = list ? (page === pages - 1 ? Math.max(0, list.length - PAGE_SIZE) : page * PAGE_SIZE) : 0;
@@ -89,7 +101,7 @@ export function WatchlistPanel() {
     const load = async () => {
       if (!document.hidden) {
         try {
-          const res = await fetch(`/api/quotes?symbols=${symbols.join(",")}`);
+          const res = await fetch(`/api/quotes?symbols=${encodeURIComponent(symbols.join(","))}`);
           const d = (await res.json()) as { quotes: Quote[]; source?: string; phase?: MarketPhase };
           if (alive) {
             setQuotes(new Map(d.quotes.map((q) => [q.symbol, q])));
@@ -246,8 +258,7 @@ export function WatchlistPanel() {
           </FlipView>
         </div>
 
-        {(
-          <InsightLine
+        <InsightLine
             meta={
               <span className="flex items-center gap-1.5">
                 {liveMeta.phase && liveMeta.phase !== "closed" ? (
@@ -287,14 +298,19 @@ export function WatchlistPanel() {
               </span>
             }
           >
-            {up}/{listQuotes.length} watched up
-            {best && best.changePct !== undefined && (
+            {listQuotes.length > 0 ? (
               <>
-                {" "}· best {best.symbol} <span className={deltaClass(best.changePct)}>{signedPct(best.changePct)}</span>
+                {up}/{listQuotes.length} watched up
+                {best && best.changePct !== undefined && (
+                  <>
+                    {" "}· best {best.symbol} <span className={deltaClass(best.changePct)}>{signedPct(best.changePct)}</span>
+                  </>
+                )}
               </>
+            ) : (
+              "Loading quotes…"
             )}
           </InsightLine>
-        )}
       </div>
     </Tile>
   );

@@ -16,7 +16,11 @@ export function InsightLine({ children, meta }: { children: ReactNode; meta?: Re
       tabIndex={0}
       onClick={() => setExpanded((e) => !e)}
       onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") setExpanded((x) => !x);
+        if (e.target !== e.currentTarget) return; // nested controls (pagers) own their keys
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          setExpanded((x) => !x);
+        }
       }}
       title={expanded ? undefined : "Show full line"}
       className="mt-auto flex shrink-0 cursor-pointer items-baseline justify-between gap-2 border-t border-ash px-2.5 py-[3px] text-[8.5px] leading-tight text-fog transition-colors duration-150 [@media(hover:hover)]:hover:bg-paper/60"

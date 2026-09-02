@@ -14,6 +14,7 @@ export function AssetPopover({
   name,
   onRemove,
   onOpen,
+  onOpenChange,
   render,
 }: {
   symbol: string;
@@ -21,11 +22,13 @@ export function AssetPopover({
   onRemove?: () => void;
   /** Extra side effect on click (e.g. select the row for the chart). */
   onOpen?: () => void;
+  /** Open-state signal — rotating panels hold their carousel with it. */
+  onOpenChange?: (open: boolean) => void;
   /** The row element; it receives the trigger props. */
   render: ReactNode;
 }) {
   return (
-    <Popover>
+    <Popover onOpenChange={onOpenChange}>
       <PopoverTrigger
         nativeButton={false}
         onClick={onOpen}

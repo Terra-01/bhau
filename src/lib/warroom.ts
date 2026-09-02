@@ -66,7 +66,6 @@ export interface WarRoomData {
       rejectReason?: string;
     }>;
   };
-  health: Array<{ id: string; healthy: boolean }>;
 }
 
 const COMMODITIES: Array<{ name: string; candidates: string[] }> = [
@@ -109,13 +108,18 @@ async function fetchWeather(): Promise<WarRoomData["weather"]> {
         daily?: { weather_code?: number[]; temperature_2m_max?: number[]; temperature_2m_min?: number[]; precipitation_probability_max?: number[] };
       }>;
       const list = Array.isArray(data) ? data : [data];
-      const out = CITIES.map(({ city }, i) => ({
-        city,
-        code: list[i]?.daily?.weather_code?.[0] ?? 0,
-        tmax: Math.round(list[i]?.daily?.temperature_2m_max?.[0] ?? 0),
-        tmin: Math.round(list[i]?.daily?.temperature_2m_min?.[0] ?? 0),
-        rainProb: list[i]?.daily?.precipitation_probability_max?.[0] ?? 0,
-      }));
+      const out: NonNullable<WarRoomData["weather"]> = [];
+      for (const [i, { city }] of CITIES.entries()) {
+        const daily = list[i]?.daily;
+        const code = daily?.weather_code?.[0];
+        const tmax = daily?.temperature_2m_max?.[0];
+        const tmin = daily?.temperature_2m_min?.[0];
+        if (typeof code !== "number" || typeof tmax !== "number" || typeof tmin !== "number") continue;
+        out.push({ city, code, tmax: Math.round(tmax), tmin: Math.round(tmin), rainProb: daily?.precipitation_probability_max?.[0] ?? 0 });
+      }
+      // A malformed 200 must never become "Clear sky 0°/0°" — treat it as
+      // a failed attempt rather than caching fabricated readings.
+      if (out.length < CITIES.length) continue;
       lastWeather = { at: Date.now(), data: out };
       return out;
     } catch {
@@ -485,14 +489,6 @@ export async function getWarRoomData(): Promise<WarRoomData | null> {
     fiiStreak = { direction, days };
   }
 
-  const healthRows = await prisma.sourceHealth.findMany();
-  const health = healthRows.map((h) => ({
-    id: h.id,
-    healthy: Boolean(
-      h.lastSuccessAt && (!h.lastErrorAt || h.lastSuccessAt > h.lastErrorAt),
-    ),
-  }));
-
   return {
     packDate: pack.date,
     tradingDay: pack.tradingDay,
@@ -518,6 +514,5 @@ export async function getWarRoomData(): Promise<WarRoomData | null> {
       scoreboard,
       theses,
     },
-    health,
   };
 }

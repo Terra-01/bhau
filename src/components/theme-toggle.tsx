@@ -9,10 +9,12 @@ interface IconHandle {
   stopAnimation: () => void;
 }
 
-// Light is the identity; dark is a designed variant (DESIGN.md). The
-// FOUC-guard script in layout.tsx applies the stored choice pre-paint.
-// The lucide-animated glyph plays on button hover via its handle.
+// Dark is the default identity; light is the designed morning variant
+// (DESIGN.md). The FOUC-guard script in layout.tsx applies the stored
+// choice pre-paint. The lucide-animated glyph plays on button hover.
 export function ThemeToggle() {
+  // null = not yet synced — render the dark-default affordance, since
+  // that's what the pre-paint script showed unless "light" was stored.
   const [theme, setTheme] = useState<"light" | "dark" | null>(null);
   const icon = useRef<IconHandle | null>(null);
 
@@ -23,8 +25,10 @@ export function ThemeToggle() {
     return () => cancelAnimationFrame(id);
   }, []);
 
+  const dark = theme !== "light";
+
   const toggle = () => {
-    const next = theme === "dark" ? "light" : "dark";
+    const next = dark ? "light" : "dark";
     setTheme(next);
     document.documentElement.dataset.theme = next;
     try {
@@ -40,10 +44,10 @@ export function ThemeToggle() {
       onClick={toggle}
       onMouseEnter={() => icon.current?.startAnimation()}
       onMouseLeave={() => icon.current?.stopAnimation()}
-      title={theme === "dark" ? "Switch to light" : "Switch to dark"}
+      title={dark ? "Switch to light" : "Switch to dark"}
       className="flex h-6 w-6 items-center justify-center rounded-full border border-ash text-steel transition-transform duration-150 [transition-timing-function:var(--ease-out-strong)] active:scale-[0.94] [@media(hover:hover)]:hover:bg-paper"
     >
-      {theme === "dark" ? (
+      {dark ? (
         <SunIcon ref={icon} size={12} className="flex" />
       ) : (
         <MoonIcon ref={icon} size={12} className="flex" />

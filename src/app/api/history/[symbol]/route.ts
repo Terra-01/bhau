@@ -13,16 +13,19 @@ const TTL_INTRADAY_MS = 60 * 1000;
 
 const istDay = (d: Date) => d.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
 
+const CACHE_HEADERS = { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300" };
+
 export async function GET(request: Request, { params }: { params: Promise<{ symbol: string }> }) {
   const { symbol: raw } = await params;
-  const symbol = decodeURIComponent(raw).toUpperCase().replace(/[^A-Z0-9^=.\-&]/g, "");
+  // params arrive percent-decoded already — a second decode throws on "%"
+  const symbol = raw.toUpperCase().replace(/[^A-Z0-9^=.\-&]/g, "");
   if (!symbol) return NextResponse.json({ error: "bad symbol" }, { status: 400 });
   const range = new URL(request.url).searchParams.get("range") === "1d" ? "1d" : "daily";
 
   const key = `${symbol}|${range}`;
   const ttl = range === "1d" ? TTL_INTRADAY_MS : TTL_DAILY_MS;
   const cached = cache.get(key);
-  if (cached && Date.now() - cached.at < ttl) return NextResponse.json(cached.body);
+  if (cached && Date.now() - cached.at < ttl) return NextResponse.json(cached.body, { headers: CACHE_HEADERS });
 
   try {
     const yahooSymbol = symbol.startsWith("^") || symbol.includes("=") || symbol.includes(".") ? symbol : `${symbol}.NS`;
@@ -51,7 +54,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ symb
       body = { symbol, range, points };
     }
     cache.set(key, { at: Date.now(), body });
-    return NextResponse.json(body, { headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300" } });
+    return NextResponse.json(body, { headers: CACHE_HEADERS });
   } catch (err) {
     return NextResponse.json(
       { symbol, error: err instanceof Error ? err.message : "lookup failed" },

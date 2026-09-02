@@ -208,18 +208,6 @@ async function main() {
     console.log(`[dry-run] no database write — briefing pack saved to ${out}`);
   } else {
     await persist(events, bars, health, pack.date, pack, regime);
-    if (tvStreams.length > 0) {
-      const { prisma } = await import("@/lib/db");
-      const now = new Date();
-      for (const stream of tvStreams) {
-        await prisma.tvStream.upsert({
-          where: { channelId: stream.channelId },
-          update: { videoId: stream.videoId, checkedAt: now },
-          create: { channelId: stream.channelId, videoId: stream.videoId, checkedAt: now },
-        });
-      }
-      console.log(`[db] ${tvStreams.length} tv streams upserted`);
-    }
     if (flows.length > 0) {
       const { prisma } = await import("@/lib/db");
       for (const flow of flows) {
@@ -231,10 +219,32 @@ async function main() {
       }
       console.log(`[db] ${flows.length} flow rows upserted`);
     }
+    // TV ids are a convenience, not archive data — last, and never allowed
+    // to take real persistence down with them.
+    if (tvStreams.length > 0) {
+      try {
+        const { prisma } = await import("@/lib/db");
+        const now = new Date();
+        await prisma.$transaction(
+          tvStreams.map((stream) =>
+            prisma.tvStream.upsert({
+              where: { channelId: stream.channelId },
+              update: { videoId: stream.videoId, checkedAt: now },
+              create: { channelId: stream.channelId, videoId: stream.videoId, checkedAt: now },
+            }),
+          ),
+        );
+        console.log(`[db] ${tvStreams.length} tv streams upserted`);
+      } catch (err) {
+        console.warn(`[tv-live] persist failed — ${err instanceof Error ? err.message : String(err)}`);
+      }
+    }
   }
 
-  const failures = Object.values(health).filter((run) => !run.ok).length;
-  if (failures === FETCHERS.length) {
+  // tv-live is an auxiliary resolver — its success must not mask a night
+  // where every real data source failed.
+  const dataIds = Object.keys(health).filter((id) => id !== "tv-live");
+  if (dataIds.length > 0 && dataIds.every((id) => !health[id].ok)) {
     console.error("all sources failed");
     process.exit(1);
   }

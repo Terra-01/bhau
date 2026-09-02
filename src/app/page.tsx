@@ -25,15 +25,16 @@ export const revalidate = 300; // data changes once per trading day
 export default async function Feed() {
   // The build must never require the database (Vercel's builder may not
   // reach Neon); a failed fetch renders the fallback and the first ISR
-  // revalidation at runtime replaces it.
-  let data: Awaited<ReturnType<typeof getWarRoomData>> = null;
-  let exchange: Awaited<ReturnType<typeof getExchangeData>> | null = null;
-  let rates: Awaited<ReturnType<typeof getRatesData>> = null;
-  try {
-    [data, exchange, rates] = await Promise.all([getWarRoomData(), getExchangeData(), getRatesData()]);
-  } catch (err) {
-    console.error("[page] data layer unavailable:", err instanceof Error ? err.message : err);
+  // revalidation at runtime replaces it. Sources settle independently so
+  // one hiccup degrades one panel instead of blanking the board.
+  const [d, e, r] = await Promise.allSettled([getWarRoomData(), getExchangeData(), getRatesData()]);
+  for (const s of [d, e, r]) {
+    if (s.status === "rejected")
+      console.error("[page] data source failed:", s.reason instanceof Error ? s.reason.message : s.reason);
   }
+  const data = d.status === "fulfilled" ? d.value : null;
+  const exchange = e.status === "fulfilled" ? e.value : null;
+  const rates = r.status === "fulfilled" ? r.value : null;
 
   if (!data || !exchange) {
     return (

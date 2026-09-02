@@ -29,6 +29,15 @@ export function useCarousel(count: number, intervalMs: number) {
     [intervalMs],
   );
 
+  /**
+   * Freeze rotation for `ms` — wire a detail popover's open state to this
+   * so an open card is never unmounted mid-read (hover can't cover touch,
+   * or a pointer that wandered off the tile).
+   */
+  const hold = useCallback((ms: number) => {
+    holdUntil.current = Math.max(holdUntil.current, Date.now() + ms);
+  }, []);
+
   const pauseProps = {
     onMouseEnter: () => {
       hovering.current = true;
@@ -38,5 +47,5 @@ export function useCarousel(count: number, intervalMs: number) {
     },
   };
 
-  return { index, select, pauseProps };
+  return { index, select, pauseProps, hold };
 }

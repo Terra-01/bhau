@@ -40,12 +40,15 @@ export function InfoCard({ title, sub, rows = [], note }: InfoCardProps) {
  */
 export function InfoPopover({
   render,
+  onOpenChange,
   ...card
 }: InfoCardProps & {
   render: ReactElement<Record<string, unknown>>;
+  /** Open-state signal — rotating panels hold their carousel with it. */
+  onOpenChange?: (open: boolean) => void;
 }) {
   return (
-    <Popover>
+    <Popover onOpenChange={onOpenChange}>
       <PopoverTrigger nativeButton={false} render={render} />
       <PopoverContent align="start" className="p-0">
         <InfoCard {...card} />

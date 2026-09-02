@@ -59,9 +59,24 @@ export function CityTile({
   weather: WarRoomData["weather"];
   pulse: WarRoomData["cityPulse"];
 }) {
-  const { index, select, pauseProps } = useCarousel(TABS.length, 19_000);
+  const { index, select, pauseProps, hold } = useCarousel(TABS.length, 19_000);
   const showPrices = TABS[index] === "prices" && pulse !== null;
   const [detail, setDetail] = useState<{ card: InfoCardProps; el: HTMLElement } | null>(null);
+
+  // The rows live inside the FlipView, so a tab flip unmounts the open
+  // card without onOpenChange ever firing — clear the anchor or the card
+  // reopens later against a detached row at the viewport corner. Guarded
+  // render-phase reset (same pattern as SlideValue).
+  const [prevShow, setPrevShow] = useState(showPrices);
+  if (prevShow !== showPrices) {
+    setPrevShow(showPrices);
+    if (!showPrices && detail) setDetail(null);
+  }
+
+  const openDetail = (card: InfoCardProps, el: HTMLElement) => {
+    hold(60_000);
+    setDetail({ card, el });
+  };
 
   const priciest = pulse?.cities.reduce<{ city: string; petrol: number } | null>(
     (best, c) => (c.petrol !== undefined && (!best || c.petrol > best.petrol) ? { city: c.city, petrol: c.petrol } : best),
@@ -85,7 +100,9 @@ export function CityTile({
               type="button"
               onClick={() => select(i)}
               className={`rounded-full px-1.5 py-px font-sans text-[8.5px] font-semibold uppercase tracking-[0.05em] transition-colors duration-150 ${
-                TABS[index] === t ? "bg-charcoal text-canvas" : "text-fog [@media(hover:hover)]:hover:text-charcoal"
+                // highlight what's actually on screen — with pulse data
+                // missing, the ₹ tab falls through to weather
+                (t === "prices") === showPrices ? "bg-charcoal text-canvas" : "text-fog [@media(hover:hover)]:hover:text-charcoal"
               }`}
             >
               {t === "prices" ? "₹" : "°C"}
@@ -123,9 +140,9 @@ export function CityTile({
                           key={c.city}
                           role="button"
                           tabIndex={0}
-                          onClick={(e) => setDetail({ card, el: e.currentTarget })}
+                          onClick={(e) => openDetail(card, e.currentTarget)}
                           onKeyDown={(e) => {
-                            if (e.key === "Enter" || e.key === " ") setDetail({ card, el: e.currentTarget });
+                            if (e.key === "Enter" || e.key === " ") openDetail(card, e.currentTarget);
                           }}
                           className="cursor-pointer border-b border-ash transition-colors duration-150 last:border-b-0 [@media(hover:hover)]:hover:bg-paper/60"
                         >
@@ -141,7 +158,13 @@ export function CityTile({
                   })}
                 </tbody>
               </table>
-              <RowPopover anchor={detail?.el ?? null} onClose={() => setDetail(null)}>
+              <RowPopover
+                anchor={detail?.el ?? null}
+                onClose={() => {
+                  hold(3_000);
+                  setDetail(null);
+                }}
+              >
                 {detail && <InfoCard {...detail.card} />}
               </RowPopover>
               {pulse!.metals.length > 0 && (
@@ -149,6 +172,7 @@ export function CityTile({
                   {pulse!.metals.map((m) => (
                     <InfoPopover
                       key={m.name}
+                      onOpenChange={(open) => hold(open ? 60_000 : 3_000)}
                       title={`${m.name} · IBJA fix`}
                       sub={`National benchmark · ₹${m.unit}`}
                       rows={[
@@ -181,6 +205,7 @@ export function CityTile({
                 return (
                   <InfoPopover
                     key={w.city}
+                    onOpenChange={(open) => hold(open ? 60_000 : 3_000)}
                     title={`${w.city} · today`}
                     sub={conditionOf(w.code)}
                     rows={[

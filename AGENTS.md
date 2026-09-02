@@ -3,7 +3,7 @@
 **Bhau** (pun on *bhav*, the price): a customizable India-market intelligence war room whose AI paper-trading agents prove its usefulness daily. "The Floor" is the war room's hero panel — Bhau's trading floor. Read these before touching anything:
 
 - **[CONCEPT.md](CONCEPT.md)** — what we're building and why (product thesis, agents, honesty protocol, data pipeline, roadmap). Source of truth for scope.
-- **[DESIGN.md](DESIGN.md)** — design language: light "morning broadsheet" default (Dub base in `design/dub-reference.md` + market/agent extensions) with a designed dark variant behind the header toggle (`[data-theme="dark"]` token overrides in `globals.css`). No per-component color inventions.
+- **[DESIGN.md](DESIGN.md)** — design language: the light "morning broadsheet" identity (Dub base in `design/dub-reference.md` + market/agent extensions) with a designed pure-black dark variant that is now the **default** (layout.tsx sets `data-theme="dark"` pre-paint unless "light" is stored; token overrides in `globals.css`). No per-component color inventions.
 
 ## Status
 

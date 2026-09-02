@@ -15,7 +15,8 @@ const PRICE_MODULES = ["price", "summaryDetail"] as const;
 
 export async function GET(_request: Request, { params }: { params: Promise<{ symbol: string }> }) {
   const { symbol: raw } = await params;
-  const symbol = decodeURIComponent(raw).toUpperCase().replace(/[^A-Z0-9^=.\-&]/g, "");
+  // params arrive percent-decoded already — a second decode throws on "%"
+  const symbol = raw.toUpperCase().replace(/[^A-Z0-9^=.\-&]/g, "");
   if (!symbol) return NextResponse.json({ error: "bad symbol" }, { status: 400 });
 
   const cached = cache.get(symbol);
@@ -26,9 +27,14 @@ export async function GET(_request: Request, { params }: { params: Promise<{ sym
 
   try {
     let q;
-    try {
-      q = await yf.quoteSummary(yahooSymbol, { modules: [...EQUITY_MODULES] });
-    } catch {
+    if (isEquity) {
+      try {
+        q = await yf.quoteSummary(yahooSymbol, { modules: [...EQUITY_MODULES] });
+      } catch {
+        q = await yf.quoteSummary(yahooSymbol, { modules: [...PRICE_MODULES] });
+      }
+    } else {
+      // indices/FX/futures never carry fundamentals — skip the doomed call
       q = await yf.quoteSummary(yahooSymbol, { modules: [...PRICE_MODULES] });
     }
     const body = {

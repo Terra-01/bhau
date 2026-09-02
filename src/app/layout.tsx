@@ -28,7 +28,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       {/* h-full (definite) so the war-room shell's flex sizing resolves; page
           scrolling still works below xl via html overflow. */}
       <body className="h-full flex flex-col font-sans">
-        {/* Theme before first paint — no flash; light is the default. */}
+        {/* Theme before first paint — no flash; dark is the default. */}
         <script
           dangerouslySetInnerHTML={{
             __html: `try{document.documentElement.dataset.theme=localStorage.getItem("bhau-theme")==="light"?"light":"dark"}catch(e){document.documentElement.dataset.theme="dark"}`,

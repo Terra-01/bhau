@@ -17,26 +17,17 @@ export async function GET() {
   const [nse, yahoo, db, phase] = await Promise.all([
     nseJson<{ timestamp?: string }>("/api/allIndices").then(
       (d) => ({ ok: true as const, asOf: d.timestamp }),
-      (e: unknown) => ({ ok: false as const, error: e instanceof Error ? e.message : String(e) }),
+      (e: unknown) => ({ ok: false as const, error: e instanceof Error ? e.message.slice(0, 120) : "error" }),
     ),
     yf.quote("^NSEI").then(
       (q) => ({ ok: true as const, asOf: q.regularMarketTime?.toISOString() }),
-      (e: unknown) => ({ ok: false as const, error: e instanceof Error ? e.message : String(e) }),
+      (e: unknown) => ({ ok: false as const, error: e instanceof Error ? e.message.slice(0, 120) : "error" }),
     ),
     prisma.briefingPack.count().then(
       (packs) => ({ ok: true as const, packs }),
-      (e: unknown) => ({
-        ok: false as const,
-        error: e instanceof Error ? e.message.replace(/\s+/g, " ").slice(0, 220) : String(e),
-        // host only — never credentials; tells us what URL the runtime saw
-        host: (() => {
-          try {
-            return new URL(process.env.DATABASE_URL ?? "").host || "(unparseable)";
-          } catch {
-            return `(invalid url, len ${process.env.DATABASE_URL?.length ?? 0})`;
-          }
-        })(),
-      }),
+      // Public endpoint: never echo driver error text or connection
+      // details — full diagnostics belong in the server logs.
+      (e: unknown) => ({ ok: false as const, error: e instanceof Error ? e.name : "error" }),
     ),
     currentPhase(),
   ]);

@@ -9,7 +9,14 @@ import { resolveLiveVideoId } from "@/lib/tv";
 // one id for days, so a daily resolution stays playable.
 const cache = new Map<string, { at: number; body: { videoId: string | null; source?: string } }>();
 const TTL_MS = 10 * 60 * 1000;
+// A null is a transient state (scrape timeout + DB hiccup, or a stream
+// briefly off-air) — pin it only briefly so the client retry means something.
+const NEG_TTL_MS = 30 * 1000;
 const DB_MAX_AGE_MS = 48 * 60 * 60 * 1000;
+
+const cacheHeader = (body: { videoId: string | null }) => ({
+  "Cache-Control": body.videoId ? "public, s-maxage=600" : "public, s-maxage=30",
+});
 
 export async function GET(_request: Request, { params }: { params: Promise<{ channelId: string }> }) {
   const { channelId: raw } = await params;
@@ -17,7 +24,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ cha
   if (!channelId.startsWith("UC")) return NextResponse.json({ error: "bad channel" }, { status: 400 });
 
   const cached = cache.get(channelId);
-  if (cached && Date.now() - cached.at < TTL_MS) return NextResponse.json(cached.body);
+  if (cached && Date.now() - cached.at < (cached.body.videoId ? TTL_MS : NEG_TTL_MS))
+    return NextResponse.json(cached.body, { headers: cacheHeader(cached.body) });
 
   const live = await resolveLiveVideoId(channelId);
   let body: { videoId: string | null; source?: string };
@@ -38,5 +46,5 @@ export async function GET(_request: Request, { params }: { params: Promise<{ cha
     }
   }
   cache.set(channelId, { at: Date.now(), body });
-  return NextResponse.json(body, { headers: { "Cache-Control": "public, s-maxage=600" } });
+  return NextResponse.json(body, { headers: cacheHeader(body) });
 }

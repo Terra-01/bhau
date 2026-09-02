@@ -1,7 +1,7 @@
 "use client";
 
 import { Flame } from "lucide-react";
-import { useState } from "react";
+import { useState, type KeyboardEvent, type MouseEvent } from "react";
 import type { LiveMarket } from "@/app/api/live/market/route";
 import { AssetCard } from "@/components/asset-card";
 import { RowPopover } from "@/components/row-popover";
@@ -57,16 +57,23 @@ export function CommoditiesPanel({ items }: { items: WarRoomData["commodities"] 
             </tr>
           </thead>
           <tbody>
-            {rows.map((item) => (
+            {rows.map((item) => {
+              // A row can resolve to an internal concept id (e.g. BRENT-SPOT
+              // from FRED) that Yahoo can't detail — only futures tickers open.
+              const clickable = item.symbol.includes("=");
+              return (
                   <tr
                     key={item.symbol}
-                    role="button"
-                    tabIndex={0}
-                    onClick={(e) => setDetail({ symbol: item.symbol, name: item.name, el: e.currentTarget })}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") setDetail({ symbol: item.symbol, name: item.name, el: e.currentTarget });
-                    }}
-                    className="cursor-pointer border-b border-ash transition-colors duration-150 last:border-b-0 [@media(hover:hover)]:hover:bg-paper/60"
+                    {...(clickable && {
+                      role: "button",
+                      tabIndex: 0,
+                      onClick: (e: MouseEvent<HTMLTableRowElement>) =>
+                        setDetail({ symbol: item.symbol, name: item.name, el: e.currentTarget }),
+                      onKeyDown: (e: KeyboardEvent<HTMLTableRowElement>) => {
+                        if (e.key === "Enter" || e.key === " ") setDetail({ symbol: item.symbol, name: item.name, el: e.currentTarget });
+                      },
+                    })}
+                    className={`border-b border-ash transition-colors duration-150 last:border-b-0 ${clickable ? "cursor-pointer [@media(hover:hover)]:hover:bg-paper/60" : ""}`}
                   >
                 <td className="px-2.5 py-[3px] text-[11px] font-medium text-charcoal">{item.name}</td>
                 <td className="py-[5px]">
@@ -82,7 +89,8 @@ export function CommoditiesPanel({ items }: { items: WarRoomData["commodities"] 
                   {item.change1dPct !== undefined ? signedPct(item.change1dPct) : "—"}
                 </td>
                   </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
         <RowPopover anchor={detail?.el ?? null} onClose={() => setDetail(null)}>

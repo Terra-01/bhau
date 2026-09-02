@@ -81,13 +81,13 @@ export function WhatMattersPanel({
           {fii && (
             <span className="flex items-center gap-0.5 text-[10.5px] text-fog">
               FII <span className={`font-mono text-[11px] font-medium tabular-nums ${deltaClass(fii.net)}`}>{crore(fii.net)}</span>
-              {fii.net < 0 ? <ArrowDownRight size={10} className="text-loss" /> : <ArrowUpRight size={10} className="text-gain" />}
+              {fii.net < 0 ? <ArrowDownRight size={10} className="text-loss" /> : fii.net > 0 ? <ArrowUpRight size={10} className="text-gain" /> : null}
             </span>
           )}
           {dii && (
             <span className="flex items-center gap-0.5 text-[10.5px] text-fog">
               DII <span className={`font-mono text-[11px] font-medium tabular-nums ${deltaClass(dii.net)}`}>{crore(dii.net)}</span>
-              {dii.net < 0 ? <ArrowDownRight size={10} className="text-loss" /> : <ArrowUpRight size={10} className="text-gain" />}
+              {dii.net < 0 ? <ArrowDownRight size={10} className="text-loss" /> : dii.net > 0 ? <ArrowUpRight size={10} className="text-gain" /> : null}
             </span>
           )}
           {fiiStreak && (

@@ -6,7 +6,7 @@ import type { RatesData } from "@/lib/rates";
 // greed), with the current reading marked on the band.
 const ZONES = [
   { label: "Extreme Fear", width: 30, color: "var(--color-loss)" },
-  { label: "Fear", width: 20, color: "#f59e0b" },
+  { label: "Fear", width: 20, color: "var(--color-warn)" },
   { label: "Greed", width: 20, color: "var(--color-gain)" },
   { label: "Extreme Greed", width: 30, color: "color-mix(in oklab, var(--color-gain) 65%, black)" },
 ] as const;

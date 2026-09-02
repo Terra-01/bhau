@@ -37,7 +37,7 @@ export function MoversPanel({
   data: Pick<ExchangeData, "mostTraded" | "gainers" | "losers" | "asOf">;
   sectors: WarRoomData["sectors"];
 }) {
-  const { index, select, pauseProps } = useCarousel(TABS.length, 14_000);
+  const { index, select, pauseProps, hold } = useCarousel(TABS.length, 14_000);
   const tab = TABS[index].id;
   // Intraday: NSE's live lists take over; after close the full-universe
   // bhavcopy ranking (with its liquidity floor) is the better product.
@@ -75,6 +75,7 @@ export function MoversPanel({
             <AssetPopover
               key={row.symbol}
               symbol={row.symbol}
+              onOpenChange={(open) => hold(open ? 60_000 : 3_000)}
               render={
                 <li
                   role="button"

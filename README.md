@@ -97,4 +97,4 @@ AGENTS.md           context file for AI coding agents working on this repo
 
 Bhau trades **paper capital only** and is **not investment advice**. It is not affiliated with NSE, BSE, or any data provider named above; quotes can lag and upstreams can fail — the board says so when they do. Charting by TradingView's Lightweight Charts under Apache-2.0.
 
-License: not yet chosen — all rights reserved for now.
+Licensed under [MIT](LICENSE).

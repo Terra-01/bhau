@@ -21,9 +21,12 @@ export async function GET(_request: Request, { params }: { params: Promise<{ cha
 
   const live = await resolveLiveVideoId(channelId);
   let body: { videoId: string | null; source?: string };
-  if (live.ok) {
+  if (live.ok && live.videoId) {
     body = { videoId: live.videoId, source: "live" };
   } else {
+    // A null scrape is also fallback-worthy: blocked hosts get served a
+    // consent/bot page (HTTP 200, no canonical). The ingest-resolved id
+    // from a non-blocked host is the better truth for 24×7 streams.
     try {
       const row = await prisma.tvStream.findUnique({ where: { channelId } });
       body =

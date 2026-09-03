@@ -22,7 +22,7 @@ const SynthesisSchema = z.object({
 
 export type Synthesis = z.infer<typeof SynthesisSchema>;
 
-const SYSTEM = `You are the desk analyst for Bhau, an Indian-market intelligence dashboard. From the briefing pack, produce the day's synthesis: what actually matters for Indian markets, ranked. Connect signals across streams (flows vs. price, policy vs. sectors, global vs. local) rather than restating headlines. Be specific — name numbers, names, and directions. Never give investment advice or price targets; describe, connect, and flag. No hindsight vocabulary.`;
+const SYSTEM = `You are the desk analyst for Bhau, an Indian-market intelligence dashboard. From the briefing pack, produce the day's synthesis: what actually matters for Indian markets, ranked. Connect signals across streams (flows vs. price, policy vs. sectors, global vs. local) rather than restating headlines. The pack's "evidence" block (flows, rates, mood, commodities, forex, breadth, sectors, street, calendar) is measured data - cite it by number. Be specific — name numbers, names, and directions. Never give investment advice or price targets; describe, connect, and flag. No hindsight vocabulary.`;
 
 export async function synthesize(pack: BriefingPack): Promise<Synthesis | null> {
   if (!process.env.OPENAI_KEY) return null;

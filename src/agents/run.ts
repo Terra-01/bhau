@@ -5,6 +5,7 @@ import { fillBuy, fillSell, markToMarket } from "./fills";
 import { GENESIS_HASH, chainEntries, type ChainEntryInput } from "./ledger";
 import { BENCHMARK_AGENT_ID, PERSONAS, PROMPT_VERSION } from "./personas";
 import { RULEBOOK, validateDecisions, type AgentBook, type Positions } from "./rulebook";
+import { UNIVERSE } from "./universe";
 
 loadEnv();
 
@@ -105,7 +106,7 @@ async function main() {
 
   // --- 1. fills: accepted decisions from EARLIER sessions, not yet closed out
   const decisionEntries = await prisma.ledgerEntry.findMany({ where: { kind: "DECISION" }, orderBy: { seq: "asc" } });
-  const fillEntries = await prisma.ledgerEntry.findMany({ where: { kind: "FILL" } });
+  const fillEntries = await prisma.ledgerEntry.findMany({ where: { kind: "FILL" }, orderBy: { seq: "asc" } });
   const closedDecisionHashes = new Set(fillEntries.map((f) => (f.payload as { decisionHash?: string }).decisionHash));
   const pending = decisionEntries.filter((d) => {
     const p = d.payload as unknown as DecisionPayload;
@@ -145,10 +146,12 @@ async function main() {
   // --- 2. mark to market at today's close
   const snapshots: Array<{ agentId: string; equity: number; cash: number; positionsValue: number }> = [];
   const equities = new Map<string, number>();
+  const unpricedBy = new Map<string, string[]>();
   const allBooks: Array<[string, AgentBook]> = [...books.entries()];
   if (benchmarkBook) allBooks.push([BENCHMARK_AGENT_ID, benchmarkBook]);
   for (const [agentId, book] of allBooks) {
     const { equity, positionsValue, unpriced } = markToMarket(book, closeOf);
+    unpricedBy.set(agentId, unpriced);
     equities.set(agentId, equity);
     snapshots.push({ agentId, equity, cash: book.cash, positionsValue });
     if (unpriced.length > 0) summary.push(`[mtm:${agentId}] no close for ${unpriced.join(",")} — valued at cost`);
@@ -159,7 +162,13 @@ async function main() {
   // The mirror: each agent's view of itself — book P&L, benchmark gap,
   // drawdown, staleness, and its open tripwires (machine-checked here;
   // a breach is flagged and the prompt requires the agent to address it).
-  const peaks = await prisma.equitySnapshot.groupBy({ by: ["agentId"], _max: { equity: true } });
+  // Exclude today's snapshot: this run overwrites it, so a provisional
+  // early-evening mark must not become the drawdown baseline.
+  const peaks = await prisma.equitySnapshot.groupBy({
+    by: ["agentId"],
+    _max: { equity: true },
+    where: { date: { lt: new Date(date) } },
+  });
   const peakOf = new Map(peaks.map((p) => [p.agentId, p._max.equity ?? RULEBOOK.startingCapital]));
   const benchmarkReturnPct = benchmarkBook
     ? ((equities.get(BENCHMARK_AGENT_ID)! - RULEBOOK.startingCapital) / RULEBOOK.startingCapital) * 100
@@ -171,23 +180,42 @@ async function main() {
     const book = books.get(persona.id)!;
     const equity = equities.get(persona.id)!;
     const returnPct = ((equity - RULEBOOK.startingCapital) / RULEBOOK.startingCapital) * 100;
-    const peak = Math.max(peakOf.get(persona.id) ?? equity, equity);
+    const peak = Math.max(peakOf.get(persona.id) ?? RULEBOOK.startingCapital, equity);
     const lastFill = fillEntries
       .filter((f) => f.agentId === persona.id && (f.payload as { status?: string }).status === "FILLED")
       .at(-1);
-    // Open tripwires: the latest accepted BUY per still-open symbol.
+    // Open tripwires: the latest accepted BUY per still-open symbol, scoped
+    // to THIS holding period — a tripwire from before the last SELL fill
+    // belongs to a closed trade, not the current position.
     const tripwires = Object.keys(book.positions).flatMap((symbol) => {
+      const lastSell = fillEntries
+        .filter((f) => {
+          const fp = f.payload as { symbol?: string; action?: string; status?: string };
+          return f.agentId === persona.id && fp.symbol === symbol && fp.action === "SELL" && fp.status === "FILLED";
+        })
+        .at(-1);
       const buys = decisionEntries.filter((d) => {
         const p = d.payload as unknown as DecisionPayload;
-        return d.agentId === persona.id && p.accepted && p.action === "BUY" && p.symbol === symbol && p.invalidation;
+        return (
+          d.agentId === persona.id &&
+          p.accepted &&
+          p.action === "BUY" &&
+          p.symbol === symbol &&
+          p.invalidation &&
+          (!lastSell || d.seq > lastSell.seq)
+        );
       });
       const inv = (buys.at(-1)?.payload as unknown as DecisionPayload | undefined)?.invalidation;
       if (!inv) return [];
       const close = closeOf(symbol);
-      const breached =
-        close !== undefined && (inv.direction === "below" ? close < inv.level : close > inv.level);
-      if (breached) summary.push(`[tripwire:${persona.id}] ${symbol} BREACHED — close ${close} ${inv.direction} ${inv.level}`);
-      return [{ symbol, level: inv.level, direction: inv.direction, close, breached }];
+      // "unpriced" ≠ "intact": a missing close means unknown, never safe.
+      const status =
+        close === undefined
+          ? "unpriced"
+          : (inv.direction === "below" ? close < inv.level : close > inv.level)
+            ? "breached"
+            : "intact";
+      return [{ symbol, level: inv.level, direction: inv.direction, close, status }];
     });
     return {
       equityInr: Math.round(equity),
@@ -206,8 +234,37 @@ async function main() {
       }),
       daysSinceLastFill: lastFill ? Math.round((Date.now() - lastFill.ts.getTime()) / 86_400_000) : null,
       openTripwires: tripwires,
+      // positions valued at cost today for lack of a close — the equity
+      // numbers above are part cost-marked when this is non-empty
+      unpricedToday: unpricedBy.get(persona.id) ?? [],
     };
   };
+
+  // Tripwire breaches are part of the public record — one NOTE per
+  // (agent, symbol, day), written whether or not deliberation runs today.
+  for (const persona of PERSONAS) {
+    for (const t of mirrorOf(persona).openTripwires) {
+      if (t.status !== "breached") continue;
+      summary.push(`[tripwire:${persona.id}] ${t.symbol} BREACHED — close ${t.close} ${t.direction} ${t.level}`);
+      const already = await prisma.ledgerEntry.findFirst({
+        where: {
+          kind: "NOTE",
+          agentId: persona.id,
+          AND: [{ payload: { path: ["tripwire"], equals: t.symbol } }, { payload: { path: ["packDate"], equals: date } }],
+        },
+      });
+      if (!already) {
+        writes.push({
+          ts: new Date(), kind: "NOTE", agentId: persona.id,
+          payload: {
+            note: `TRIPWIRE BREACHED: ${t.symbol} closed at ₹${t.close} — ${t.direction} the published invalidation level ₹${t.level}. The thesis is falsified on its own terms; the next deliberation must address it.`,
+            tripwire: t.symbol,
+            packDate: date,
+          },
+        });
+      }
+    }
+  }
 
   // Idempotency: an agent deliberates once per session, no matter how many
   // times the job runs (local + CI on the same evening must not double-decide).
@@ -231,23 +288,41 @@ async function main() {
         .map((d) => d.payload);
       // The contrarian reads the house view: a unanimous floor is itself a
       // sentiment reading it may fade.
+      // Today's house view: PERSONAS order puts the contrarian last, so the
+      // other three have already deliberated into writes[] this run.
       const colleagues =
         persona.id === "contrarian"
           ? PERSONAS.filter((p) => p.id !== persona.id).map((p) => {
-              const latest = latestDecisionOf(p.id);
+              const todayRows = writes
+                .filter((w) => w.kind === "DECISION" && w.agentId === p.id)
+                .map((w) => w.payload as unknown as DecisionPayload)
+                .filter((d) => d.accepted);
+              const fallback = latestDecisionOf(p.id);
+              const rows = todayRows.length > 0 ? todayRows : fallback && fallback.accepted ? [fallback] : [];
+              const clip = (t?: string) => (t && t.length > 240 ? `${t.slice(0, 240)}…` : t);
               return {
                 codename: p.codename,
                 positions: Object.keys(books.get(p.id)!.positions),
-                latest: latest
-                  ? { action: latest.action, symbol: latest.symbol, thesis: latest.thesis?.slice(0, 240) }
-                  : undefined,
+                latest: rows.map((d) => ({
+                  packDate: d.packDate,
+                  action: d.action,
+                  symbol: d.symbol,
+                  thesis: clip(d.thesis),
+                })),
               };
             })
           : undefined;
       try {
         const result = await deliberate(persona, pack, book, equities.get(persona.id)!, recent, mirrorOf(persona), colleagues);
         const validated = validateDecisions(book, result.proposals);
-        const base = { packDate: date, marketRead: result.marketRead, promptVersion: PROMPT_VERSION, watchlist: result.watchlist };
+        // The watchlist is published — off-universe names are dropped (and
+        // logged), and it rides on the day's FIRST row only.
+        const watchlist = result.watchlist?.filter((w) => {
+          if (UNIVERSE.has(w.symbol)) return true;
+          summary.push(`[watchlist:${persona.id}] dropped ${w.symbol} — outside the universe`);
+          return false;
+        });
+        let base = { packDate: date, marketRead: result.marketRead, promptVersion: PROMPT_VERSION, watchlist: watchlist?.length ? watchlist : undefined };
         if (validated.length === 0) {
           writes.push({
             ts: new Date(), kind: "DECISION", agentId: persona.id,
@@ -259,7 +334,7 @@ async function main() {
               trigger: result.noTradeTrigger,
             } satisfies DecisionPayload,
           });
-          summary.push(`[decide:${persona.id}] NO_TRADE${result.watchlist?.length ? ` (watching ${result.watchlist.map((w) => w.symbol).join(",")})` : ""}`);
+          summary.push(`[decide:${persona.id}] NO_TRADE${base.watchlist?.length ? ` (watching ${base.watchlist.map((w) => w.symbol).join(",")})` : ""}`);
         }
         for (const v of validated) {
           writes.push({
@@ -270,6 +345,7 @@ async function main() {
               accepted: v.accepted, rejectReason: v.rejectReason,
             } satisfies DecisionPayload,
           });
+          base = { ...base, watchlist: undefined };
           summary.push(`[decide:${persona.id}] ${v.action} ${v.symbol} ${v.accepted ? "accepted" : `REJECTED (${v.rejectReason})`}`);
         }
       } catch (err) {
@@ -279,20 +355,27 @@ async function main() {
     }
 
     // --- 3b. the Friday letter: each agent reviews its week in public.
-    const weekday = new Date().toLocaleDateString("en-US", { weekday: "short", timeZone: "Asia/Kolkata" });
-    if (weekday === "Fri" && !isMockMode() && hasModelKey()) {
-      const letterEntries = await prisma.ledgerEntry.findMany({ where: { kind: "NOTE" } });
-      const wrote = new Set(
-        letterEntries
-          .filter((e) => (e.payload as { week?: string }).week === date)
-          .map((e) => e.agentId),
-      );
+    // Weekday of the RUN DATE (IST), not the wall clock — a drifted cron
+    // must not misfile the week.
+    const weekday = new Date(`${date}T12:00:00Z`).getUTCDay();
+    if (weekday === 5 && !isMockMode() && hasModelKey()) {
+      const letterEntries = await prisma.ledgerEntry.findMany({
+        where: { kind: "NOTE", payload: { path: ["week"], equals: date } },
+      });
+      const wrote = new Set(letterEntries.map((e) => e.agentId));
+      const weekStart = new Date(new Date(`${date}T00:00:00Z`).getTime() - 6 * 86_400_000).toISOString().slice(0, 10);
       for (const persona of PERSONAS) {
         if (wrote.has(persona.id)) continue;
-        const weekDecisions = decisionEntries
-          .filter((d) => d.agentId === persona.id)
-          .slice(-6)
-          .map((d) => d.payload);
+        // this week's rows — including today's, which live in writes[]
+        const weekDecisions = [
+          ...decisionEntries
+            .filter((d) => {
+              const pd = (d.payload as unknown as DecisionPayload).packDate;
+              return d.agentId === persona.id && pd >= weekStart && pd <= date;
+            })
+            .map((d) => d.payload),
+          ...writes.filter((w) => w.kind === "DECISION" && w.agentId === persona.id).map((w) => w.payload),
+        ];
         try {
           const letter = await weeklyLetter(persona, mirrorOf(persona), weekDecisions);
           if (letter) {
@@ -317,9 +400,11 @@ async function main() {
     return;
   }
 
-  const tip = await prisma.ledgerEntry.findFirst({ orderBy: { seq: "desc" } });
-  const chained = chainEntries(tip?.hash ?? GENESIS_HASH, writes);
-  await prisma.$transaction(async (tx) => {
+  // Tip is read INSIDE the serializable transaction — two chain writers
+  // (this run, npm run floor:revision) must never fork the chain.
+  const persisted = await prisma.$transaction(async (tx) => {
+    const tip = await tx.ledgerEntry.findFirst({ orderBy: { seq: "desc" } });
+    const chained = chainEntries(tip?.hash ?? GENESIS_HASH, writes);
     for (const entry of chained) {
       await tx.ledgerEntry.create({
         data: {
@@ -345,8 +430,9 @@ async function main() {
         create: { date: new Date(date), agentId: snap.agentId, equity: snap.equity, cash: snap.cash, positionsValue: snap.positionsValue, totalReturnPct },
       });
     }
-  });
-  console.log(`[floor] persisted ${chained.length} ledger entries, ${snapshots.length} equity snapshots for ${date}`);
+    return chained.length;
+  }, { isolationLevel: "Serializable" });
+  console.log(`[floor] persisted ${persisted} ledger entries, ${snapshots.length} equity snapshots for ${date}`);
   await prisma.$disconnect();
 }
 

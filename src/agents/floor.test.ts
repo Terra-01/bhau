@@ -56,17 +56,17 @@ describe("rulebook", () => {
         ["ABB", "RELIANCE", "TCS", "INFY", "WIPRO", "SBIN", "AXISBANK", "ICICIBANK", "HDFCBANK", "ITC"].map((s) => [s, { qty: 1, avgCost: 1, adds: 0 }]),
       ),
     };
-    const [eleventh] = validateDecisions(fullBook, [{ action: "BUY", symbol: "NIFTYBEES", allocationPct: 5, thesis: "t" }]);
+    const [eleventh] = validateDecisions(fullBook, [{ action: "BUY", symbol: "NIFTYBEES", allocationPct: 5, invalidation: { level: 1, direction: "below" as const }, thesis: "t" }]);
     expect(eleventh.accepted).toBe(false);
     expect(eleventh.rejectReason).toContain("book full");
     // …but adding to an existing position is allowed on a full book
-    const [add] = validateDecisions(fullBook, [{ action: "BUY", symbol: "TCS", allocationPct: 5, thesis: "t" }]);
+    const [add] = validateDecisions(fullBook, [{ action: "BUY", symbol: "TCS", allocationPct: 5, invalidation: { level: 1, direction: "below" as const }, thesis: "t" }]);
     expect(add.accepted).toBe(true);
   });
 
   it("caps averaging down", () => {
     const book: AgentBook = { cash: 1000, positions: { TCS: { qty: 10, avgCost: 100, adds: 2 } } };
-    const [v] = validateDecisions(book, [{ action: "BUY", symbol: "TCS", allocationPct: 5, thesis: "t" }]);
+    const [v] = validateDecisions(book, [{ action: "BUY", symbol: "TCS", allocationPct: 5, invalidation: { level: 1, direction: "below" as const }, thesis: "t" }]);
     expect(v.accepted).toBe(false);
   });
 

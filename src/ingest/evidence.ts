@@ -2,7 +2,7 @@ import { SECTOR_OF } from "@/agents/universe";
 import { sectorHeat, type SectorHeat } from "@/lib/sectors";
 import { fetchWeather } from "@/lib/weather";
 import { mmiZone } from "./sources/mmi";
-import type { IngestBar } from "./types";
+import type { IngestBar, IngestEvent, IngestFlow } from "./types";
 
 // The rest of the war room, serialized for the agents (Floor v2): every
 // section here mirrors a tile on the board, so the agents deliberate on
@@ -34,7 +34,8 @@ export interface Evidence {
   street?: {
     fuel?: { petrolMetroAvg: number; dieselMetroAvg: number; petrolWowPct?: number };
     bullion?: Array<{ name: string; fix: number; d1Pct?: number }>;
-    monsoon?: { rainLikely: number; of: number; hottest?: { city: string; tmax: number } };
+    /** Today's city weather — one day, metro cities; NOT a seasonal rainfall signal. */
+    weatherToday?: { citiesRainLikely: number; ofCities: number; hottest?: { city: string; tmax: number } };
   };
   /** Next sessions' earnings/IPO/data events — what's scheduled to move prices. */
   calendar?: Array<{ date: string; title: string; type?: string }>;
@@ -114,6 +115,9 @@ async function closesFor(prisma: Db, symbols: string[], todayBars: Record<string
 export async function assembleEvidence(
   todayBars: Record<string, IngestBar[]>,
   runDate: string,
+  // This runs BEFORE persist(), so today's flows/events/bhavcopy exist only
+  // in memory — merge them or the pack runs one session behind the board.
+  run: { flows: IngestFlow[]; events: IngestEvent[] },
 ): Promise<Evidence> {
   const { prisma } = await import("@/lib/db");
   const evidence: Evidence = {};
@@ -126,36 +130,42 @@ export async function assembleEvidence(
   };
 
   await section("flows", async () => {
-    const rows = await prisma.flowDaily.findMany({ orderBy: { date: "desc" }, take: 24 });
+    const rows = await prisma.flowDaily.findMany({ orderBy: { date: "desc" }, take: 40 });
     const byDate = new Map<string, { fiiNet?: number; diiNet?: number }>();
-    for (const r of rows) {
-      const d = r.date.toISOString().slice(0, 10);
+    const put = (d: string, category: string, net: number) => {
       const entry = byDate.get(d) ?? {};
-      if (r.category.startsWith("FII")) entry.fiiNet = round2(r.net);
-      else entry.diiNet = round2(r.net);
+      if (category.startsWith("FII")) entry.fiiNet = round2(net);
+      else entry.diiNet = round2(net);
       byDate.set(d, entry);
-    }
-    const sessions = [...byDate.entries()]
-      .sort(([a], [b]) => (a < b ? -1 : 1))
-      .slice(-5)
-      .map(([date, v]) => ({ date, ...v }));
-    if (sessions.length === 0) return;
-    const fiiNets = sessions.flatMap((s) => (s.fiiNet !== undefined ? [s.fiiNet] : []));
+    };
+    for (const r of rows) put(r.date.toISOString().slice(0, 10), r.category, r.net);
+    for (const f of run.flows) put(f.date, f.category, f.net);
+    const all = [...byDate.entries()].sort(([a], [b]) => (a < b ? -1 : 1));
+    if (all.length === 0) return;
+    // streak over the full pull — a 15-session run must not read as 5
+    const fiiNets = all.flatMap(([, v]) => (v.fiiNet !== undefined ? [v.fiiNet] : []));
+    const sessions = all.slice(-5).map(([date, v]) => ({ date, ...v }));
     evidence.flows = { sessions, fiiStreak: fiiStreakOf(fiiNets) };
   });
 
   await section("rates", async () => {
     const symbols = [...CURVE_LABELS.map((c) => c.symbol), "RBIREPO", "RBICRR", "RBISLR", "US10Y"];
-    const map = await closesFor(prisma, symbols, todayBars, runDate, 14);
+    // 45 days: repo/CRR/SLR move rarely — a short window would silently
+    // drop the whole section during an RBI-scrape outage.
+    const map = await closesFor(prisma, symbols, todayBars, runDate, 45);
     const last = (s: string) => map.get(s)?.closes.at(-1);
     const curve = CURVE_LABELS.flatMap(({ symbol, label }) => {
-      const closes = map.get(symbol)?.closes ?? [];
-      const y = closes.at(-1);
-      if (y === undefined) return [];
-      const prev = closes.at(-2);
-      return [{ label, yieldPct: y, chg1dBp: prev !== undefined ? Math.round((y - prev) * 100) : undefined }];
+      const series = map.get(symbol);
+      const y = series?.closes.at(-1);
+      if (series === undefined || y === undefined) return [];
+      const prev = series.closes.at(-2);
+      // a "1-day change" across a data gap is a lie — gate on real adjacency
+      const adjacent =
+        prev !== undefined &&
+        new Date(series.dates.at(-1)!).getTime() - new Date(series.dates.at(-2)!).getTime() <= 5 * 86_400_000;
+      return [{ label, yieldPct: y, chg1dBp: adjacent ? Math.round((y - prev) * 100) : undefined }];
     });
-    if (curve.length === 0) return;
+    if (curve.length < 4) return; // same floor as the rates panel — no 1-point "curve" for the agents
     const y10 = last("GSEC10Y");
     const y1 = last("TBILL364D");
     const repo = last("RBIREPO");
@@ -210,21 +220,36 @@ export async function assembleEvidence(
   });
 
   await section("sectors", async () => {
+    // Today's bhavcopy lives in todayBars (not yet persisted) — when it's
+    // there, today vs the archive's latest; otherwise archive's last two.
+    const todaysBhav = Object.values(todayBars)
+      .flat()
+      .filter((b) => b.source === "bhavcopy" && b.date === runDate && SECTOR_OF[b.symbol]);
     const dates = await prisma.dailyBar.findMany({
-      where: { source: "bhavcopy" },
+      where: { source: "bhavcopy", date: { lt: new Date(runDate) } },
       select: { date: true },
       distinct: ["date"],
       orderBy: { date: "desc" },
       take: 2,
     });
-    if (dates.length < 2) return;
-    const rows = await prisma.dailyBar.findMany({
-      where: { source: "bhavcopy", date: { in: dates.map((d) => d.date) }, symbol: { in: Object.keys(SECTOR_OF) } },
-      select: { symbol: true, date: true, close: true },
-    });
     const latest = new Map<string, number>();
     const prev = new Map<string, number>();
-    for (const r of rows) (r.date.getTime() === dates[0].date.getTime() ? latest : prev).set(r.symbol, r.close);
+    if (todaysBhav.length > 0 && dates.length >= 1) {
+      for (const b of todaysBhav) latest.set(b.symbol, b.close);
+      const rows = await prisma.dailyBar.findMany({
+        where: { source: "bhavcopy", date: dates[0].date, symbol: { in: Object.keys(SECTOR_OF) } },
+        select: { symbol: true, close: true },
+      });
+      for (const r of rows) prev.set(r.symbol, r.close);
+    } else if (dates.length >= 2) {
+      const rows = await prisma.dailyBar.findMany({
+        where: { source: "bhavcopy", date: { in: dates.map((d) => d.date) }, symbol: { in: Object.keys(SECTOR_OF) } },
+        select: { symbol: true, date: true, close: true },
+      });
+      for (const r of rows) (r.date.getTime() === dates[0].date.getTime() ? latest : prev).set(r.symbol, r.close);
+    } else {
+      return;
+    }
     const heat = sectorHeat(latest, prev);
     if (heat.length > 0) evidence.sectors = { leaders: heat.slice(0, 4), laggards: heat.slice(-4).reverse() };
   });
@@ -234,19 +259,30 @@ export async function assembleEvidence(
       ["MUMBAI", "DELHI", "BENGALURU", "CHENNAI", "KOLKATA", "HYDERABAD", "PUNE"].map((c) => `${f}:${c}`),
     );
     const map = await closesFor(prisma, [...fuelSymbols, "GOLD999", "SILVER999"], todayBars, runDate, 12);
-    const avgOf = (fuel: string, back = 0) => {
-      const vals = fuelSymbols
-        .filter((s) => s.startsWith(fuel))
-        .flatMap((s) => {
-          const closes = map.get(s)?.closes ?? [];
-          const v = closes[closes.length - 1 - back];
-          return v !== undefined ? [v] : [];
-        });
-      return vals.length > 0 ? round2(vals.reduce((a, b) => a + b, 0) / vals.length) : undefined;
+    // Date-anchored: cities publish independently, so positional indexing
+    // would mix dates and change the average's composition. Only cities
+    // current at the fuel data's latest date count, and week-ago compares
+    // the SAME cities at the same anchor date.
+    const fuelDates = fuelSymbols.flatMap((s) => map.get(s)?.dates.at(-1) ?? []);
+    const anchor = fuelDates.sort().at(-1);
+    const weekAgo = anchor ? new Date(new Date(anchor).getTime() - 6 * 86_400_000).toISOString().slice(0, 10) : undefined;
+    const closeAt = (s: string, date: string) => {
+      const series = map.get(s);
+      if (!series) return undefined;
+      for (let i = series.dates.length - 1; i >= 0; i -= 1) if (series.dates[i] <= date) return series.closes[i];
+      return undefined;
     };
-    const petrol = avgOf("PETROL");
-    const diesel = avgOf("DIESEL");
-    const petrolWeekAgo = avgOf("PETROL", 6);
+    const avgOf = (fuel: string, date?: string) => {
+      if (!anchor || !date) return undefined;
+      const current = fuelSymbols.filter((s) => s.startsWith(fuel) && map.get(s)?.dates.at(-1) === anchor);
+      const vals = current.flatMap((s) => closeAt(s, date) ?? []);
+      return vals.length === current.length && vals.length > 0
+        ? round2(vals.reduce((a, b) => a + b, 0) / vals.length)
+        : undefined;
+    };
+    const petrol = avgOf("PETROL", anchor);
+    const diesel = avgOf("DIESEL", anchor);
+    const petrolWeekAgo = avgOf("PETROL", weekAgo);
     const bullion = (["GOLD999", "SILVER999"] as const).flatMap((s) => {
       const closes = map.get(s)?.closes ?? [];
       const fix = closes.at(-1);
@@ -263,26 +299,35 @@ export async function assembleEvidence(
     }
     if (bullion.length > 0) street.bullion = bullion;
     const weather = await fetchWeather();
-    if (weather) {
-      const seven = weather.slice(0, 7);
-      const hottest = seven.reduce<{ city: string; tmax: number } | undefined>(
+    if (weather && weather.length > 0) {
+      const hottest = weather.reduce<{ city: string; tmax: number } | undefined>(
         (best, w) => (!best || w.tmax > best.tmax ? { city: w.city, tmax: w.tmax } : best),
         undefined,
       );
-      street.monsoon = { rainLikely: seven.filter((w) => w.rainProb >= 50).length, of: seven.length, hottest };
+      street.weatherToday = {
+        citiesRainLikely: weather.filter((w) => w.rainProb >= 50).length,
+        ofCities: weather.length,
+        hottest,
+      };
     }
     if (Object.keys(street).length > 0) evidence.street = street;
   });
 
   await section("calendar", async () => {
     const horizon = new Date(new Date(runDate).getTime() + 7 * 86_400_000);
-    const events = await prisma.event.findMany({
+    const stored = await prisma.event.findMany({
       where: { kind: "calendar", ts: { gte: new Date(runDate), lte: horizon } },
       orderBy: { ts: "asc" },
-      take: 14,
+      take: 20,
     });
-    if (events.length === 0) return;
-    evidence.calendar = events.map((e) => ({
+    const fresh = run.events.filter((e) => e.kind === "calendar" && e.ts >= new Date(runDate) && e.ts <= horizon);
+    const seen = new Set<string>();
+    const merged = [...stored, ...fresh]
+      .filter((e) => (seen.has(`${e.ts.toISOString().slice(0, 10)}|${e.title}`) ? false : (seen.add(`${e.ts.toISOString().slice(0, 10)}|${e.title}`), true)))
+      .sort((a, b) => a.ts.getTime() - b.ts.getTime())
+      .slice(0, 14);
+    if (merged.length === 0) return;
+    evidence.calendar = merged.map((e) => ({
       date: e.ts.toISOString().slice(0, 10),
       title: e.title,
       type: (e.payload as { calType?: string } | null)?.calType,

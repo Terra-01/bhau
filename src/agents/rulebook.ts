@@ -58,6 +58,9 @@ export function validateDecisions(book: AgentBook, proposals: ProposedDecision[]
 
     if (p.action === "BUY") {
       if (!p.allocationPct || p.allocationPct <= 0) return reject("BUY needs allocationPct > 0");
+      // The published promise: every BUY carries a machine-checkable tripwire.
+      if (!p.invalidation || !(p.invalidation.level > 0)) return reject("BUY needs an invalidation tripwire with level > 0");
+      if (p.invalidation.direction !== "below") return reject('long-only book — invalidation direction must be "below"');
       if (p.allocationPct > RULEBOOK.maxSingleNamePct) {
         return reject(`allocationPct ${p.allocationPct} exceeds ${RULEBOOK.maxSingleNamePct}% single-name cap`);
       }
@@ -72,6 +75,7 @@ export function validateDecisions(book: AgentBook, proposals: ProposedDecision[]
     }
 
     // SELL
+    if (p.invalidation) return reject("SELL carries no tripwire — invalidation belongs to BUYs");
     if (!book.positions[p.symbol]) return reject(`no position in ${p.symbol} to sell`);
     if (!p.fraction || p.fraction <= 0 || p.fraction > 1) return reject("SELL needs fraction in (0, 1]");
     return { ...p, accepted: true };

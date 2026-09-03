@@ -1,6 +1,7 @@
 import { XMLParser } from "fast-xml-parser";
 import type { BriefingPack } from "@/ingest/briefing";
 import { SECTOR_OF } from "@/agents/universe";
+import { sectorHeat } from "./sectors";
 import { fetchWeather, type CityWeather } from "./weather";
 import { BENCHMARK_AGENT_ID, PERSONAS } from "@/agents/personas";
 import { FEEDS } from "@/ingest/feeds";
@@ -95,6 +96,7 @@ export interface WarRoomData {
       note?: string;
       packDate?: string;
       week?: string;
+      revision?: string;
     }>;
   };
 }
@@ -320,36 +322,24 @@ export async function getWarRoomData(): Promise<WarRoomData | null> {
     take: 2,
     select: { date: true },
   });
-  const sectors: WarRoomData["sectors"] = [];
+  // One query serves the sector heatmap AND the movers list below; the
+  // heat itself comes from the shared helper the agents' pack also uses —
+  // one code path per fact.
+  const uniRows =
+    bhavDates.length === 2
+      ? await prisma.dailyBar.findMany({
+          where: { source: "bhavcopy", date: { in: bhavDates.map((d) => d.date) }, symbol: { in: Object.keys(SECTOR_OF) } },
+          select: { symbol: true, date: true, close: true },
+        })
+      : [];
+  let sectors: WarRoomData["sectors"] = [];
   if (bhavDates.length === 2) {
-    const [latest, previous] = bhavDates.map((d) => d.date);
-    const universeSymbols = Object.keys(SECTOR_OF);
-    const rows = await prisma.dailyBar.findMany({
-      where: { source: "bhavcopy", date: { in: [latest, previous] }, symbol: { in: universeSymbols } },
-    });
-    const closes = new Map<string, { latest?: number; previous?: number }>();
-    for (const row of rows) {
-      const entry = closes.get(row.symbol) ?? {};
-      if (row.date.getTime() === latest.getTime()) entry.latest = row.close;
-      else entry.previous = row.close;
-      closes.set(row.symbol, entry);
+    const latestClose = new Map<string, number>();
+    const prevClose = new Map<string, number>();
+    for (const row of uniRows) {
+      (row.date.getTime() === bhavDates[0].date.getTime() ? latestClose : prevClose).set(row.symbol, row.close);
     }
-    const bySector = new Map<string, number[]>();
-    for (const [symbol, { latest: l, previous: p }] of closes) {
-      if (l === undefined || p === undefined || p === 0) continue;
-      const sector = SECTOR_OF[symbol];
-      const list = bySector.get(sector) ?? [];
-      list.push(((l - p) / p) * 100);
-      bySector.set(sector, list);
-    }
-    for (const [sector, changes] of bySector) {
-      sectors.push({
-        sector,
-        avgChangePct: changes.reduce((a, b) => a + b, 0) / changes.length,
-        count: changes.length,
-      });
-    }
-    sectors.sort((a, b) => b.avgChangePct - a.avgChangePct);
+    sectors = sectorHeat(latestClose, prevClose);
   }
 
   // --- the Floor
@@ -411,6 +401,7 @@ export async function getWarRoomData(): Promise<WarRoomData | null> {
         note: p.note as string | undefined,
         packDate: (p.packDate ?? p.fillDate) as string | undefined,
         week: p.week as string | undefined,
+        revision: p.revision as string | undefined,
       };
     });
   const theses = log
@@ -433,13 +424,9 @@ export async function getWarRoomData(): Promise<WarRoomData | null> {
   // --- movers: best/worst NIFTY 100 names across the two latest sessions
   const movers: WarRoomData["movers"] = { gainers: [], losers: [] };
   if (bhavDates.length === 2) {
-    const [latest, previous] = bhavDates.map((d) => d.date);
-    const rows = await prisma.dailyBar.findMany({
-      where: { source: "bhavcopy", date: { in: [latest, previous] }, symbol: { in: Object.keys(SECTOR_OF) } },
-      select: { symbol: true, date: true, close: true },
-    });
+    const latest = bhavDates[0].date;
     const closes = new Map<string, { l?: number; p?: number }>();
-    for (const row of rows) {
+    for (const row of uniRows) {
       const entry = closes.get(row.symbol) ?? {};
       if (row.date.getTime() === latest.getTime()) entry.l = row.close;
       else entry.p = row.close;

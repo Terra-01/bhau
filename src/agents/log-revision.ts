@@ -1,5 +1,5 @@
 import { loadEnv } from "@/lib/load-env";
-import { GENESIS_HASH, chainEntries, type ChainEntryInput } from "./ledger";
+import { appendEntries, type ChainEntryInput } from "./ledger";
 import { PERSONAS, PROMPT_VERSION } from "./personas";
 
 loadEnv();
@@ -39,22 +39,7 @@ async function main() {
     agentId: p.id,
     payload: { note, revision: `v${PROMPT_VERSION}`, packDate },
   }));
-  const tip = await prisma.ledgerEntry.findFirst({ orderBy: { seq: "desc" } });
-  const chained = chainEntries(tip?.hash ?? GENESIS_HASH, writes);
-  await prisma.$transaction(async (tx) => {
-    for (const entry of chained) {
-      await tx.ledgerEntry.create({
-        data: {
-          ts: entry.ts,
-          kind: entry.kind,
-          agentId: entry.agentId,
-          payload: JSON.parse(JSON.stringify(entry.payload)),
-          prevHash: entry.prevHash,
-          hash: entry.hash,
-        },
-      });
-    }
-  });
+  const chained = await appendEntries(prisma, writes);
   console.log(`logged ${chained.length} v${PROMPT_VERSION} strategy-revision NOTEs`);
   await prisma.$disconnect();
 }

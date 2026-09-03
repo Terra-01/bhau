@@ -72,3 +72,41 @@ export function verifyChain(entries: StoredEntry[]): number | null {
   }
   return null;
 }
+
+type LedgerDb = (typeof import("@/lib/db"))["prisma"];
+
+/**
+ * The one write path onto the chain. Reads the tip INSIDE a serializable
+ * transaction so two writers (the floor run, npm run floor:revision)
+ * cannot both chain onto the same tip and fork what verifyChain walks;
+ * a serialization conflict retries once.
+ */
+export async function appendEntries(prisma: LedgerDb, writes: ChainEntryInput[]): Promise<ChainEntry[]> {
+  if (writes.length === 0) return [];
+  const attempt = () =>
+    prisma.$transaction(
+      async (tx) => {
+        const tip = await tx.ledgerEntry.findFirst({ orderBy: { seq: "desc" } });
+        const chained = chainEntries(tip?.hash ?? GENESIS_HASH, writes);
+        for (const entry of chained) {
+          await tx.ledgerEntry.create({
+            data: {
+              ts: entry.ts,
+              kind: entry.kind,
+              agentId: entry.agentId,
+              payload: JSON.parse(JSON.stringify(entry.payload)),
+              prevHash: entry.prevHash,
+              hash: entry.hash,
+            },
+          });
+        }
+        return chained;
+      },
+      { isolationLevel: "Serializable" },
+    );
+  try {
+    return await attempt();
+  } catch {
+    return await attempt();
+  }
+}

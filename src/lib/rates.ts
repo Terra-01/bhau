@@ -1,4 +1,5 @@
 import { POLICY_RATE } from "@/config/exchange";
+import { mmiZone } from "@/ingest/sources/mmi";
 import { prisma } from "./db";
 
 // Server-side assembly for the India rates & macro panel: the RBI-sourced
@@ -75,8 +76,7 @@ async function fetchMmi(): Promise<RatesData["mmi"]> {
     const d = (await res.json()) as { data?: { indicator?: number } };
     const v = d.data?.indicator;
     if (typeof v !== "number") return null;
-    const zone = v < 30 ? "Extreme Fear" : v < 50 ? "Fear" : v < 70 ? "Greed" : "Extreme Greed";
-    return { value: Number(v.toFixed(1)), zone };
+    return { value: Number(v.toFixed(1)), zone: mmiZone(v) };
   } catch {
     return null;
   }
@@ -144,11 +144,8 @@ export async function getRatesData(): Promise<RatesData | null> {
   const mmiBar = bySymbol.get("^MMI")?.at(-1);
   const archivedMmi =
     mmiBar && mmiBar.date >= new Date(Date.now() - 2 * 86_400_000).toISOString().slice(0, 10)
-      ? {
-          value: mmiBar.close,
-          zone: mmiBar.close < 30 ? "Extreme Fear" : mmiBar.close < 50 ? "Fear" : mmiBar.close < 70 ? "Greed" : "Extreme Greed",
-        }
+      ? { value: mmiBar.close, zone: mmiZone(mmiBar.close) }
       : null;
 
-  return { asOf, curve, y10, repo, ratios, spreads, macro, mmi: mmi ?? archivedMmi };
+  return { asOf, curve, y10, repo, ratios, spreads, macro, mmi: archivedMmi ?? mmi };
 }

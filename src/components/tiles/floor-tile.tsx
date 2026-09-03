@@ -70,7 +70,7 @@ function LedgerRow({ e }: { e: LogEntry }) {
           </span>
         ) : e.kind === "NOTE" ? (
           <span className="rounded-full bg-paper px-2 py-px text-[9px] font-semibold text-fog">
-            {e.week ? "WEEKLY LETTER" : "NOTE"}
+            {e.week ? "WEEKLY LETTER" : e.revision ? `METHODOLOGY ${e.revision.toUpperCase()}` : "NOTE"}
           </span>
         ) : (
           <Badge action={e.action ?? ""} accepted={e.accepted ?? true} />
@@ -164,7 +164,7 @@ export function FloorTile({
   const orderAgents = new Set(orders.map((t) => t.agentId));
   const passed = new Set(todays.map((t) => t.agentId)).size - new Set([...orderAgents, ...rejectedAgents]).size;
   const parts = [
-    ...orders.map((t) => `${t.agentName.replace("The ", "")} ${t.action === "BUY" ? "buying" : "selling"} ${t.symbol} at tomorrow's open`),
+    ...orders.map((t) => `${t.agentName} ${t.action === "BUY" ? "buying" : "selling"} ${t.symbol} at tomorrow's open`),
     ...(rejectedAgents.size > 0 ? [`${rejectedAgents.size} rejected by the rulebook`] : []),
     ...(passed > 0 ? [`${passed} passed`] : []),
   ];
@@ -269,7 +269,7 @@ export function FloorTile({
         </div>
         {agents.length > 0 && benchmark && (
           <InsightLine meta="PAPER · EOD">
-            Leader {agents[0].name.replace("The ", "")}{" "}
+            Leader {agents[0].name}{" "}
             <span className={deltaClass(agents[0].totalReturnPct)}>{signedPct(agents[0].totalReturnPct)}</span> ·{" "}
             {agents[0].totalReturnPct >= benchmark.totalReturnPct ? "ahead of" : "behind"} the Nifty by{" "}
             {Math.abs(agents[0].totalReturnPct - benchmark.totalReturnPct).toFixed(2)} pp

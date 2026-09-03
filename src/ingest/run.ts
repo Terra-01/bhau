@@ -199,7 +199,7 @@ async function main() {
   let evidence: Evidence | undefined;
   if (process.env.DATABASE_URL) {
     try {
-      evidence = await assembleEvidence(barsBySymbol, todayIST());
+      evidence = await assembleEvidence(barsBySymbol, todayIST(), { flows, events });
       console.log(`[evidence] sections: ${Object.keys(evidence).join(", ") || "(none)"}`);
     } catch (err) {
       console.warn(`[evidence] unavailable — ${err instanceof Error ? err.message : String(err)}`);

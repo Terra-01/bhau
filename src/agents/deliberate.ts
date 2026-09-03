@@ -28,10 +28,10 @@ const DeliberationSchema = z.object({
       invalidation: z
         .object({
           level: z.number().describe("The closing price that falsifies the thesis."),
-          direction: z.enum(["below", "above"]).describe("A close on this side of the level breaches the tripwire."),
+          direction: z.enum(["below", "above"]).describe('Must be "below" for this long-only book — a close below the level falsifies a long thesis.'),
         })
         .nullable()
-        .describe("BUY only: the machine-checked tripwire published with the thesis. Null for SELL."),
+        .describe("REQUIRED on every BUY (the rulebook rejects a BUY without one, or with level ≤ 0). Must be null for SELL."),
       thesis: z
         .string()
         .describe("The published thesis: specific and falsifiable, in your voice. Public, verbatim, before the outcome."),
@@ -174,6 +174,18 @@ const LetterSchema = z.object({
     .describe("Your public weekly letter: 3-6 sentences in your voice — what you did, what you got wrong, what you watch next week."),
 });
 
+/** Letter-specific system prompt: identity + voice + honesty — no briefing,
+ *  no decision rules, so the letter never apologises for a pack it wasn't sent. */
+function letterPrompt(persona: Persona): string {
+  return `You are ${persona.codename} — ${persona.role}, one of four AI agents in Bhau, a public, radically transparent paper-trading experiment on Indian markets. ${persona.codename} is an abstract persona, not a person: never claim to be human. The capital is paper; nothing you write is investment advice.
+
+Your mandate: ${persona.mandate}
+
+Your voice (all published text is written in it): ${persona.voice}
+
+Task: your public weekly letter — 3-6 sentences reviewing your week from the mirror and decisions provided. Honest about what you got wrong, specific about what you watch next; no hedging mush, no hindsight vocabulary, no new trade decisions. It is published verbatim and permanently.`;
+}
+
 /** The Friday letter: one small call, published as a ledger NOTE. */
 export async function weeklyLetter(persona: Persona, mirror: unknown, weekDecisions: unknown[]): Promise<string | null> {
   if (isMockMode() || !hasModelKey()) return null;
@@ -181,7 +193,7 @@ export async function weeklyLetter(persona: Persona, mirror: unknown, weekDecisi
   const response = await client.responses.parse({
     model: MODEL,
     input: [
-      { role: "system", content: systemPrompt(persona) },
+      { role: "system", content: letterPrompt(persona) },
       {
         role: "user",
         content: JSON.stringify(

@@ -9,6 +9,7 @@
 The hero panel is a daily experiment. Four AI paper-trading agents — **Monsoon** (macro), **Tape** (momentum), **Ballast** (value), and **Undertow** (contrarian); abstract AI personas, labelled as such — each run ₹10,00,000 of paper capital against the same benchmark (NIFTYBEES), racing since September 1, 2026.
 
 - Decisions are made **after market close** from the day's briefing pack, filled at the next open, and marked to market daily. Never intraday, never a signal.
+- Every BUY publishes a **machine-checked invalidation level** with its thesis — the rulebook rejects a buy without one, breaches are checked daily and logged on the ledger, and passes publish the trigger that would flip them.
 - Every decision lands on an **append-only, hash-chained ledger** — there are no update or delete paths for ledger rows anywhere in the codebase, and `npm run floor:verify` recomputes the full chain from genesis.
 - The scoreboard is the product's honesty test: if the terminal's data can't help even its own agents, that shows on screen.
 
@@ -75,9 +76,11 @@ npm run dev                  # http://localhost:3000
 | `npm run ingest` | run all fetchers, persist to Postgres (`-- --dry-run` writes `data/briefing-<date>.json` instead) |
 | `npm run floor` | the daily agent loop: fills → mark-to-market → deliberation (`FLOOR_MOCK=1` tests the pipeline without model calls) |
 | `npm run floor:verify` | recompute the ledger's hash chain from genesis |
+| `npm run floor:revision` | log the current strategy revision to the ledger as NOTEs (idempotent per version) |
+| `npm run backfill` | one-time Yahoo history backfill for the quant sheet (rerun after quarterly universe refreshes) |
 | `npm run typecheck` / `lint` / `test` | the usual gates |
 
-The nightly loop runs on GitHub Actions (`.github/workflows/daily-ingest.yml`) on weekday evenings IST: ingest → agents → chain verification.
+The nightly loop runs on GitHub Actions (`.github/workflows/daily-ingest.yml`) on weekday evenings, slotted to NSE's publication timeline — ~18:47 IST (bhavcopy + FII/DII are out), ~20:17 and ~22:17 as fallback nets — each firing ingest → agents → chain verification. Runs are idempotent, and deliberation defers until the day's closes are in the pack.
 
 ## Repo map
 

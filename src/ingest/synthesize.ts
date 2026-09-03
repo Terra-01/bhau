@@ -31,7 +31,8 @@ export async function synthesize(pack: BriefingPack): Promise<Synthesis | null> 
     model: "gpt-5.6-luna",
     input: [
       { role: "system", content: SYSTEM },
-      { role: "user", content: JSON.stringify(pack, null, 1) },
+      // the quant sheet is for the agents, not the desk synthesis
+      { role: "user", content: JSON.stringify({ ...pack, quant: undefined }, null, 1) },
     ],
     text: { format: zodTextFormat(SynthesisSchema, "synthesis") },
   });

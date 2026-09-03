@@ -181,10 +181,10 @@ async function main() {
       const history = await prisma.dailyBar.findMany({
         where: { symbol: { in: [...NIFTY100, ...ETF_WHITELIST, "^NSEI"] }, date: { gte: since } },
         orderBy: { date: "asc" },
-        select: { symbol: true, date: true, close: true },
+        select: { symbol: true, date: true, close: true, high: true, low: true },
       });
       quant = buildQuant(
-        history.map((h) => ({ symbol: h.symbol, date: h.date.toISOString().slice(0, 10), close: h.close })),
+        history.map((h) => ({ symbol: h.symbol, date: h.date.toISOString().slice(0, 10), close: h.close, high: h.high, low: h.low })),
         barsBySymbol,
         todayIST(),
       );

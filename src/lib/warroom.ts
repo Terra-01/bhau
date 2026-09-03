@@ -69,12 +69,13 @@ export interface WarRoomData {
     }>;
     /** Current book per agent (from AgentState). */
     books: Record<string, { cash: number; positions: Array<{ symbol: string; qty: number; avgCost: number }> }>;
-    /** The public record: every FILL ever + recent DECISION/NOTE entries, newest first. */
+    /** The public record: capped FILL history + recent DECISION/NOTE entries, newest first. */
     log: Array<{
       seq: number;
       ts: Date;
       kind: string;
       agentId: string;
+      agentName: string;
       action?: string;
       symbol?: string;
       allocationPct?: number;
@@ -407,46 +408,25 @@ export async function getWarRoomData(): Promise<WarRoomData | null> {
       isBenchmark: s.agentId === BENCHMARK_AGENT_ID,
     }))
     .sort((a, b) => b.equity - a.equity);
-  const decisionRows = await prisma.ledgerEntry.findMany({
-    where: { kind: "DECISION" },
-    orderBy: { seq: "desc" },
-    take: 8,
-  });
-  const theses = decisionRows.map((d) => {
-    const p = d.payload as Record<string, unknown>;
-    return {
-      seq: d.seq,
-      ts: d.ts,
-      agentId: d.agentId,
-      agentName: AGENT_NAMES[d.agentId] ?? d.agentId,
-      action: String(p.action ?? ""),
-      symbol: p.symbol as string | undefined,
-      allocationPct: p.allocationPct as number | undefined,
-      thesis: String(p.thesis ?? ""),
-      trigger: p.trigger as string | undefined,
-      accepted: Boolean(p.accepted),
-      rejectReason: p.rejectReason as string | undefined,
-      packDate: p.packDate as string | undefined,
-    };
-  });
-
-  // Current books — the positions behind each equity number.
-  const stateRows = await prisma.agentState.findMany();
+  // The public record in one pass: capped fill history (the actual
+  // trades) + a recent-decisions window wide enough that every agent's
+  // latest decision — and all of today's — are always inside it (≤16
+  // DECISION rows/day at the rulebook's proposal ceiling). `theses` is a
+  // derived view of the same rows, not a second query.
+  const [stateRows, fillRows, recentRows] = await Promise.all([
+    prisma.agentState.findMany(),
+    prisma.ledgerEntry.findMany({ where: { kind: "FILL" }, orderBy: { seq: "desc" }, take: 200 }),
+    prisma.ledgerEntry.findMany({ where: { kind: { in: ["DECISION", "NOTE"] } }, orderBy: { seq: "desc" }, take: 60 }),
+  ]);
   const books: WarRoomData["floor"]["books"] = {};
   for (const row of stateRows) {
+    if (row.id === BENCHMARK_AGENT_ID) continue; // never rendered
     const positions = row.positions as unknown as Record<string, { qty: number; avgCost: number }>;
     books[row.id] = {
       cash: row.cash,
       positions: Object.entries(positions).map(([symbol, pos]) => ({ symbol, qty: pos.qty, avgCost: pos.avgCost })),
     };
   }
-
-  // The public record: fills are the actual trades (rare by design) — ship
-  // them all; decisions/notes grow ~5/day, so cap the recent window.
-  const [fillRows, recentRows] = await Promise.all([
-    prisma.ledgerEntry.findMany({ where: { kind: "FILL" }, orderBy: { seq: "desc" } }),
-    prisma.ledgerEntry.findMany({ where: { kind: { in: ["DECISION", "NOTE"] } }, orderBy: { seq: "desc" }, take: 40 }),
-  ]);
   const log = [...fillRows, ...recentRows]
     .sort((a, b) => b.seq - a.seq)
     .map((e) => {
@@ -456,6 +436,7 @@ export async function getWarRoomData(): Promise<WarRoomData | null> {
         ts: e.ts,
         kind: e.kind,
         agentId: e.agentId,
+        agentName: AGENT_NAMES[e.agentId] ?? e.agentId,
         action: p.action as string | undefined,
         symbol: p.symbol as string | undefined,
         allocationPct: p.allocationPct as number | undefined,
@@ -471,6 +452,22 @@ export async function getWarRoomData(): Promise<WarRoomData | null> {
         packDate: (p.packDate ?? p.fillDate) as string | undefined,
       };
     });
+  const theses = log
+    .filter((e) => e.kind === "DECISION")
+    .map((e) => ({
+      seq: e.seq,
+      ts: e.ts,
+      agentId: e.agentId,
+      agentName: e.agentName,
+      action: e.action ?? "",
+      symbol: e.symbol,
+      allocationPct: e.allocationPct,
+      thesis: e.thesis ?? "",
+      trigger: e.trigger,
+      accepted: e.accepted ?? false,
+      rejectReason: e.rejectReason,
+      packDate: e.packDate,
+    }));
 
   // --- movers: best/worst NIFTY 100 names across the two latest sessions
   const movers: WarRoomData["movers"] = { gainers: [], losers: [] };

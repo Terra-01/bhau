@@ -54,11 +54,11 @@ methodology: the change is versioned in CONCEPT/AGENTS notes, not silently tweak
 
 ## 4. Cadence
 
-- Third cron `47 17 * * 1-5` (23:17 IST) in `daily-ingest.yml` as the safety net — the
+- Third cron `47 16 * * 1-5` (22:17 IST) in `daily-ingest.yml` as the safety net — the
   floor is idempotent (per-day deliberation guard, fill dedupe via `decisionHash`,
   snapshot upserts), so a redundant run no-ops.
 - The tile stops looking frozen: when the marked date is behind today (IST), the insight
-  line says today's mark lands this evening (crons 17:17 / 19:47 / 23:17 IST, observed
+  line says today's mark lands this evening (crons 17:17 / 19:47 / 22:17 IST, observed
   jitter up to ~6h).
 
 ## 5. Activity + the public record

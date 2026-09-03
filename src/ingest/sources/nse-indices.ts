@@ -144,9 +144,10 @@ export const nseIndicesFetcher: Fetcher = {
       });
     }
 
-    // Daily history for the hero-chart indices (last ~12 sessions per run;
-    // deep history comes from the one-time backfill script). Per-index
-    // failure degrades gracefully.
+    // Daily history for the hero-chart indices (last ~12 sessions per run,
+    // accreting onto the year of index closes already archived under
+    // source "nse"; src/ingest/backfill.ts covers equities/ETFs only).
+    // Per-index failure degrades gracefully.
     for (const [indexName, symbol] of Object.entries(HISTORY_INDICES)) {
       try {
         const history = (await nseGet(

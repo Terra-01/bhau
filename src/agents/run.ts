@@ -130,7 +130,7 @@ async function main() {
         decisionHash: decision.hash, fillDate: date, status: result.status,
         ...(result.status === "FILLED"
           ? { symbol: p.symbol, action: p.action, qty: result.qty, price: result.price, costs: result.costs }
-          : { reason: result.reason }),
+          : { symbol: p.symbol, action: p.action, reason: result.reason }),
       },
     });
     summary.push(`[fill:${decision.agentId}] ${p.action} ${p.symbol} → ${result.status}${result.status === "FILLED" ? ` ${result.qty} @ ₹${result.price}` : ` (${result.reason})`}`);

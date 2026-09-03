@@ -12,7 +12,8 @@
     "postinstall": "prisma generate",
     "test": "vitest run",
     "floor": "tsx src/agents/run.ts",
-    "floor:verify": "tsx src/agents/verify.ts"
+    "floor:verify": "tsx src/agents/verify.ts",
+    "backfill": "tsx src/ingest/backfill.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",

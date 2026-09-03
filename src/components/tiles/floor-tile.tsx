@@ -1,10 +1,11 @@
 "use client";
 
 import { Bot } from "lucide-react";
+import { useEffect, useState } from "react";
 import { InsightLine } from "@/components/insight-line";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { WarRoomData } from "@/lib/warroom";
-import { dateIST, deltaClass, inr, signedPct } from "@/lib/format";
+import { deltaClass, inr, inr2, signedPct } from "@/lib/format";
 import { RaceChart, type RaceSeriesDef } from "./race-chart";
 import { Tile } from "./tile";
 
@@ -28,22 +29,28 @@ const RACE_SERIES: RaceSeriesDef[] = [
 type Thesis = WarRoomData["floor"]["theses"][number];
 type LogEntry = WarRoomData["floor"]["log"][number];
 
+/** DESIGN.md action-badge palette, written once. */
+const actionClass = (action: string | undefined, accepted: boolean) =>
+  !accepted
+    ? "bg-warn-wash text-warn"
+    : action === "BUY"
+      ? "bg-gain-wash text-gain"
+      : action === "SELL"
+        ? "bg-loss-wash text-loss"
+        : "bg-paper text-fog";
+
 function Badge({ action, accepted }: { action: string; accepted: boolean }) {
-  if (!accepted) return <span className="rounded-full bg-warn-wash px-2 py-px text-[9px] font-semibold text-warn">REJECTED</span>;
-  const style = action === "BUY" ? "bg-gain-wash text-gain" : action === "SELL" ? "bg-loss-wash text-loss" : "bg-paper text-fog";
-  return <span className={`rounded-full px-2 py-px text-[9px] font-semibold ${style}`}>{action.replace("_", " ")}</span>;
+  return (
+    <span className={`rounded-full px-2 py-px text-[9px] font-semibold ${actionClass(action, accepted)}`}>
+      {accepted ? action.replace("_", " ") : "REJECTED"}
+    </span>
+  );
 }
 
 /** The standings row's at-a-glance read of an agent's latest decision. */
 function ActionChip({ latest }: { latest?: Thesis }) {
   if (!latest) return null;
-  const cls = !latest.accepted
-    ? "bg-warn-wash text-warn"
-    : latest.action === "BUY"
-      ? "bg-gain-wash text-gain"
-      : latest.action === "SELL"
-        ? "bg-loss-wash text-loss"
-        : "bg-paper text-fog";
+  const cls = actionClass(latest.action, latest.accepted);
   const text = !latest.accepted
     ? "REJ"
     : latest.action === "NO_TRADE"
@@ -58,11 +65,7 @@ function LedgerRow({ e }: { e: LogEntry }) {
     <li className="border-b border-ash px-3 py-2 last:border-b-0">
       <div className="flex flex-wrap items-center gap-1.5">
         {e.kind === "FILL" ? (
-          <span
-            className={`rounded-full px-2 py-px text-[9px] font-semibold ${
-              e.status === "FILLED" ? "bg-gain-wash text-gain" : "bg-warn-wash text-warn"
-            }`}
-          >
+          <span className={`rounded-full px-2 py-px text-[9px] font-semibold ${actionClass(e.action, e.status === "FILLED")}`}>
             {e.status === "FILLED" ? `FILLED ${e.action ?? ""}` : `FILL ${e.status ?? ""}`}
           </span>
         ) : e.kind === "NOTE" ? (
@@ -73,19 +76,19 @@ function LedgerRow({ e }: { e: LogEntry }) {
         {e.symbol && (
           <span className="font-mono text-[10.5px] text-charcoal">
             {e.symbol}
-            {e.kind === "FILL" && e.qty !== undefined
-              ? ` ${e.qty} @ ₹${e.price?.toFixed(2)}`
+            {e.kind === "FILL" && e.qty !== undefined && e.price !== undefined
+              ? ` ${e.qty} @ ${inr2(e.price)}`
               : e.allocationPct
                 ? ` ${e.allocationPct}%`
                 : ""}
           </span>
         )}
         <span className="ml-auto font-mono text-[9.5px] tabular-nums text-silver">
-          {e.packDate ?? dateIST(e.ts)}
+          {(e.packDate ?? e.ts.toISOString().slice(0, 10)).slice(5)}
         </span>
       </div>
       {e.kind === "FILL" && e.status === "FILLED" && e.costs !== undefined && (
-        <p className="mt-0.5 font-mono text-[9.5px] text-fog">costs ₹{e.costs.toFixed(0)}</p>
+        <p className="mt-0.5 font-mono text-[9.5px] text-fog">costs {inr(e.costs)}</p>
       )}
       {e.kind === "FILL" && e.status !== "FILLED" && e.rejectReason && (
         <p className="mt-0.5 text-[10.5px] leading-snug text-warn">{e.rejectReason}</p>
@@ -118,20 +121,35 @@ export function FloorTile({
   const latestOf = (agentId: string) => floor.theses.find((t) => t.agentId === agentId);
   const logOf = (agentId: string) => floor.log.filter((e) => e.agentId === agentId);
 
-  // The mark lags the market by design (crons 17:17–23:17 IST, with
-  // GitHub-scheduler jitter) — say so instead of looking frozen.
-  const todayIst = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
-  const markPending = floor.date < todayIst;
+  // The mark lags the market by design (crons 17:17–22:17 IST, with
+  // GitHub-scheduler jitter) — say so instead of looking frozen. Computed
+  // after hydration (SSR HTML is ISR-cached, so a render-time clock would
+  // mismatch), and only on IST weekdays — no promised mark on a Saturday.
+  const [todayIst, setTodayIst] = useState<string | null>(null);
+  useEffect(() => {
+    const id = requestAnimationFrame(() => {
+      const now = new Date();
+      const weekday = now.toLocaleDateString("en-US", { weekday: "short", timeZone: "Asia/Kolkata" });
+      if (weekday !== "Sat" && weekday !== "Sun") setTodayIst(now.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" }));
+    });
+    return () => cancelAnimationFrame(id);
+  }, []);
+  const markPending = todayIst !== null && floor.date < todayIst;
+
+  // Today's activity, counted per agent and worded pre-fill: an accepted
+  // decision is an ORDER for tomorrow's open, not a completed trade
+  // (CONCEPT.md §3 — honest fills), and a rejection is not a pass.
   const todays = floor.theses.filter((t) => t.packDate === floor.date);
-  const trades = todays.filter((t) => t.action !== "NO_TRADE" && t.accepted);
-  const activity =
-    todays.length === 0
-      ? null
-      : trades.length === 0
-        ? `${todays.length}× no trade`
-        : trades
-            .map((t) => `${t.agentName.replace("The ", "")} ${t.action === "BUY" ? "bought" : "sold"} ${t.symbol}`)
-            .join(" · ");
+  const orders = todays.filter((t) => t.action !== "NO_TRADE" && t.accepted);
+  const rejectedAgents = new Set(todays.filter((t) => !t.accepted).map((t) => t.agentId));
+  const orderAgents = new Set(orders.map((t) => t.agentId));
+  const passed = new Set(todays.map((t) => t.agentId)).size - new Set([...orderAgents, ...rejectedAgents]).size;
+  const parts = [
+    ...orders.map((t) => `${t.agentName.replace("The ", "")} ${t.action === "BUY" ? "buying" : "selling"} ${t.symbol} at tomorrow's open`),
+    ...(rejectedAgents.size > 0 ? [`${rejectedAgents.size} rejected by the rulebook`] : []),
+    ...(passed > 0 ? [`${passed} passed`] : []),
+  ];
+  const activity = todays.length === 0 ? null : parts.join(" · ");
 
   return (
     <Tile
@@ -195,7 +213,7 @@ export function FloorTile({
                       {book && (
                         <div className="mt-0.5 truncate font-mono text-[9.5px] text-fog">
                           {inr(book.cash)} cash
-                          {book.positions.map((p) => ` · ${p.symbol} ${Math.round(p.qty)} @ ${p.avgCost.toFixed(2)}`).join("")}
+                          {book.positions.map((p) => ` · ${p.symbol} ${Math.round(p.qty)} @ ${inr2(p.avgCost)}`).join("")}
                         </div>
                       )}
                     </div>
@@ -231,7 +249,7 @@ export function FloorTile({
             {agents[0].totalReturnPct >= benchmark.totalReturnPct ? "ahead of" : "behind"} the Nifty by{" "}
             {Math.abs(agents[0].totalReturnPct - benchmark.totalReturnPct).toFixed(2)} pp
             {activity && <> · {activity}</>}
-            {markPending && <> · today&apos;s mark lands by ~23:30 IST</>}
+            {markPending && <> · today&apos;s mark lands this evening</>}
           </InsightLine>
         )}
       </div>

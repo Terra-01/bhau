@@ -53,6 +53,7 @@ async function main() {
 
   for (let i = 0; i < symbols.length; i += CONCURRENCY) {
     const batch = symbols.slice(i, i + CONCURRENCY);
+    if (i > 0) await new Promise((r) => setTimeout(r, 400)); // stay under Yahoo's rate limiter
     const results = await Promise.allSettled(batch.map(fetchHistory));
     for (const [j, result] of results.entries()) {
       const symbol = batch[j];
@@ -69,6 +70,9 @@ async function main() {
 
   console.log(`[backfill] done: ${inserted} rows inserted, ${failed.length} symbols failed${failed.length ? ` (${failed.join(", ")})` : ""}`);
   await prisma.$disconnect();
+  // Partial history is worse than a loud failure — the quant sheet would
+  // screen an arbitrary subset of the universe. Rerun until clean.
+  if (failed.length > 0) process.exit(1);
 }
 
 main().catch((err) => {

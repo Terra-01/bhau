@@ -16,7 +16,7 @@ on:
     # redundant run no-ops.
     - cron: "47 11 * * 1-5" # ~17:17 IST, Mon–Fri (after the 15:30 close)
     - cron: "17 14 * * 1-5" # ~19:47 IST fallback
-    - cron: "47 17 * * 1-5" # ~23:17 IST last-chance net before the IST day ends
+    - cron: "47 16 * * 1-5" # ~22:17 IST last-chance net — left headroom so scheduler drift cannot overshoot IST midnight
   workflow_dispatch: {}
 
 concurrency: daily-ingest

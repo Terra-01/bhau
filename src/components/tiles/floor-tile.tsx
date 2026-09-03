@@ -140,7 +140,7 @@ export function FloorTile({
   const logOf = (agentId: string) => floor.log.filter((e) => e.agentId === agentId);
   const cardOf = (agentId: string) => floor.personas.find((c) => c.id === agentId);
 
-  // The mark lags the market by design (crons 17:17–22:17 IST, with
+  // The mark lags the market by design (crons 18:47–22:17 IST, with
   // GitHub-scheduler jitter) — say so instead of looking frozen. Computed
   // after hydration (SSR HTML is ISR-cached, so a render-time clock would
   // mismatch), and only on IST weekdays — no promised mark on a Saturday.

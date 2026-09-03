@@ -273,7 +273,21 @@ async function main() {
       .filter((d) => (d.payload as unknown as DecisionPayload).packDate === date)
       .map((d) => d.agentId),
   );
-  if (!hasModelKey() && !isMockMode()) {
+  // Decision-quality gate, paired with the cron schedule: an early slot
+  // can fire before today's bhavcopy lands, and the once-per-day guard
+  // would then lock the deliberation onto yesterday's closes. Before
+  // 21:00 IST, defer to a later slot when the quant sheet lags the pack
+  // date; from 21:00 the data is what it is (quant.asOf discloses the
+  // lag to the agents, per the prompt's degraded-day contract).
+  const istHour = Number(
+    new Date().toLocaleString("en-US", { hour: "2-digit", hour12: false, timeZone: "Asia/Kolkata" }),
+  );
+  const quantLags = pack.quant !== undefined && pack.quant.asOf < date;
+  if (quantLags && istHour < 21 && !isMockMode()) {
+    summary.push(
+      `[deliberate] deferred — quant asOf ${pack.quant!.asOf} lags ${date}; a later slot decides with today's closes`,
+    );
+  } else if (!hasModelKey() && !isMockMode()) {
     summary.push("[deliberate] OPENAI_KEY not set — fills/MTM done, deliberation skipped");
   } else {
     for (const persona of PERSONAS) {

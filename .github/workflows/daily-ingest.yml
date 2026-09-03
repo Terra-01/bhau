@@ -9,14 +9,21 @@ name: daily-ingest
 
 on:
   schedule:
-    # Off-peak minutes fire with far less GitHub jitter than :30 (observed
-    # multi-hour drift; Sep 1–2 the scheduler ran 3–6h late or skipped a
-    # firing entirely). Later firings are safety nets — ingest is
-    # idempotent and the floor loop is once-per-session guarded, so a
-    # redundant run no-ops.
-    - cron: "47 11 * * 1-5" # ~17:17 IST, Mon–Fri (after the 15:30 close)
-    - cron: "17 14 * * 1-5" # ~19:47 IST fallback
-    - cron: "47 16 * * 1-5" # ~22:17 IST last-chance net — left headroom so scheduler drift cannot overshoot IST midnight
+    # Slots follow the Indian market's publication timeline, not the clock:
+    # NSE closes 15:30 IST, but the data an honest EOD run needs lands
+    # later — provisional FII/DII ~18:00-19:00, UDiFF bhavcopy ~18:00-18:30,
+    # AMFI NAV ~21:00-23:00. (No market-open cron on purpose: ingest is EOD
+    # by design, fills use bhavcopy's official open print, and the session
+    # itself is served by the live client layer.)
+    # Off-peak minutes fire with far less GitHub jitter than :00/:30
+    # (observed drift 55min-6h; slots occasionally skip). Every firing is
+    # idempotent — ingest upserts, the floor is once-per-session guarded —
+    # and agents/run.ts defers deliberation until today's closes are in the
+    # pack (or 21:00 IST), so an early slot can only mark and fill, never
+    # lock a stale decision.
+    - cron: "17 13 * * 1-5" # ~18:47 IST — bhavcopy + FII/DII usually published; the run that fills, marks, and deliberates
+    - cron: "47 14 * * 1-5" # ~20:17 IST — fallback for late publications / a skipped first slot
+    - cron: "47 16 * * 1-5" # ~22:17 IST — last-chance net; also catches the late AMFI NAV for the benchmark re-mark, with headroom so drift cannot overshoot IST midnight
   workflow_dispatch: {}
 
 concurrency: daily-ingest

@@ -48,9 +48,9 @@ Four archetypes (personas/names TBD — see Open Decisions):
 
 **Daily rhythm (all times IST):**
 
-1. **~16:30 — Ingest:** EOD pipeline pulls bhavcopy, FII/DII, announcements, news clusters, macro updates into the day's briefing pack.
-2. **~17:30 — Deliberation:** each agent gets its briefing pack (filtered to its diet) + the universe quant sheet (per-symbol returns over 1/5/20/60 sessions, distance from 52-week high/low, 20-day relative strength vs NIFTY — strategy revision v1.1, 2026-09-03) + current portfolio, and produces: market read, decisions (or an explicit "no trade" that must publish the falsifiable trigger that would flip it), and a thesis for each decision.
-3. **~18:00 — Publication:** decisions + theses land in the public log, timestamped. This is the shareable "evening edition."
+1. **~18:47 — Ingest:** EOD pipeline pulls bhavcopy, FII/DII, announcements, news clusters, macro updates into the day's briefing pack (slotted after NSE's evening publications; fallbacks 20:17 and 22:17).
+2. **Same run — Deliberation:** each agent gets its briefing pack (filtered to its diet) + the universe quant sheet (per-symbol returns over 1/5/20/60 sessions, distance from 52-week high/low, 20-day relative strength vs NIFTY — strategy revision v1.1, 2026-09-03) + current portfolio, and produces: market read, decisions (or an explicit "no trade" that must publish the falsifiable trigger that would flip it), and a thesis for each decision.
+3. **Immediately after — Publication:** decisions + theses land in the public log, timestamped. This is the shareable "evening edition."
 4. **Next day 09:15 — Fills:** orders fill at the opening price (never same-day close — that would be lookahead). Fills posted with costs.
 5. **~16:00 — Scoreboard:** marked-to-market on close. P&L race updated, OG images regenerated.
 

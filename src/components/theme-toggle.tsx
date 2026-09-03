@@ -45,7 +45,7 @@ export function ThemeToggle() {
       onMouseEnter={() => icon.current?.startAnimation()}
       onMouseLeave={() => icon.current?.stopAnimation()}
       title={dark ? "Switch to light" : "Switch to dark"}
-      className="flex h-6 w-6 items-center justify-center rounded-full border border-ash text-steel transition-transform duration-150 [transition-timing-function:var(--ease-out-strong)] active:scale-[0.94] [@media(hover:hover)]:hover:bg-paper"
+      className="pressable flex h-6 w-6 items-center justify-center rounded-full border border-ash text-steel [@media(hover:hover)]:hover:bg-paper"
     >
       {dark ? (
         <SunIcon ref={icon} size={12} className="flex" />

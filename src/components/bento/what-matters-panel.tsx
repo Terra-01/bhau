@@ -36,7 +36,7 @@ export function WhatMattersPanel({
   flows: WarRoomData["flows"];
   fiiStreak: WarRoomData["fiiStreak"];
 }) {
-  const { index, select, pauseProps } = useCarousel(TABS.length, 15_000);
+  const { index, select, pauseProps } = useCarousel(TABS.length, 36_000, 6_000);
   const tab = TABS[index].id;
 
   const items = useMemo(() => {
@@ -103,7 +103,7 @@ export function WhatMattersPanel({
             synthesis ? (
               <div className="px-2.5 py-1.5">
                 <p className="text-[13px] font-medium leading-snug text-ink">{synthesis.headline}</p>
-                <ul className="mt-1.5 flex flex-col gap-1">
+                <ul className="flip-stagger mt-1.5 flex flex-col gap-1">
                   {synthesis.bullets.map((bullet) => (
                     <li key={bullet.text} className="flex gap-2 text-[11.5px] leading-relaxed text-steel">
                       <span className="mt-[6px] h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: TONE_COLOR[bullet.tone] }} />
@@ -117,7 +117,7 @@ export function WhatMattersPanel({
               <p className="px-3 py-4 text-[11.5px] text-fog">Synthesis lands with the evening pipeline run.</p>
             )
           ) : (
-            <ul>
+            <ul className="flip-stagger">
               {items.map((item) => (
                 <li key={`${item.source}-${item.title}`} className="border-b border-ash last:border-b-0">
                   <a

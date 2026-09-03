@@ -5,6 +5,8 @@ import { motion, useAnimation } from "motion/react";
 import type { HTMLAttributes } from "react";
 import { forwardRef, useCallback, useImperativeHandle, useRef } from "react";
 
+import { EASE } from "@/lib/motion";
+import { iconMotionAllowed } from "./icon-motion";
 import { cn } from "@/lib/utils";
 
 export interface CloudRainIconHandle {
@@ -19,7 +21,7 @@ interface CloudRainIconProps extends HTMLAttributes<HTMLDivElement> {
 const RAIN_VARIANTS: Variants = {
   animate: {
     transition: {
-      staggerChildren: 0.2,
+      staggerChildren: 0.05,
     },
   },
 };
@@ -31,9 +33,9 @@ const RAIN_CHILD_VARIANTS: Variants = {
   animate: {
     opacity: [1, 0.2, 1],
     transition: {
-      duration: 1,
-      repeat: Number.POSITIVE_INFINITY,
-      ease: "easeInOut",
+      duration: 0.3,
+      repeat: 1,
+      ease: EASE,
     },
   },
 };
@@ -46,7 +48,9 @@ const CloudRainIcon = forwardRef<CloudRainIconHandle, CloudRainIconProps>(
     useImperativeHandle(ref, () => {
       isControlledRef.current = true;
       return {
-        startAnimation: () => controls.start("animate"),
+        startAnimation: () => {
+          if (iconMotionAllowed()) controls.start("animate");
+        },
         stopAnimation: () => controls.start("normal"),
       };
     });
@@ -55,7 +59,7 @@ const CloudRainIcon = forwardRef<CloudRainIconHandle, CloudRainIconProps>(
       (e: React.MouseEvent<HTMLDivElement>) => {
         if (isControlledRef.current) {
           onMouseEnter?.(e);
-        } else {
+        } else if (iconMotionAllowed()) {
           controls.start("animate");
         }
       },

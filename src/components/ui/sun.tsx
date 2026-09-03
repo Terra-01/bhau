@@ -5,6 +5,8 @@ import { motion, useAnimation } from "motion/react";
 import type { HTMLAttributes } from "react";
 import { forwardRef, useCallback, useImperativeHandle, useRef } from "react";
 
+import { EASE } from "@/lib/motion";
+import { iconMotionAllowed } from "./icon-motion";
 import { cn } from "@/lib/utils";
 
 export interface SunIconHandle {
@@ -20,7 +22,7 @@ const PATH_VARIANTS: Variants = {
   normal: { opacity: 1 },
   animate: (i: number) => ({
     opacity: [0, 1],
-    transition: { delay: i * 0.1, duration: 0.3 },
+    transition: { delay: i * 0.04, duration: 0.2, ease: EASE },
   }),
 };
 
@@ -33,7 +35,9 @@ const SunIcon = forwardRef<SunIconHandle, SunIconProps>(
       isControlledRef.current = true;
 
       return {
-        startAnimation: () => controls.start("animate"),
+        startAnimation: () => {
+          if (iconMotionAllowed()) controls.start("animate");
+        },
         stopAnimation: () => controls.start("normal"),
       };
     });
@@ -42,7 +46,7 @@ const SunIcon = forwardRef<SunIconHandle, SunIconProps>(
       (e: React.MouseEvent<HTMLDivElement>) => {
         if (isControlledRef.current) {
           onMouseEnter?.(e);
-        } else {
+        } else if (iconMotionAllowed()) {
           controls.start("animate");
         }
       },

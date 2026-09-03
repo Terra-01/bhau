@@ -37,7 +37,7 @@ export function MoversPanel({
   data: Pick<ExchangeData, "mostTraded" | "gainers" | "losers" | "asOf">;
   sectors: WarRoomData["sectors"];
 }) {
-  const { index, select, pauseProps, hold } = useCarousel(TABS.length, 14_000);
+  const { index, select, pauseProps, hold } = useCarousel(TABS.length, 18_000, 0);
   const tab = TABS[index].id;
   // Intraday: NSE's live lists take over; after close the full-universe
   // bhavcopy ranking (with its liquidity floor) is the better product.
@@ -70,7 +70,7 @@ export function MoversPanel({
     >
       <div className="flex h-full min-h-0 flex-col" {...pauseProps}>
         <FlipView id={tab} className="flex-1">
-        <ul className="h-full overflow-y-auto">
+        <ul className="flip-stagger h-full overflow-y-auto">
           {rows.map((row) => (
             <AssetPopover
               key={row.symbol}
@@ -80,7 +80,7 @@ export function MoversPanel({
                 <li
                   role="button"
                   tabIndex={0}
-                  className="flex cursor-pointer items-baseline gap-2 border-b border-ash px-2.5 py-[3px] transition-colors duration-150 [@media(hover:hover)]:hover:bg-paper/60"
+                  className="pressable flex cursor-pointer items-baseline gap-2 border-b border-ash px-2.5 py-[3px] transition-colors duration-150 [@media(hover:hover)]:hover:bg-paper/60"
                 >
                   <span className="min-w-0 flex-1 truncate font-mono text-[11px] font-medium text-charcoal">{row.symbol}</span>
                   {tab === "mostTraded" && <span className="font-mono text-[9.5px] tabular-nums text-silver">{compactInr(row.turnover)}</span>}

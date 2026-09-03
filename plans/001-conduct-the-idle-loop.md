@@ -1,6 +1,6 @@
 # 001 — Conduct the idle loop: one clock, deliberate beats, no collisions
 
-- **Status**: TODO
+- **Status**: DONE (schedule corrected at execution: the planned 72s bar with mixed 18/24s periods cannot satisfy the 4s min-gap — impossible by modular arithmetic. Shipped: a 36s bar with all five panel flips on a 6s comb (movers 18s@0, what-matters 36s@6, calendar 36s@12, city 36s@24, fun 36s@30), footer on the 3s half-beat (12s@3), chart tour on the 4.5s quarter-beat (9s@4.5). Flip min-gap: 6s, by construction.)
 - **Commit**: 85e7692
 - **Severity**: HIGH
 - **Category**: Purpose & frequency / Cohesion

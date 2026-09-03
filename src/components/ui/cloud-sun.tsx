@@ -5,6 +5,8 @@ import { motion, useAnimation } from "motion/react";
 import type { HTMLAttributes } from "react";
 import { forwardRef, useCallback, useImperativeHandle, useRef } from "react";
 
+import { EASE } from "@/lib/motion";
+import { iconMotionAllowed } from "./icon-motion";
 import { cn } from "@/lib/utils";
 
 export interface CloudSunIconHandle {
@@ -25,8 +27,8 @@ const CLOUD_VARIANTS: Variants = {
     x: [-1, 1, -1, 1, 0],
     y: [-1, 1, -1, 1, 0],
     transition: {
-      duration: 1,
-      ease: "easeInOut",
+      duration: 0.3,
+      ease: EASE,
     },
   },
 };
@@ -35,7 +37,7 @@ const SUN_VARIANTS: Variants = {
   normal: { opacity: 1 },
   animate: (i: number) => ({
     opacity: [0, 1],
-    transition: { delay: i * 0.1, duration: 0.3 },
+    transition: { delay: i * 0.04, duration: 0.2, ease: EASE },
   }),
 };
 
@@ -50,6 +52,7 @@ const CloudSunIcon = forwardRef<CloudSunIconHandle, CloudSunIconProps>(
 
       return {
         startAnimation: () => {
+          if (!iconMotionAllowed()) return;
           cloudControls.start("animate");
           sunControls.start("animate");
         },
@@ -64,7 +67,7 @@ const CloudSunIcon = forwardRef<CloudSunIconHandle, CloudSunIconProps>(
       (e: React.MouseEvent<HTMLDivElement>) => {
         if (isControlledRef.current) {
           onMouseEnter?.(e);
-        } else {
+        } else if (iconMotionAllowed()) {
           cloudControls.start("animate");
           sunControls.start("animate");
         }

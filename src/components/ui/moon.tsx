@@ -5,6 +5,8 @@ import { motion, useAnimation } from "motion/react";
 import type { HTMLAttributes } from "react";
 import { forwardRef, useCallback, useImperativeHandle, useRef } from "react";
 
+import { EASE } from "@/lib/motion";
+import { iconMotionAllowed } from "./icon-motion";
 import { cn } from "@/lib/utils";
 
 export interface MoonIconHandle {
@@ -26,8 +28,8 @@ const SVG_VARIANTS: Variants = {
 };
 
 const SVG_TRANSITION: Transition = {
-  duration: 1.2,
-  ease: "easeInOut",
+  duration: 0.3,
+  ease: EASE,
 };
 
 const MoonIcon = forwardRef<MoonIconHandle, MoonIconProps>(
@@ -39,7 +41,9 @@ const MoonIcon = forwardRef<MoonIconHandle, MoonIconProps>(
       isControlledRef.current = true;
 
       return {
-        startAnimation: () => controls.start("animate"),
+        startAnimation: () => {
+          if (iconMotionAllowed()) controls.start("animate");
+        },
         stopAnimation: () => controls.start("normal"),
       };
     });
@@ -48,7 +52,7 @@ const MoonIcon = forwardRef<MoonIconHandle, MoonIconProps>(
       (e: React.MouseEvent<HTMLDivElement>) => {
         if (isControlledRef.current) {
           onMouseEnter?.(e);
-        } else {
+        } else if (iconMotionAllowed()) {
           controls.start("animate");
         }
       },

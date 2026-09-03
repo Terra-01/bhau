@@ -15,7 +15,7 @@ export function LiveChip({
   const label = phase === "preopen" ? "PRE-OPEN" : phase === "closing" ? "CLOSING" : "LIVE";
   return (
     <span className="inline-flex items-center gap-1 font-mono text-[8px] font-semibold text-gain">
-      <span className="h-1 w-1 animate-pulse rounded-full bg-gain" />
+      <span className="h-1 w-1 rounded-full bg-gain" />
       {label}
       {source ? ` · ${source.toUpperCase()}` : ""}
     </span>

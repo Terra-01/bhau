@@ -76,7 +76,7 @@ export function TvTile() {
       meta={
         live ? (
           <span className="flex items-center gap-1 text-gain">
-            <span className={`h-1.5 w-1.5 rounded-full bg-gain ${playing ? "animate-pulse" : ""}`} /> LIVE
+            <span className={"h-1.5 w-1.5 rounded-full bg-gain"} /> LIVE
           </span>
         ) : (
           "OFFICIAL STREAMS"
@@ -174,7 +174,7 @@ export function TvTile() {
               key={c.id}
               type="button"
               onClick={() => tune(c)}
-              className={`rounded-full px-1.5 py-px text-[9px] font-semibold transition-colors duration-150 ${
+              className={`pressable rounded-full px-1.5 py-px text-[9px] font-semibold transition-colors duration-150 ${
                 channel.id === c.id ? "bg-charcoal text-canvas" : "border border-ash text-steel [@media(hover:hover)]:hover:bg-paper"
               }`}
             >

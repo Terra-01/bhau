@@ -59,7 +59,7 @@ export function CityTile({
   weather: WarRoomData["weather"];
   pulse: WarRoomData["cityPulse"];
 }) {
-  const { index, select, pauseProps, hold } = useCarousel(TABS.length, 19_000);
+  const { index, select, pauseProps, hold } = useCarousel(TABS.length, 36_000, 24_000);
   const showPrices = TABS[index] === "prices" && pulse !== null;
   const [detail, setDetail] = useState<{ card: InfoCardProps; el: HTMLElement } | null>(null);
 
@@ -75,7 +75,14 @@ export function CityTile({
 
   const openDetail = (card: InfoCardProps, el: HTMLElement) => {
     hold(60_000);
-    setDetail({ card, el });
+    // Row-to-row: close, then reopen next frame so the card re-originates
+    // from the newly pressed row instead of teleporting across the table.
+    if (detail && detail.el !== el) {
+      setDetail(null);
+      requestAnimationFrame(() => setDetail({ card, el }));
+    } else {
+      setDetail({ card, el });
+    }
   };
 
   const priciest = pulse?.cities.reduce<{ city: string; petrol: number } | null>(
@@ -99,7 +106,7 @@ export function CityTile({
               key={t}
               type="button"
               onClick={() => select(i)}
-              className={`rounded-full px-1.5 py-px font-sans text-[8.5px] font-semibold uppercase tracking-[0.05em] transition-colors duration-150 ${
+              className={`pressable rounded-full px-1.5 py-px font-sans text-[8.5px] font-semibold uppercase tracking-[0.05em] transition-colors duration-150 ${
                 // highlight what's actually on screen — with pulse data
                 // missing, the ₹ tab falls through to weather
                 (t === "prices") === showPrices ? "bg-charcoal text-canvas" : "text-fog [@media(hover:hover)]:hover:text-charcoal"
@@ -124,7 +131,7 @@ export function CityTile({
                     <th className="px-2.5 py-0.5 text-right text-[8px] font-semibold uppercase tracking-[0.07em] text-fog">Diesel</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="flip-stagger">
                   {pulse!.cities.map((c) => {
                     const card: InfoCardProps = {
                       title: `${c.city} pump prices`,
@@ -144,7 +151,7 @@ export function CityTile({
                           onKeyDown={(e) => {
                             if (e.key === "Enter" || e.key === " ") openDetail(card, e.currentTarget);
                           }}
-                          className="cursor-pointer border-b border-ash transition-colors duration-150 last:border-b-0 [@media(hover:hover)]:hover:bg-paper/60"
+                          className="pressable cursor-pointer border-b border-ash transition-colors duration-150 last:border-b-0 [@media(hover:hover)]:hover:bg-paper/60"
                         >
                           <td className="truncate px-2.5 py-[2px] text-[10px] leading-none text-charcoal">{c.city}</td>
                           <td className="px-1 py-[2px] text-right font-mono text-[10px] leading-none tabular-nums text-ink">
@@ -181,7 +188,7 @@ export function CityTile({
                       ]}
                       note="India Bullion & Jewellers Association AM/PM fix — the rate gold loans and jewellers reference. Bullion is national; city premia are retail noise."
                       render={
-                    <div role="button" tabIndex={0} className="flex cursor-pointer items-baseline justify-between gap-1 leading-tight transition-colors duration-150 [@media(hover:hover)]:hover:bg-paper/60">
+                    <div role="button" tabIndex={0} className="pressable flex cursor-pointer items-baseline justify-between gap-1 leading-tight transition-colors duration-150 [@media(hover:hover)]:hover:bg-paper/60">
                       <span className="flex items-center gap-1 whitespace-nowrap text-[8.5px] text-fog">
                         <Coins size={8} strokeWidth={2} className="text-silver" />
                         {m.name.split(" ")[0]} <span className="text-silver">{m.unit} · IBJA</span>
@@ -200,7 +207,7 @@ export function CityTile({
               )}
             </>
           ) : weather ? (
-            <ul className="px-2.5 py-0.5">
+            <ul className="flip-stagger px-2.5 py-0.5">
               {weather.slice(0, 7).map((w) => {
                 return (
                   <InfoPopover
@@ -214,7 +221,7 @@ export function CityTile({
                     ]}
                     note="Open-Meteo daily forecast, refreshed every 30 minutes."
                     render={
-                      <li role="button" tabIndex={0} className="flex cursor-pointer items-center gap-1.5 border-b border-ash py-[2.5px] transition-colors duration-150 last:border-b-0 [@media(hover:hover)]:hover:bg-paper/60">
+                      <li role="button" tabIndex={0} className="pressable flex cursor-pointer items-center gap-1.5 border-b border-ash py-[2.5px] transition-colors duration-150 last:border-b-0 [@media(hover:hover)]:hover:bg-paper/60">
                         <WeatherIcon code={w.code} size={12} className="flex shrink-0" />
                         <span className="min-w-0 truncate text-[10px] text-charcoal">{w.city}</span>
                         <span className="ml-auto font-mono text-[10px] tabular-nums text-ink">

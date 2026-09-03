@@ -85,7 +85,7 @@ export function RatesPanel({ rates }: { rates: RatesData | null }) {
                       <li
                         role="button"
                         tabIndex={0}
-                        className="flex cursor-pointer items-baseline gap-1 border-b border-ash px-2 py-[1.5px] transition-colors duration-150 [@media(hover:hover)]:hover:bg-paper/60"
+                        className="pressable flex cursor-pointer items-baseline gap-1 border-b border-ash px-2 py-[1.5px] transition-colors duration-150 [@media(hover:hover)]:hover:bg-paper/60"
                       >
                         <span className={`w-7 font-mono text-[10px] leading-tight ${is10 ? "font-semibold text-ink" : "font-medium text-charcoal"}`}>
                           {t.label}
@@ -130,7 +130,7 @@ export function RatesPanel({ rates }: { rates: RatesData | null }) {
                     <li
                       role="button"
                       tabIndex={0}
-                      className="flex cursor-pointer items-baseline gap-1 border-b border-ash px-2 py-[1.5px] transition-colors duration-150 last:border-b-0 [@media(hover:hover)]:hover:bg-paper/60"
+                      className="pressable flex cursor-pointer items-baseline gap-1 border-b border-ash px-2 py-[1.5px] transition-colors duration-150 last:border-b-0 [@media(hover:hover)]:hover:bg-paper/60"
                     >
                       <span className="min-w-0 flex-1 truncate text-[9.5px] leading-tight text-charcoal">{m.label}</span>
                       <span className="font-mono text-[10px] leading-tight tabular-nums text-ink">{m.value}</span>

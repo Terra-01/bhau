@@ -1,6 +1,6 @@
 # 004 — Let the hero chart travel: crossfade the tour, roll the label, fade the scrim
 
-- **Status**: TODO
+- **Status**: DONE
 - **Commit**: 85e7692
 - **Severity**: MEDIUM (HIGH visibility — largest element on the board)
 - **Category**: Missed opportunities / Purpose & frequency

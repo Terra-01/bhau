@@ -37,7 +37,7 @@ function dateCol(iso: string): [string, string] {
 }
 
 export function CalendarPanel({ data, todayIso }: { data: ExchangeData; todayIso: string }) {
-  const { index, select, pauseProps, hold } = useCarousel(TABS.length, 17_000);
+  const { index, select, pauseProps, hold } = useCarousel(TABS.length, 36_000, 12_000);
   const tab = TABS[index].id;
 
   const items: CalItem[] = useMemo(() => {
@@ -92,7 +92,7 @@ export function CalendarPanel({ data, todayIso }: { data: ExchangeData; todayIso
     >
       <div className="flex h-full min-h-0 flex-col" {...pauseProps}>
       <FlipView id={tab} className="flex-1">
-      <ul className="h-full overflow-y-auto">
+      <ul className="flip-stagger h-full overflow-y-auto">
         {items.length === 0 && <li className="px-3 py-4 text-[11.5px] text-fog">Nothing scheduled.</li>}
         {items.map((item, i) => {
           const [weekday, dayMonth] = dateCol(item.date);
@@ -102,7 +102,7 @@ export function CalendarPanel({ data, todayIso }: { data: ExchangeData; todayIso
           const iconTone = tab === "ipos" ? "text-lavender" : tab === "econ" ? "text-warn" : "text-blue";
           const row = (
             <li
-              className={`flex cursor-pointer items-center gap-2 border-b border-ash px-2.5 py-[3px] transition-colors duration-150 last:border-b-0 [@media(hover:hover)]:hover:bg-paper/60 ${isToday ? "bg-paper/60" : ""}`}
+              className={`pressable flex cursor-pointer items-center gap-2 border-b border-ash px-2.5 py-[3px] transition-colors duration-150 last:border-b-0 [@media(hover:hover)]:hover:bg-paper/60 ${isToday ? "bg-paper/60" : ""}`}
             >
               {/* date column only on a day's first row — the blank repeats read as grouping */}
               <span className="w-11 shrink-0 font-mono text-[8.5px] leading-tight text-fog">

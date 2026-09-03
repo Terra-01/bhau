@@ -67,8 +67,11 @@
   --font-sans: var(--font-inter);
   --font-mono: var(--font-geist-mono);
 
-  /* Motion vocabulary (emil): strong ease-out, UI under 300ms */
+  /* Motion vocabulary (emil): strong ease-out, UI under 300ms. Hover and
+     color changes ride plain `ease` (the Tailwind default is overridden
+     below); deliberate motion declares --ease-out-strong explicitly. */
   --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
+  --default-transition-timing-function: ease;
 }
 
 /* Dark theme — the default identity (layout.tsx sets it pre-paint unless
@@ -152,7 +155,43 @@
   }
 }
 .tile-in {
-  animation: tile-in 340ms var(--ease-out-strong) backwards;
+  animation: tile-in 260ms var(--ease-out-strong) backwards;
+}
+
+/* Press feedback — the one press grammar (scale 0.95–0.98, ease-out).
+   Asymmetric on purpose: the press snaps, the release breathes. */
+.pressable {
+  transition: transform 160ms var(--ease-out-strong);
+}
+.pressable:active {
+  transform: scale(0.97);
+  transition-duration: 80ms;
+}
+
+/* Rows inside a freshly flipped pane cascade in, 40ms apart — decorative
+   only, everything stays clickable from frame one. */
+.flip-stagger > * {
+  animation: flip-row-in 200ms var(--ease-out-strong) backwards;
+}
+.flip-stagger > :nth-child(1) { animation-delay: 0ms; }
+.flip-stagger > :nth-child(2) { animation-delay: 40ms; }
+.flip-stagger > :nth-child(3) { animation-delay: 80ms; }
+.flip-stagger > :nth-child(4) { animation-delay: 120ms; }
+.flip-stagger > :nth-child(5) { animation-delay: 160ms; }
+.flip-stagger > :nth-child(6) { animation-delay: 200ms; }
+.flip-stagger > :nth-child(7) { animation-delay: 240ms; }
+.flip-stagger > :nth-child(8) { animation-delay: 280ms; }
+.flip-stagger > :nth-child(9) { animation-delay: 320ms; }
+.flip-stagger > :nth-child(n + 10) { animation-delay: 360ms; }
+@keyframes flip-row-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 /* Tick flash: the terminal-standard wash when a live value changes. */
@@ -173,10 +212,10 @@
   }
 }
 .tick-up {
-  animation: tick-up-kf 700ms var(--ease-out-strong);
+  animation: tick-up-kf 280ms var(--ease-out-strong);
 }
 .tick-down {
-  animation: tick-down-kf 700ms var(--ease-out-strong);
+  animation: tick-down-kf 280ms var(--ease-out-strong);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -195,7 +234,20 @@
   }
   .tick-up,
   .tick-down {
-    animation: none;
+    /* pure-color feedback stays under reduced motion — nothing moves anyway */
+    animation-duration: 200ms;
+  }
+  .flip-stagger > * {
+    animation-duration: 150ms;
+    animation-delay: 0ms !important;
+  }
+  @keyframes flip-row-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
   }
 }
 

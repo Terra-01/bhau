@@ -33,7 +33,7 @@ export function FunCorner({
   baskets: ExchangeData["funBaskets"];
 }) {
   const tabs = [{ id: "songs", label: "Songs" }, ...baskets.map((b) => ({ id: b.id, label: b.name.split(" ")[0] }))];
-  const { index, select, pauseProps, hold } = useCarousel(tabs.length, 23_000);
+  const { index, select, pauseProps, hold } = useCarousel(tabs.length, 36_000, 30_000);
   const tab = tabs[index]?.id ?? "songs";
   const basket = baskets.find((b) => b.id === tab);
 
@@ -65,7 +65,7 @@ export function FunCorner({
         !songs || songs.length === 0 ? (
           <p className="px-3 py-3 text-[11.5px] text-fog">Charts unavailable.</p>
         ) : (
-          <ul className="px-2.5 py-1">
+          <ul className="flip-stagger px-2.5 py-1">
             {mood && (
               <li className="mb-0.5 flex items-baseline gap-1.5 rounded-[4px] bg-paper/70 px-1.5 py-1">
                 <span className="text-[12px]">{mood.emoji}</span>
@@ -126,7 +126,7 @@ export function FunCorner({
             </span>
           </div>
           <p className="mt-0.5 text-[9.5px] leading-snug text-fog">{basket.blurb}</p>
-          <ul className="mt-1.5">
+          <ul className="flip-stagger mt-1.5">
             {basket.constituents.map((c) => (
               <AssetPopover
                 key={c.symbol}
@@ -136,7 +136,7 @@ export function FunCorner({
                   <li
                     role="button"
                     tabIndex={0}
-                    className="flex cursor-pointer items-baseline justify-between border-b border-ash py-[3px] transition-colors duration-150 last:border-b-0 [@media(hover:hover)]:hover:bg-paper/60"
+                    className="pressable flex cursor-pointer items-baseline justify-between border-b border-ash py-[3px] transition-colors duration-150 last:border-b-0 [@media(hover:hover)]:hover:bg-paper/60"
                   >
                     <span className="font-mono text-[10.5px] text-charcoal">{c.symbol}</span>
                     <span className={`font-mono text-[10px] tabular-nums ${deltaClass(c.changePct)}`}>{signedPct(c.changePct)}</span>

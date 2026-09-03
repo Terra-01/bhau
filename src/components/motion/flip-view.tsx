@@ -2,6 +2,7 @@
 
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import type { ReactNode } from "react";
+import { DUR, EASE } from "@/lib/motion";
 
 /**
  * Split-flap view switch for the rotating panels — the incoming view
@@ -21,7 +22,6 @@ export function FlipView({
   className?: string;
 }) {
   const reduce = useReducedMotion();
-  const ease = [0.23, 1, 0.32, 1] as const;
   return (
     <div className={`relative min-h-0 overflow-hidden [perspective:1200px] ${className}`}>
       <AnimatePresence mode="popLayout" initial={false}>
@@ -30,11 +30,11 @@ export function FlipView({
           className="h-full min-h-0"
           style={{ transformOrigin: "50% 0%", backfaceVisibility: "hidden" }}
           initial={reduce ? { opacity: 0 } : { opacity: 0, transform: "rotateX(-62deg)" }}
-          animate={{ opacity: 1, transform: "rotateX(0deg)", transition: { duration: 0.24, ease } }}
+          animate={{ opacity: 1, transform: "rotateX(0deg)", transition: { duration: DUR.flip, ease: EASE } }}
           exit={
             reduce
-              ? { opacity: 0, transition: { duration: 0.14 } }
-              : { opacity: 0, transform: "rotateX(26deg)", transition: { duration: 0.14, ease } }
+              ? { opacity: 0, transition: { duration: DUR.flipOut } }
+              : { opacity: 0, transform: "rotateX(26deg)", transition: { duration: DUR.flipOut, ease: EASE } }
           }
         >
           {children}

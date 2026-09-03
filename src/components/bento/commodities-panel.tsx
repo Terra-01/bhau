@@ -21,6 +21,16 @@ const fmt = new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFr
 export function CommoditiesPanel({ items }: { items: WarRoomData["commodities"] }) {
   const live = useLive<LiveMarket>("/api/live/market", { openMs: 60_000, closedMs: 120_000 });
   const [detail, setDetail] = useState<{ symbol: string; name: string; el: HTMLElement } | null>(null);
+  // Row-to-row: close, then reopen next frame so the card re-originates
+  // from the newly pressed row instead of teleporting across the table.
+  const showDetail = (next: { symbol: string; name: string; el: HTMLElement }) => {
+    if (detail && detail.el !== next.el) {
+      setDetail(null);
+      requestAnimationFrame(() => setDetail(next));
+    } else {
+      setDetail(next);
+    }
+  };
 
   const rows = items.map((item) => {
     const q = live?.commodities?.[item.symbol];
@@ -68,12 +78,12 @@ export function CommoditiesPanel({ items }: { items: WarRoomData["commodities"] 
                       role: "button",
                       tabIndex: 0,
                       onClick: (e: MouseEvent<HTMLTableRowElement>) =>
-                        setDetail({ symbol: item.symbol, name: item.name, el: e.currentTarget }),
+                        showDetail({ symbol: item.symbol, name: item.name, el: e.currentTarget }),
                       onKeyDown: (e: KeyboardEvent<HTMLTableRowElement>) => {
-                        if (e.key === "Enter" || e.key === " ") setDetail({ symbol: item.symbol, name: item.name, el: e.currentTarget });
+                        if (e.key === "Enter" || e.key === " ") showDetail({ symbol: item.symbol, name: item.name, el: e.currentTarget });
                       },
                     })}
-                    className={`border-b border-ash transition-colors duration-150 last:border-b-0 ${clickable ? "cursor-pointer [@media(hover:hover)]:hover:bg-paper/60" : ""}`}
+                    className={`border-b border-ash transition-colors duration-150 last:border-b-0 ${clickable ? "pressable cursor-pointer [@media(hover:hover)]:hover:bg-paper/60" : ""}`}
                   >
                 <td className="px-2.5 py-[3px] text-[11px] font-medium text-charcoal">{item.name}</td>
                 <td className="py-[5px]">

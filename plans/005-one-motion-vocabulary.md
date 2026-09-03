@@ -1,6 +1,6 @@
 # 005 — One motion vocabulary: tokens, shared press feedback, one roll, staggered flaps
 
-- **Status**: TODO
+- **Status**: DONE
 - **Commit**: 85e7692
 - **Severity**: MEDIUM
 - **Category**: Cohesion & tokens / Physicality

@@ -192,7 +192,7 @@ export function AssetCard({ symbol, fallbackName, onRemove }: { symbol: string; 
           <button
             type="button"
             onClick={onRemove}
-            className="flex w-full items-center justify-center gap-1.5 rounded-button bg-loss py-1.5 text-[11px] font-semibold text-white transition-transform duration-150 [transition-timing-function:var(--ease-out-strong)] active:scale-[0.98]"
+            className="pressable flex w-full items-center justify-center gap-1.5 rounded-button bg-loss py-1.5 text-[11px] font-semibold text-white"
           >
             <Trash2 size={12} /> Remove from watchlist
           </button>

@@ -59,10 +59,10 @@ export default async function Feed() {
           <div className="tile-in min-h-0 flex-[1.42]">
             <WatchlistPanel />
           </div>
-          <div className="tile-in min-h-0 flex-[0.82]" style={{ animationDelay: "120ms" }}>
+          <div className="tile-in min-h-0 flex-[0.82]" style={{ animationDelay: "160ms" }}>
             <RatesPanel rates={rates} />
           </div>
-          <div className="tile-in min-h-0 flex-[0.6]" style={{ animationDelay: "240ms" }}>
+          <div className="tile-in min-h-0 flex-[0.6]" style={{ animationDelay: "280ms" }}>
             <FunCorner songs={data.songs} mood={data.songMood} baskets={exchange.funBaskets} />
           </div>
         </div>
@@ -72,13 +72,13 @@ export default async function Feed() {
           <div className="tile-in min-h-0 flex-[0.78]" style={{ animationDelay: "40ms" }}>
             <MoversPanel data={exchange} sectors={data.sectors} />
           </div>
-          <div className="tile-in min-h-0 flex-[0.62]" style={{ animationDelay: "100ms" }}>
+          <div className="tile-in min-h-0 flex-[0.62]" style={{ animationDelay: "120ms" }}>
             <EtfPanel etfs={exchange.etfs} asOf={exchange.asOf} />
           </div>
-          <div className="tile-in min-h-0 flex-[1.03]" style={{ animationDelay: "160ms" }}>
+          <div className="tile-in min-h-0 flex-[1.03]" style={{ animationDelay: "200ms" }}>
             <FloorTile floor={data.floor} race={data.race} />
           </div>
-          <div className="tile-in min-h-0 flex-[1.0]" style={{ animationDelay: "280ms" }}>
+          <div className="tile-in min-h-0 flex-[1.0]" style={{ animationDelay: "320ms" }}>
             <WhatMattersPanel synthesis={data.synthesis} news={data.news} flows={data.flows} fiiStreak={data.fiiStreak} />
           </div>
         </div>
@@ -90,13 +90,13 @@ export default async function Feed() {
             <CityTile weather={data.weather} pulse={data.cityPulse} />
             <ForexRates forex={exchange.forex} />
           </div>
-          <div className="tile-in min-h-0 flex-[0.8]" style={{ animationDelay: "200ms" }}>
+          <div className="tile-in min-h-0 flex-[0.8]" style={{ animationDelay: "240ms" }}>
             <CalendarPanel data={exchange} todayIso={todayIso} />
           </div>
-          <div className="tile-in min-h-0 shrink-0" style={{ animationDelay: "320ms" }}>
+          <div className="tile-in min-h-0 shrink-0" style={{ animationDelay: "360ms" }}>
             <CommoditiesPanel items={data.commodities} />
           </div>
-          <div className="tile-in min-h-0 flex-[1.2]" style={{ animationDelay: "360ms" }}>
+          <div className="tile-in min-h-0 flex-[1.2]" style={{ animationDelay: "400ms" }}>
             <TvTile />
           </div>
         </div>

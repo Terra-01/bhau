@@ -42,6 +42,16 @@ function insight(rows: Row[]): string | null {
 export function ForexRates({ forex }: { forex: ExchangeData["forex"] }) {
   const liveMkt = useLive<LiveMarket>("/api/live/market", { openMs: 60_000, closedMs: 120_000 });
   const [detail, setDetail] = useState<{ symbol: string; name: string; el: HTMLElement } | null>(null);
+  // Row-to-row: close, then reopen next frame so the card re-originates
+  // from the newly pressed row instead of teleporting across the table.
+  const showDetail = (next: { symbol: string; name: string; el: HTMLElement }) => {
+    if (detail && detail.el !== next.el) {
+      setDetail(null);
+      requestAnimationFrame(() => setDetail(next));
+    } else {
+      setDetail(next);
+    }
+  };
 
   const rows: Row[] = (forex ?? []).map((row) => {
     const q = liveMkt?.fx?.[row.pair];
@@ -80,7 +90,7 @@ export function ForexRates({ forex }: { forex: ExchangeData["forex"] }) {
               {rows.map((row) => {
                 const scale = row.pair === "JPY" ? 100 : 1;
                 const openDetail = (el: HTMLElement) =>
-                  setDetail({ symbol: row.pair === "USD" ? "INR=X" : `${row.pair}INR=X`, name: `${row.pair}/INR`, el });
+                  showDetail({ symbol: row.pair === "USD" ? "INR=X" : `${row.pair}INR=X`, name: `${row.pair}/INR`, el });
                 return (
                       <tr
                         key={row.pair}
@@ -90,7 +100,7 @@ export function ForexRates({ forex }: { forex: ExchangeData["forex"] }) {
                         onKeyDown={(e) => {
                           if (e.key === "Enter" || e.key === " ") openDetail(e.currentTarget);
                         }}
-                        className="cursor-pointer border-b border-ash transition-colors duration-150 last:border-b-0 [@media(hover:hover)]:hover:bg-paper/60"
+                        className="pressable cursor-pointer border-b border-ash transition-colors duration-150 last:border-b-0 [@media(hover:hover)]:hover:bg-paper/60"
                       >
                     <td className="px-2.5 py-[3px] font-mono text-[10px] font-semibold leading-none text-charcoal">
                       {row.pair}

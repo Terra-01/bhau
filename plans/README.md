@@ -1,18 +1,18 @@
 # Motion plans — Bhau board choreography
 
-Written by the `improve-animations` audit at commit `85e7692` (2026-09-03). Each plan is
+Written by the `improve-animations` audit at commit `85e7692` (2026-09-03); all six executed the same day (001's bar corrected to 36s/6s-comb, 002 shipped its inner-wrapper zoom fallback). Each plan is
 self-contained: an executor needs no other context. Source audit: four category passes
 (purpose/easing, physicality/interruptibility, performance/accessibility,
 cohesion/missed-opportunities) over the full `src/` motion surface.
 
 | # | Plan | Severity | Status |
 |---|---|---|---|
-| 001 | [Conduct the idle loop](001-conduct-the-idle-loop.md) — one clock, deliberate beats, no collisions | HIGH | TODO |
-| 002 | [Detail-layer motion](002-detail-layer-motion.md) — origin-true, interruptible, reduced-motion popovers | HIGH | TODO |
-| 003 | [Calm the tick](003-calm-the-tick.md) — batched flashes, 280ms, reduced-motion keeps color | HIGH | TODO |
-| 004 | [Hero chart transitions](004-hero-chart-transitions.md) — tour crossfade, label roll, scrim fade | MEDIUM | TODO |
-| 005 | [One motion vocabulary](005-one-motion-vocabulary.md) — tokens, press feedback, row stagger, tile-in retime | MEDIUM | TODO |
-| 006 | [Icon family discipline](006-icon-family-discipline.md) — house timing, no loops, gated triggers | MEDIUM | TODO |
+| 001 | [Conduct the idle loop](001-conduct-the-idle-loop.md) — one clock, deliberate beats, no collisions | HIGH | DONE |
+| 002 | [Detail-layer motion](002-detail-layer-motion.md) — origin-true, interruptible, reduced-motion popovers | HIGH | DONE |
+| 003 | [Calm the tick](003-calm-the-tick.md) — batched flashes, 280ms, reduced-motion keeps color | HIGH | DONE |
+| 004 | [Hero chart transitions](004-hero-chart-transitions.md) — tour crossfade, label roll, scrim fade | MEDIUM | DONE |
+| 005 | [One motion vocabulary](005-one-motion-vocabulary.md) — tokens, press feedback, row stagger, tile-in retime | MEDIUM | DONE |
+| 006 | [Icon family discipline](006-icon-family-discipline.md) — house timing, no loops, gated triggers | MEDIUM | DONE |
 
 ## Recommended order & dependencies
 

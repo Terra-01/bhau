@@ -10,6 +10,7 @@ import { TickFlash } from "@/components/motion/tick-flash";
 import { PlusIcon } from "@/components/ui/plus";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { deltaClass, signedPct } from "@/lib/format";
+import { useCadence } from "@/lib/cadence";
 import { isLive, phaseAt, type MarketPhase } from "@/lib/market-clock";
 import { Tile } from "../tiles/tile";
 import { MarketChart } from "./market-chart";
@@ -28,7 +29,8 @@ const DEFAULTS = [
   "AXISBANK", "ULTRACEMCO", "NTPC",
 ];
 const NAME_OF: Record<string, string> = { "^NSEI": "NIFTY 50", "^BSESN": "SENSEX" };
-const ROTATE_MS = 5_000;
+const ROTATE_MS = 9_000; // the cadence bar's quarter-beat slot (see lib/cadence.ts)
+const ROTATE_OFFSET_MS = 4_500;
 const HOLD_MS = 45_000;
 
 interface Quote {
@@ -122,18 +124,15 @@ export function WatchlistPanel() {
   }, [list]);
 
   // The chart tours the list on its own; interacting holds it.
-  useEffect(() => {
+  useCadence(ROTATE_MS, ROTATE_OFFSET_MS, () => {
     if (!list || list.length === 0) return;
-    const id = setInterval(() => {
-      if (document.hidden || hovering.current || Date.now() < holdUntil.current) return;
-      setView((current) => {
-        const next = list[(list.indexOf(current.selected) + 1) % list.length] ?? list[0];
-        const listIndex = list.indexOf(next);
-        return { selected: next, page: listIndex >= 0 ? Math.floor(listIndex / PAGE_SIZE) : current.page };
-      });
-    }, ROTATE_MS);
-    return () => clearInterval(id);
-  }, [list]);
+    if (document.hidden || hovering.current || Date.now() < holdUntil.current) return;
+    setView((current) => {
+      const next = list[(list.indexOf(current.selected) + 1) % list.length] ?? list[0];
+      const listIndex = list.indexOf(next);
+      return { selected: next, page: listIndex >= 0 ? Math.floor(listIndex / PAGE_SIZE) : current.page };
+    });
+  });
 
   const selectSymbol = useCallback((symbol: string) => {
     holdUntil.current = Date.now() + HOLD_MS;
@@ -155,7 +154,7 @@ export function WatchlistPanel() {
   }, [draft, list]);
 
   const rowClass = (symbol: string) =>
-    `flex w-full items-baseline gap-2 border-b border-ash px-2.5 py-[3px] text-left transition-colors duration-150 last:border-b-0 ${
+    `pressable flex w-full items-baseline gap-2 border-b border-ash px-2.5 py-[3px] text-left transition-colors duration-150 last:border-b-0 ${
       selected === symbol ? "bg-paper" : "[@media(hover:hover)]:hover:bg-paper/60"
     }`;
 
@@ -174,7 +173,7 @@ export function WatchlistPanel() {
           <Popover>
             <PopoverTrigger
               title="Add to watchlist"
-              className="flex items-center gap-0.5 rounded-full border border-ash px-1.5 py-px font-sans text-[9px] font-semibold text-steel transition-colors duration-150 [@media(hover:hover)]:hover:bg-paper"
+              className="pressable flex items-center gap-0.5 rounded-full border border-ash px-1.5 py-px font-sans text-[9px] font-semibold text-steel transition-colors duration-150 [@media(hover:hover)]:hover:bg-paper"
             >
               <PlusIcon size={9} className="flex" /> ADD
             </PopoverTrigger>
@@ -193,7 +192,7 @@ export function WatchlistPanel() {
                   className="min-w-0 flex-1 rounded-input border border-pebble bg-canvas px-2 py-1 font-mono text-[11px] uppercase text-charcoal outline-none placeholder:font-sans placeholder:normal-case placeholder:text-silver focus:border-charcoal"
                   maxLength={20}
                 />
-                <button type="submit" disabled={!list || list.length >= MAX} className="rounded-button bg-charcoal px-2.5 text-[11px] font-medium text-canvas transition-transform duration-150 active:scale-[0.97] disabled:opacity-40">
+                <button type="submit" disabled={!list || list.length >= MAX} className="pressable rounded-button bg-charcoal px-2.5 text-[11px] font-medium text-canvas disabled:opacity-40">
                   Add
                 </button>
               </form>
@@ -215,7 +214,7 @@ export function WatchlistPanel() {
           <MarketChart symbol={selected} label={NAME_OF[selected] ?? selected} />
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto">
-          <FlipView id={page}>
+          <FlipView id={page} className="flip-stagger">
           {visible.map((symbol) => {
             const quote = quotes.get(symbol);
             const isIndex = symbol.startsWith("^");
@@ -275,7 +274,7 @@ export function WatchlistPanel() {
                         goPage(-1);
                       }}
                       disabled={page === 0}
-                      className="px-0.5 disabled:opacity-30 [@media(hover:hover)]:hover:text-ink"
+                      className="pressable px-0.5 disabled:opacity-30 [@media(hover:hover)]:hover:text-ink"
                     >
                       ‹
                     </button>
@@ -289,7 +288,7 @@ export function WatchlistPanel() {
                         goPage(1);
                       }}
                       disabled={page === pages - 1}
-                      className="px-0.5 disabled:opacity-30 [@media(hover:hover)]:hover:text-ink"
+                      className="pressable px-0.5 disabled:opacity-30 [@media(hover:hover)]:hover:text-ink"
                     >
                       ›
                     </button>

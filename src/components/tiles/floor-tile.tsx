@@ -202,7 +202,7 @@ export function FloorTile({
                       <li
                         role="button"
                         tabIndex={0}
-                        className="flex cursor-pointer items-baseline gap-1.5 rounded-[4px] px-1.5 py-[2px] transition-colors duration-150 [@media(hover:hover)]:hover:bg-paper"
+                        className="pressable flex cursor-pointer items-baseline gap-1.5 rounded-[4px] px-1.5 py-[2px] transition-colors duration-150 [@media(hover:hover)]:hover:bg-paper"
                       >
                         <span className="w-4 font-mono text-[9.5px] tabular-nums text-silver">{String(i + 1).padStart(2, "0")}</span>
                         <span className="inline-flex min-w-0 items-center gap-1.5 truncate text-[11.5px] font-medium text-charcoal">

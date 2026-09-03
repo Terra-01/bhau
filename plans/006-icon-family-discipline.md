@@ -1,6 +1,6 @@
 # 006 — Discipline the animated icon family: house timing, no infinite loops, gated triggers
 
-- **Status**: TODO
+- **Status**: DONE
 - **Commit**: 85e7692
 - **Severity**: MEDIUM
 - **Category**: Easing & duration / Accessibility / Cohesion

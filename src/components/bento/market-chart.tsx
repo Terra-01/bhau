@@ -1,7 +1,9 @@
 "use client";
 
 import { AreaSeries, createChart, type IChartApi, type ISeriesApi, type UTCTimestamp } from "lightweight-charts";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { DUR, EASE } from "@/lib/motion";
 import { alpha, baseChartOptions, themeTokens } from "@/lib/lw-theme";
 import { isLive, phaseAt } from "@/lib/market-clock";
 
@@ -42,6 +44,7 @@ const freshCached = (key: string, intraday: boolean) => {
 };
 
 export function MarketChart({ symbol, label }: { symbol: string; label?: string }) {
+  const reduce = useReducedMotion();
   const container = useRef<HTMLDivElement | null>(null);
   const instance = useRef<{ chart: IChartApi; area: ISeriesApi<"Area"> } | null>(null);
 
@@ -127,9 +130,25 @@ export function MarketChart({ symbol, label }: { symbol: string; label?: string 
   useEffect(() => {
     const inst = instance.current;
     if (!inst || loading) return; // keep the outgoing series while the next load runs
+    // The largest element on the board must not teleport: dip the canvas,
+    // swap the series, rise on the house curve (opacity-only, so it also
+    // satisfies reduced motion by construction).
+    const el = container.current;
+    if (el) el.style.opacity = "0";
     inst.chart.applyOptions({ timeScale: { timeVisible: intraday, secondsVisible: false } });
     inst.area.setData(data);
     inst.chart.timeScale().fitContent();
+    let inner = 0;
+    const outer = requestAnimationFrame(() => {
+      inner = requestAnimationFrame(() => {
+        if (el) el.style.opacity = "1";
+      });
+    });
+    return () => {
+      cancelAnimationFrame(outer);
+      cancelAnimationFrame(inner);
+      if (el) el.style.opacity = "1";
+    };
   }, [data, loading, intraday]);
 
   const empty = failed || (!loading && data.length < 2);
@@ -137,14 +156,34 @@ export function MarketChart({ symbol, label }: { symbol: string; label?: string 
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="relative min-h-0 flex-1">
-        <div ref={container} className="absolute inset-0" />
-        {/* the instrument, where every trading terminal puts it */}
-        <div className="pointer-events-none absolute left-2 top-1 z-10 text-[10.5px] font-semibold tracking-tight text-ink/80">
-          {label ?? symbol}
+        <div ref={container} className="absolute inset-0 transition-opacity duration-[140ms] [transition-timing-function:var(--ease-out-strong)]" />
+        {/* the instrument, where every trading terminal puts it — rolls on
+            symbol change like every other value on the board */}
+        <div className="pointer-events-none absolute left-2 top-1 z-10 overflow-hidden text-[10.5px] font-semibold tracking-tight text-ink/80">
+          <AnimatePresence mode="popLayout" initial={false}>
+            <motion.span
+              key={label ?? symbol}
+              className="block"
+              initial={reduce ? { opacity: 0 } : { opacity: 0, transform: "translateY(0.7em)" }}
+              animate={{ opacity: 1, transform: "translateY(0em)", transition: { duration: DUR.enter, ease: EASE } }}
+              exit={
+                reduce
+                  ? { opacity: 0, transition: { duration: DUR.exit } }
+                  : { opacity: 0, transform: "translateY(-0.7em)", transition: { duration: DUR.exit, ease: EASE } }
+              }
+            >
+              {label ?? symbol}
+            </motion.span>
+          </AnimatePresence>
         </div>
-        {loading ? (
-          <div className="absolute inset-0 flex items-center justify-center bg-canvas/60 text-[10px] text-fog">Loading…</div>
-        ) : empty ? (
+        <div
+          className={`absolute inset-0 flex items-center justify-center bg-canvas/60 text-[10px] text-fog transition-opacity duration-[140ms] [transition-timing-function:var(--ease-out-strong)] ${
+            loading ? "opacity-100" : "pointer-events-none opacity-0"
+          }`}
+        >
+          Loading…
+        </div>
+        {!loading && empty ? (
           <div className="absolute inset-0 flex items-center justify-center bg-canvas text-[11px] text-fog">
             {failed ? `No chart data for ${symbol}.` : "Not enough history yet."}
           </div>
@@ -156,7 +195,7 @@ export function MarketChart({ symbol, label }: { symbol: string; label?: string 
             key={tf.label}
             type="button"
             onClick={() => setTimeframe(tf)}
-            className={`rounded-button px-2 py-px font-mono text-[10px] font-medium transition-colors duration-150 ${
+            className={`pressable rounded-button px-2 py-px font-mono text-[10px] font-medium transition-colors duration-150 ${
               timeframe.label === tf.label ? "bg-charcoal text-canvas" : "text-fog [@media(hover:hover)]:hover:bg-paper"
             }`}
           >

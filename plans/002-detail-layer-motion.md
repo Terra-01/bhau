@@ -1,6 +1,6 @@
 # 002 — Give the detail layer the house motion: origin-true, interruptible, reduced-motion-aware
 
-- **Status**: TODO
+- **Status**: DONE (zoom-on-Positioner broke floating-ui's coordinate math as the plan anticipated — shipped the inner-wrapper fallback: zoom on a content div inside the Popup, position and origin in unzoomed space)
 - **Commit**: 85e7692
 - **Severity**: HIGH
 - **Category**: Easing & duration / Physicality & origin / Accessibility

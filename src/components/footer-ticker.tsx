@@ -1,6 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { DUR, EASE } from "@/lib/motion";
 import { useCarousel } from "@/lib/use-carousel";
 
 // The footer carries the honesty protocol in rotation: disclaimers, the
@@ -15,7 +16,7 @@ const MESSAGES = [
 ];
 
 export function FooterTicker() {
-  const { index, pauseProps } = useCarousel(MESSAGES.length, 7_000);
+  const { index, pauseProps } = useCarousel(MESSAGES.length, 12_000, 3_000);
   const reduce = useReducedMotion();
   return (
     <span className="relative min-w-0 flex-1 overflow-hidden" {...pauseProps}>
@@ -24,11 +25,11 @@ export function FooterTicker() {
           key={index}
           className="block truncate"
           initial={reduce ? { opacity: 0 } : { opacity: 0, transform: "translateY(0.7em)" }}
-          animate={{ opacity: 1, transform: "translateY(0em)", transition: { duration: 0.2, ease: [0.23, 1, 0.32, 1] } }}
+          animate={{ opacity: 1, transform: "translateY(0em)", transition: { duration: DUR.enter, ease: EASE } }}
           exit={
             reduce
-              ? { opacity: 0, transition: { duration: 0.12 } }
-              : { opacity: 0, transform: "translateY(-0.7em)", transition: { duration: 0.12, ease: [0.23, 1, 0.32, 1] } }
+              ? { opacity: 0, transition: { duration: DUR.exit } }
+              : { opacity: 0, transform: "translateY(-0.7em)", transition: { duration: DUR.exit, ease: EASE } }
           }
         >
           {MESSAGES[index]}

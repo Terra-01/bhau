@@ -1,6 +1,6 @@
 # 003 — Calm the tick: batch the flash restarts, shorten the wash, keep it under reduced motion
 
-- **Status**: TODO
+- **Status**: DONE
 - **Commit**: 85e7692
 - **Severity**: HIGH
 - **Category**: Performance / Easing & duration / Accessibility

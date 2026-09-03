@@ -2,6 +2,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { loadEnv } from "@/lib/load-env";
 import { computeRegime } from "@/lib/regime";
 import { buildBriefingPack } from "./briefing";
+import { buildQuant, type QuantSheet } from "./quant";
 import { amfiFetcher } from "./sources/amfi";
 import { bhavcopyFetcher } from "./sources/bhavcopy";
 import { fiiDiiFetcher } from "./sources/fii-dii";
@@ -168,7 +169,31 @@ async function main() {
   for (const list of Object.values(barsBySymbol)) list.sort((a, b) => a.date.localeCompare(b.date));
 
   const regime = computeRegime(barsBySymbol);
-  const pack = buildBriefingPack(todayIST(), events, barsBySymbol, regime);
+  // Quant sheet: archive history for the universe (backfilled + rolling
+  // bhavcopy) merged with this run's bars. Absent without a DB — the
+  // agents are told the sheet can be missing on degraded days.
+  let quant: QuantSheet | undefined;
+  if (process.env.DATABASE_URL) {
+    try {
+      const { prisma } = await import("@/lib/db");
+      const { NIFTY100, ETF_WHITELIST } = await import("@/agents/universe");
+      const since = new Date(Date.now() - 450 * 86_400_000);
+      const history = await prisma.dailyBar.findMany({
+        where: { symbol: { in: [...NIFTY100, ...ETF_WHITELIST, "^NSEI"] }, date: { gte: since } },
+        orderBy: { date: "asc" },
+        select: { symbol: true, date: true, close: true },
+      });
+      quant = buildQuant(
+        history.map((h) => ({ symbol: h.symbol, date: h.date.toISOString().slice(0, 10), close: h.close })),
+        barsBySymbol,
+        todayIST(),
+      );
+      console.log(`[quant] ${quant.rows.length} symbols, ${quant.historyDays} sessions of history`);
+    } catch (err) {
+      console.warn(`[quant] unavailable — ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+  const pack = buildBriefingPack(todayIST(), events, barsBySymbol, regime, quant);
   try {
     const { synthesize } = await import("./synthesize");
     const synthesis = await synthesize(pack);

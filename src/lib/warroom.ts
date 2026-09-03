@@ -62,8 +62,32 @@ export interface WarRoomData {
       symbol?: string;
       allocationPct?: number;
       thesis: string;
+      trigger?: string;
       accepted: boolean;
       rejectReason?: string;
+      packDate?: string;
+    }>;
+    /** Current book per agent (from AgentState). */
+    books: Record<string, { cash: number; positions: Array<{ symbol: string; qty: number; avgCost: number }> }>;
+    /** The public record: every FILL ever + recent DECISION/NOTE entries, newest first. */
+    log: Array<{
+      seq: number;
+      ts: Date;
+      kind: string;
+      agentId: string;
+      action?: string;
+      symbol?: string;
+      allocationPct?: number;
+      qty?: number;
+      price?: number;
+      costs?: number;
+      status?: string;
+      thesis?: string;
+      trigger?: string;
+      accepted?: boolean;
+      rejectReason?: string;
+      note?: string;
+      packDate?: string;
     }>;
   };
 }
@@ -399,10 +423,54 @@ export async function getWarRoomData(): Promise<WarRoomData | null> {
       symbol: p.symbol as string | undefined,
       allocationPct: p.allocationPct as number | undefined,
       thesis: String(p.thesis ?? ""),
+      trigger: p.trigger as string | undefined,
       accepted: Boolean(p.accepted),
       rejectReason: p.rejectReason as string | undefined,
+      packDate: p.packDate as string | undefined,
     };
   });
+
+  // Current books — the positions behind each equity number.
+  const stateRows = await prisma.agentState.findMany();
+  const books: WarRoomData["floor"]["books"] = {};
+  for (const row of stateRows) {
+    const positions = row.positions as unknown as Record<string, { qty: number; avgCost: number }>;
+    books[row.id] = {
+      cash: row.cash,
+      positions: Object.entries(positions).map(([symbol, pos]) => ({ symbol, qty: pos.qty, avgCost: pos.avgCost })),
+    };
+  }
+
+  // The public record: fills are the actual trades (rare by design) — ship
+  // them all; decisions/notes grow ~5/day, so cap the recent window.
+  const [fillRows, recentRows] = await Promise.all([
+    prisma.ledgerEntry.findMany({ where: { kind: "FILL" }, orderBy: { seq: "desc" } }),
+    prisma.ledgerEntry.findMany({ where: { kind: { in: ["DECISION", "NOTE"] } }, orderBy: { seq: "desc" }, take: 40 }),
+  ]);
+  const log = [...fillRows, ...recentRows]
+    .sort((a, b) => b.seq - a.seq)
+    .map((e) => {
+      const p = e.payload as Record<string, unknown>;
+      return {
+        seq: e.seq,
+        ts: e.ts,
+        kind: e.kind,
+        agentId: e.agentId,
+        action: p.action as string | undefined,
+        symbol: p.symbol as string | undefined,
+        allocationPct: p.allocationPct as number | undefined,
+        qty: p.qty as number | undefined,
+        price: p.price as number | undefined,
+        costs: p.costs as number | undefined,
+        status: p.status as string | undefined,
+        thesis: p.thesis as string | undefined,
+        trigger: p.trigger as string | undefined,
+        accepted: p.accepted as boolean | undefined,
+        rejectReason: (p.rejectReason ?? p.reason) as string | undefined,
+        note: p.note as string | undefined,
+        packDate: (p.packDate ?? p.fillDate) as string | undefined,
+      };
+    });
 
   // --- movers: best/worst NIFTY 100 names across the two latest sessions
   const movers: WarRoomData["movers"] = { gainers: [], losers: [] };
@@ -513,6 +581,8 @@ export async function getWarRoomData(): Promise<WarRoomData | null> {
       date: latestSnapDate?.date.toISOString().slice(0, 10) ?? pack.date,
       scoreboard,
       theses,
+      books,
+      log,
     },
   };
 }

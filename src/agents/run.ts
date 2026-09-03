@@ -25,6 +25,8 @@ interface DecisionPayload {
   allocationPct?: number;
   fraction?: number;
   thesis: string;
+  /** NO_TRADE only: the published condition that would flip it. */
+  trigger?: string;
   marketRead: string;
   accepted: boolean;
   rejectReason?: string;
@@ -175,7 +177,13 @@ async function main() {
         if (validated.length === 0) {
           writes.push({
             ts: new Date(), kind: "DECISION", agentId: persona.id,
-            payload: { ...base, action: "NO_TRADE", accepted: true, thesis: result.noTradeReason ?? result.marketRead } satisfies DecisionPayload,
+            payload: {
+              ...base,
+              action: "NO_TRADE",
+              accepted: true,
+              thesis: result.noTradeReason ?? result.marketRead,
+              trigger: result.noTradeTrigger,
+            } satisfies DecisionPayload,
           });
           summary.push(`[decide:${persona.id}] NO_TRADE`);
         }

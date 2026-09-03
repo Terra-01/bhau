@@ -10,10 +10,13 @@ name: daily-ingest
 on:
   schedule:
     # Off-peak minutes fire with far less GitHub jitter than :30 (observed
-    # multi-hour drift). Second firing is a safety net — ingest is
-    # idempotent and the floor loop is once-per-session guarded.
+    # multi-hour drift; Sep 1–2 the scheduler ran 3–6h late or skipped a
+    # firing entirely). Later firings are safety nets — ingest is
+    # idempotent and the floor loop is once-per-session guarded, so a
+    # redundant run no-ops.
     - cron: "47 11 * * 1-5" # ~17:17 IST, Mon–Fri (after the 15:30 close)
     - cron: "17 14 * * 1-5" # ~19:47 IST fallback
+    - cron: "47 17 * * 1-5" # ~23:17 IST last-chance net before the IST day ends
   workflow_dispatch: {}
 
 concurrency: daily-ingest

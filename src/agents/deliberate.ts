@@ -34,12 +34,20 @@ const DeliberationSchema = z.object({
     .string()
     .nullable()
     .describe("If decisions is empty: why sitting out is the right call today."),
+  noTradeTrigger: z
+    .string()
+    .nullable()
+    .describe(
+      "If decisions is empty: the specific, falsifiable condition (a level, a signal, a threshold) that would put you in the market. Published verbatim.",
+    ),
 });
 
 export interface Deliberation {
   marketRead: string;
   proposals: ProposedDecision[];
   noTradeReason?: string;
+  /** The published condition that would flip a NO_TRADE into a position. */
+  noTradeTrigger?: string;
 }
 
 const MODEL = "gpt-5.6-luna";
@@ -57,7 +65,9 @@ function dietFilteredPack(pack: BriefingPack, persona: Persona) {
   for (const category of persona.diet) {
     if (pack.news[category]) news[category] = pack.news[category];
   }
-  return { date: pack.date, regime: pack.regime, markets: pack.markets, news };
+  // The diet filters news, not market data — every persona sees the quant
+  // sheet (price evidence for the whole universe).
+  return { date: pack.date, regime: pack.regime, markets: pack.markets, quant: pack.quant, news };
 }
 
 export async function deliberate(
@@ -115,5 +125,6 @@ export async function deliberate(
       thesis: d.thesis,
     })),
     noTradeReason: out.noTradeReason ?? undefined,
+    noTradeTrigger: out.noTradeTrigger ?? undefined,
   };
 }

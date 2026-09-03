@@ -1,4 +1,5 @@
 import type { RegimeResult } from "@/lib/regime";
+import type { QuantSheet } from "./quant";
 import { SYMBOL_NAMES } from "./symbols";
 import type { IngestBar, IngestEvent } from "./types";
 
@@ -10,6 +11,9 @@ export interface BriefingPack {
   /** Daily desk synthesis — attached after assembly by src/ingest/synthesize.ts. */
   synthesis?: { headline: string; bullets: Array<{ text: string; tone: "risk" | "constructive" | "neutral" }> };
   regime: RegimeResult | null;
+  /** Per-symbol price evidence for the tradeable universe — built from the
+   *  DailyBar archive (src/ingest/quant.ts); absent on dry runs without a DB. */
+  quant?: QuantSheet;
   markets: Array<{
     symbol: string;
     name: string;
@@ -30,6 +34,7 @@ export function buildBriefingPack(
   events: IngestEvent[],
   barsBySymbol: Record<string, IngestBar[]>,
   regime: RegimeResult | null,
+  quant?: QuantSheet,
 ): BriefingPack {
   // Trading-day heuristic: an INDIAN instrument has a bar dated today.
   // Global symbols are excluded — a late-US Brent close rolls into
@@ -77,5 +82,5 @@ export function buildBriefingPack(
     });
   }
 
-  return { date, generatedAt: new Date().toISOString(), tradingDay, regime, markets, news };
+  return { date, generatedAt: new Date().toISOString(), tradingDay, regime, quant, markets, news };
 }

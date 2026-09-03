@@ -44,7 +44,7 @@ function PopoverContent({
             // house-curve enter/exit as retargetable transitions — a
             // reopen mid-close hands off instead of restarting from zero;
             // reduced motion pins the scale and keeps the fade
-            "z-50 flex w-72 origin-(--transform-origin) flex-col gap-2.5 rounded-lg bg-popover p-2.5 text-sm text-popover-foreground shadow-md ring-1 ring-foreground/10 outline-hidden transition-[transform,opacity] duration-[170ms] [transition-timing-function:var(--ease-out-strong)] data-[starting-style]:scale-95 data-[starting-style]:opacity-0 data-[ending-style]:scale-[0.97] data-[ending-style]:opacity-0 motion-reduce:data-[starting-style]:scale-100 motion-reduce:data-[ending-style]:scale-100",
+            "z-50 flex w-72 origin-(--transform-origin) flex-col gap-2.5 rounded-lg bg-popover p-2.5 text-sm text-popover-foreground shadow-md ring-1 ring-foreground/10 outline-hidden transition-[transform,opacity] duration-100 [transition-timing-function:var(--ease-out-strong)] data-[starting-style]:scale-95 data-[starting-style]:opacity-0 data-[ending-style]:scale-[0.97] data-[ending-style]:opacity-0 motion-reduce:data-[starting-style]:scale-100 motion-reduce:data-[ending-style]:scale-100",
             className
           )}
           {...popupProps}

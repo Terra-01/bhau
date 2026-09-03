@@ -1,6 +1,6 @@
 # Motion plans — Bhau board choreography
 
-Written by the `improve-animations` audit at commit `85e7692` (2026-09-03); all six executed the same day (001's bar corrected to 36s/6s-comb, 002 shipped its inner-wrapper zoom fallback). Each plan is
+Written by the `improve-animations` audit at commit `85e7692` (2026-09-03); all six executed the same day (001's bar corrected to 36s/6s-comb, 002 shipped its inner-wrapper zoom fallback). Owner feel-pass afterwards: all change-animation durations halved (flip 120ms, rolls 90/60ms, stagger 100ms@20ms steps, tile-in 130ms@20ms ladder, tick 140ms, chart fade 70ms, popover 100ms); cadence periods unchanged. Each plan is
 self-contained: an executor needs no other context. Source audit: four category passes
 (purpose/easing, physicality/interruptibility, performance/accessibility,
 cohesion/missed-opportunities) over the full `src/` motion surface.

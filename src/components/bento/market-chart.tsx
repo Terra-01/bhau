@@ -156,7 +156,7 @@ export function MarketChart({ symbol, label }: { symbol: string; label?: string 
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="relative min-h-0 flex-1">
-        <div ref={container} className="absolute inset-0 transition-opacity duration-[140ms] [transition-timing-function:var(--ease-out-strong)]" />
+        <div ref={container} className="absolute inset-0 transition-opacity duration-[70ms] [transition-timing-function:var(--ease-out-strong)]" />
         {/* the instrument, where every trading terminal puts it — rolls on
             symbol change like every other value on the board */}
         <div className="pointer-events-none absolute left-2 top-1 z-10 overflow-hidden text-[10.5px] font-semibold tracking-tight text-ink/80">
@@ -177,7 +177,7 @@ export function MarketChart({ symbol, label }: { symbol: string; label?: string 
           </AnimatePresence>
         </div>
         <div
-          className={`absolute inset-0 flex items-center justify-center bg-canvas/60 text-[10px] text-fog transition-opacity duration-[140ms] [transition-timing-function:var(--ease-out-strong)] ${
+          className={`absolute inset-0 flex items-center justify-center bg-canvas/60 text-[10px] text-fog transition-opacity duration-[70ms] [transition-timing-function:var(--ease-out-strong)] ${
             loading ? "opacity-100" : "pointer-events-none opacity-0"
           }`}
         >

@@ -4,9 +4,9 @@ export const EASE = [0.23, 1, 0.32, 1] as const;
 
 export const DUR = {
   /** value/label rolls (SlideValue, FooterTicker, chart label) */
-  enter: 0.18,
-  exit: 0.12,
+  enter: 0.09,
+  exit: 0.06,
   /** split-flap panes (FlipView) */
-  flip: 0.24,
-  flipOut: 0.14,
+  flip: 0.12,
+  flipOut: 0.07,
 } as const;

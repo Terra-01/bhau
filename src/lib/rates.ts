@@ -83,7 +83,7 @@ async function fetchMmi(): Promise<RatesData["mmi"]> {
 }
 
 export async function getRatesData(): Promise<RatesData | null> {
-  const symbols = [...CURVE.map((c) => c.symbol), "RBIREPO", "RBICRR", "RBISLR", "US10Y"];
+  const symbols = [...CURVE.map((c) => c.symbol), "RBIREPO", "RBICRR", "RBISLR", "US10Y", "^MMI"];
   const since = new Date(Date.now() - 120 * 86_400_000);
   const [rows, macro, mmi] = await Promise.all([
     prisma.dailyBar.findMany({
@@ -139,5 +139,16 @@ export async function getRatesData(): Promise<RatesData | null> {
     if (us10) spreads.push({ id: "inus", label: "vs US 10Y", bps: Math.round((y10.value - us10.close) * 100) });
   }
 
-  return { asOf, curve, y10, repo, ratios, spreads, macro, mmi };
+  // MMI archive-first (the mmi fetcher writes ^MMI daily); the live call
+  // is the fallback for hours before today's ingest has run.
+  const mmiBar = bySymbol.get("^MMI")?.at(-1);
+  const archivedMmi =
+    mmiBar && mmiBar.date >= new Date(Date.now() - 2 * 86_400_000).toISOString().slice(0, 10)
+      ? {
+          value: mmiBar.close,
+          zone: mmiBar.close < 30 ? "Extreme Fear" : mmiBar.close < 50 ? "Fear" : mmiBar.close < 70 ? "Greed" : "Extreme Greed",
+        }
+      : null;
+
+  return { asOf, curve, y10, repo, ratios, spreads, macro, mmi: mmi ?? archivedMmi };
 }

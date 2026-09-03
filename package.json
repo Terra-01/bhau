@@ -13,7 +13,8 @@
     "test": "vitest run",
     "floor": "tsx src/agents/run.ts",
     "floor:verify": "tsx src/agents/verify.ts",
-    "backfill": "tsx src/ingest/backfill.ts"
+    "backfill": "tsx src/ingest/backfill.ts",
+    "floor:revision": "tsx src/agents/log-revision.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",

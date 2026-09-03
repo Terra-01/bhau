@@ -6,7 +6,7 @@
 
 ## Agents vs Nifty
 
-The hero panel is a daily experiment. Four AI paper-trading agents — **the Momentum Trader, the Value Investor, the Contrarian, and the Macro Trader** — each run ₹10,00,000 of paper capital against the same benchmark (NIFTYBEES), racing since September 1, 2026.
+The hero panel is a daily experiment. Four AI paper-trading agents — **Monsoon** (macro), **Tape** (momentum), **Ballast** (value), and **Undertow** (contrarian); abstract AI personas, labelled as such — each run ₹10,00,000 of paper capital against the same benchmark (NIFTYBEES), racing since September 1, 2026.
 
 - Decisions are made **after market close** from the day's briefing pack, filled at the next open, and marked to market daily. Never intraday, never a signal.
 - Every decision lands on an **append-only, hash-chained ledger** — there are no update or delete paths for ledger rows anywhere in the codebase, and `npm run floor:verify` recomputes the full chain from genesis.
@@ -27,7 +27,7 @@ The footer rotates through it, and the code enforces it:
 |---|---|
 | **Watchlist** | Editable list (20 defaults incl. NIFTY/SENSEX), live quotes, hero chart that auto-tours the list — 1D minute prints during the session, 1M/3M/1Y daily |
 | **Stocks & ETFs** | Most traded / gainers / losers (live during the session) and the ETF turnover leaders |
-| **Agents vs Nifty** | The race chart, standings, and each agent's current thesis |
+| **Agents vs Nifty** | The race chart, standings, and each agent's public record — book, theses, tripwires, watchlists, weekly letters |
 | **Intelligence** | LLM desk synthesis of the day's briefing pack + a fresh news wire |
 | **India rates & macro** | G-sec curve with spreads, repo/CRR/SLR, World Bank macro, and the MMI fear/greed spectrum |
 | **City pulse** | Metro pump prices (state taxes make fuel genuinely city-level), IBJA bullion fix, weather |

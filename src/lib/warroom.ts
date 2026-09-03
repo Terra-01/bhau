@@ -1,6 +1,7 @@
 import { XMLParser } from "fast-xml-parser";
 import type { BriefingPack } from "@/ingest/briefing";
 import { SECTOR_OF } from "@/agents/universe";
+import { fetchWeather, type CityWeather } from "./weather";
 import { BENCHMARK_AGENT_ID, PERSONAS } from "@/agents/personas";
 import { FEEDS } from "@/ingest/feeds";
 import { USER_AGENT } from "@/ingest/types";
@@ -36,7 +37,7 @@ export interface WarRoomData {
   candles: Array<{ date: Date; open: number; high: number; low: number; close: number }>;
   race: Array<Record<string, unknown>>; // {date: Date, [agentId]: equity}
   commodities: StripItem[];
-  weather: Array<{ city: string; tmax: number; tmin: number; code: number; rainProb: number }> | null;
+  weather: CityWeather[] | null;
   cityPulse: {
     cities: Array<{ city: string; petrol?: number; diesel?: number }>;
     metals: Array<{ name: string; unit: string; value: number; changePct?: number }>;
@@ -69,6 +70,8 @@ export interface WarRoomData {
     }>;
     /** Current book per agent (from AgentState). */
     books: Record<string, { cash: number; positions: Array<{ symbol: string; qty: number; avgCost: number }> }>;
+    /** Public persona cards — codename, role, one-line bio. */
+    personas: Array<{ id: string; codename: string; role: string; bio: string }>;
     /** The public record: capped FILL history + recent DECISION/NOTE entries, newest first. */
     log: Array<{
       seq: number;
@@ -85,10 +88,13 @@ export interface WarRoomData {
       status?: string;
       thesis?: string;
       trigger?: string;
+      invalidation?: { level: number; direction: "below" | "above" };
+      watchlist?: Array<{ symbol: string; trigger: string }>;
       accepted?: boolean;
       rejectReason?: string;
       note?: string;
       packDate?: string;
+      week?: string;
     }>;
   };
 }
@@ -102,57 +108,6 @@ const COMMODITIES: Array<{ name: string; candidates: string[] }> = [
   { name: "Nat Gas", candidates: ["NG=F"] },
 ];
 
-// Weather for the subcontinent's market cities — Open-Meteo, keyless.
-const CITIES = [
-  { city: "Mumbai", lat: 19.076, lon: 72.877 },
-  { city: "Delhi", lat: 28.613, lon: 77.209 },
-  { city: "Bengaluru", lat: 12.972, lon: 77.594 },
-  { city: "Chennai", lat: 13.083, lon: 80.27 },
-  { city: "Kolkata", lat: 22.573, lon: 88.364 },
-  { city: "Hyderabad", lat: 17.385, lon: 78.487 },
-  { city: "Pune", lat: 18.52, lon: 73.856 },
-  { city: "Ahmedabad", lat: 23.023, lon: 72.571 },
-  { city: "Jaipur", lat: 26.912, lon: 75.787 },
-  { city: "Surat", lat: 21.17, lon: 72.831 },
-];
-
-// Open-Meteo flakes occasionally from datacenter egress — retry once and
-// keep the last good forecast (weather ages gracefully; a few-hours-old
-// forecast beats an empty tile for a whole ISR window).
-let lastWeather: { at: number; data: NonNullable<WarRoomData["weather"]> } | null = null;
-
-async function fetchWeather(): Promise<WarRoomData["weather"]> {
-  const lats = CITIES.map((c) => c.lat).join(",");
-  const lons = CITIES.map((c) => c.lon).join(",");
-  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lats}&longitude=${lons}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Asia%2FKolkata&forecast_days=1`;
-  for (let attempt = 0; attempt < 2; attempt++) {
-    try {
-      const res = await fetch(url, { next: { revalidate: 1800 }, signal: AbortSignal.timeout(8_000) });
-      if (!res.ok) continue;
-      const data = (await res.json()) as Array<{
-        daily?: { weather_code?: number[]; temperature_2m_max?: number[]; temperature_2m_min?: number[]; precipitation_probability_max?: number[] };
-      }>;
-      const list = Array.isArray(data) ? data : [data];
-      const out: NonNullable<WarRoomData["weather"]> = [];
-      for (const [i, { city }] of CITIES.entries()) {
-        const daily = list[i]?.daily;
-        const code = daily?.weather_code?.[0];
-        const tmax = daily?.temperature_2m_max?.[0];
-        const tmin = daily?.temperature_2m_min?.[0];
-        if (typeof code !== "number" || typeof tmax !== "number" || typeof tmin !== "number") continue;
-        out.push({ city, code, tmax: Math.round(tmax), tmin: Math.round(tmin), rainProb: daily?.precipitation_probability_max?.[0] ?? 0 });
-      }
-      // A malformed 200 must never become "Clear sky 0°/0°" — treat it as
-      // a failed attempt rather than caching fabricated readings.
-      if (out.length < CITIES.length) continue;
-      lastWeather = { at: Date.now(), data: out };
-      return out;
-    } catch {
-      /* retry once, then fall through to last-good */
-    }
-  }
-  return lastWeather && Date.now() - lastWeather.at < 12 * 60 * 60 * 1000 ? lastWeather.data : null;
-}
 
 // Fuel is city-level (state taxes); bullion is IBJA's national fix.
 const PULSE_CITIES = ["MUMBAI", "DELHI", "BENGALURU", "CHENNAI", "KOLKATA", "HYDERABAD", "PUNE"];
@@ -290,9 +245,12 @@ const STRIP: Array<{ name: string; candidates: string[] }> = [
 ];
 
 const AGENT_NAMES: Record<string, string> = Object.fromEntries([
-  ...PERSONAS.map((p) => [p.id, p.name]),
+  ...PERSONAS.map((p) => [p.id, p.codename]),
   [BENCHMARK_AGENT_ID, "Nifty (NIFTYBEES)"],
 ]);
+
+/** Public persona cards for the floor tile (server-side, no client bundle cost). */
+const PERSONA_CARDS = PERSONAS.map((p) => ({ id: p.id, codename: p.codename, role: p.role, bio: p.bio }));
 
 export async function getWarRoomData(): Promise<WarRoomData | null> {
   const packRow = await prisma.briefingPack.findFirst({ orderBy: { date: "desc" } });
@@ -446,10 +404,13 @@ export async function getWarRoomData(): Promise<WarRoomData | null> {
         status: p.status as string | undefined,
         thesis: p.thesis as string | undefined,
         trigger: p.trigger as string | undefined,
+        invalidation: p.invalidation as { level: number; direction: "below" | "above" } | undefined,
+        watchlist: p.watchlist as Array<{ symbol: string; trigger: string }> | undefined,
         accepted: p.accepted as boolean | undefined,
         rejectReason: (p.rejectReason ?? p.reason) as string | undefined,
         note: p.note as string | undefined,
         packDate: (p.packDate ?? p.fillDate) as string | undefined,
+        week: p.week as string | undefined,
       };
     });
   const theses = log
@@ -579,6 +540,7 @@ export async function getWarRoomData(): Promise<WarRoomData | null> {
       scoreboard,
       theses,
       books,
+      personas: PERSONA_CARDS,
       log,
     },
   };

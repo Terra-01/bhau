@@ -12,7 +12,7 @@ import type { AgentBook, ProposedDecision } from "./rulebook";
 const DeliberationSchema = z.object({
   marketRead: z
     .string()
-    .describe("Your 2-4 sentence read of today's session and what it changes for your book."),
+    .describe("Your 2-4 sentence read of today's session and what it changes for your book. In your voice."),
   decisions: z.array(
     z.object({
       action: z.enum(["BUY", "SELL"]),
@@ -25,11 +25,27 @@ const DeliberationSchema = z.object({
         .number()
         .nullable()
         .describe("SELL only: fraction of the position to exit, 0-1. Null for BUY."),
+      invalidation: z
+        .object({
+          level: z.number().describe("The closing price that falsifies the thesis."),
+          direction: z.enum(["below", "above"]).describe("A close on this side of the level breaches the tripwire."),
+        })
+        .nullable()
+        .describe("BUY only: the machine-checked tripwire published with the thesis. Null for SELL."),
       thesis: z
         .string()
-        .describe("The published thesis: specific and falsifiable. This is public, verbatim, before the outcome."),
+        .describe("The published thesis: specific and falsifiable, in your voice. Public, verbatim, before the outcome."),
     }),
   ),
+  watchlist: z
+    .array(
+      z.object({
+        symbol: z.string().describe("Exact NSE symbol from the tradeable universe."),
+        trigger: z.string().describe("The specific condition (a level, a signal) that would make you act."),
+      }),
+    )
+    .nullable()
+    .describe("Up to 3 names you are watching — a pass with a watchlist is a testable prediction. Null if none."),
   noTradeReason: z
     .string()
     .nullable()
@@ -42,9 +58,15 @@ const DeliberationSchema = z.object({
     ),
 });
 
+export interface WatchEntry {
+  symbol: string;
+  trigger: string;
+}
+
 export interface Deliberation {
   marketRead: string;
   proposals: ProposedDecision[];
+  watchlist?: WatchEntry[];
   noTradeReason?: string;
   /** The published condition that would flip a NO_TRADE into a position. */
   noTradeTrigger?: string;
@@ -60,14 +82,25 @@ export function hasModelKey(): boolean {
   return Boolean(process.env.OPENAI_KEY);
 }
 
-function dietFilteredPack(pack: BriefingPack, persona: Persona) {
+/**
+ * The persona's briefing: news filtered to its diet, evidence sections
+ * serialized in ITS attention order (JSON preserves insertion order), the
+ * rest appended after — everyone sees everything, ordered differently.
+ */
+function briefingFor(pack: BriefingPack, persona: Persona) {
   const news: BriefingPack["news"] = {};
   for (const category of persona.diet) {
     if (pack.news[category]) news[category] = pack.news[category];
   }
-  // The diet filters news, not market data — every persona sees the quant
-  // sheet (price evidence for the whole universe).
-  return { date: pack.date, regime: pack.regime, markets: pack.markets, quant: pack.quant, news };
+  const sections: Record<string, unknown> = {};
+  const available: Record<string, unknown> = { quant: pack.quant, ...(pack.evidence ?? {}) };
+  for (const key of persona.hierarchy) {
+    if (available[key] !== undefined) sections[key] = available[key];
+  }
+  for (const [key, value] of Object.entries(available)) {
+    if (!(key in sections) && value !== undefined) sections[key] = value;
+  }
+  return { date: pack.date, regime: pack.regime, ...sections, markets: pack.markets, deskSynthesis: pack.synthesis, news };
 }
 
 export async function deliberate(
@@ -76,6 +109,8 @@ export async function deliberate(
   book: AgentBook,
   equity: number,
   recentDecisions: unknown[],
+  mirror: unknown,
+  colleagues?: unknown,
 ): Promise<Deliberation> {
   if (isMockMode()) {
     return {
@@ -88,8 +123,10 @@ export async function deliberate(
   const client = new OpenAI({ apiKey: process.env.OPENAI_KEY });
   const userContent = JSON.stringify(
     {
-      briefing: dietFilteredPack(pack, persona),
+      briefing: briefingFor(pack, persona),
       yourBook: { cash: book.cash, equity, positions: book.positions },
+      yourMirror: mirror,
+      ...(colleagues !== undefined ? { colleaguesLatest: colleagues } : {}),
       yourRecentDecisions: recentDecisions,
       tradeableUniverse: { nifty100: NIFTY100, etfs: ETF_WHITELIST },
     },
@@ -122,9 +159,43 @@ export async function deliberate(
       symbol: d.symbol.toUpperCase().trim(),
       allocationPct: d.allocationPct ?? undefined,
       fraction: d.fraction ?? undefined,
+      invalidation: d.invalidation ?? undefined,
       thesis: d.thesis,
     })),
+    watchlist: out.watchlist?.slice(0, 3).map((w) => ({ symbol: w.symbol.toUpperCase().trim(), trigger: w.trigger })),
     noTradeReason: out.noTradeReason ?? undefined,
     noTradeTrigger: out.noTradeTrigger ?? undefined,
   };
+}
+
+const LetterSchema = z.object({
+  letter: z
+    .string()
+    .describe("Your public weekly letter: 3-6 sentences in your voice — what you did, what you got wrong, what you watch next week."),
+});
+
+/** The Friday letter: one small call, published as a ledger NOTE. */
+export async function weeklyLetter(persona: Persona, mirror: unknown, weekDecisions: unknown[]): Promise<string | null> {
+  if (isMockMode() || !hasModelKey()) return null;
+  const client = new OpenAI({ apiKey: process.env.OPENAI_KEY });
+  const response = await client.responses.parse({
+    model: MODEL,
+    input: [
+      { role: "system", content: systemPrompt(persona) },
+      {
+        role: "user",
+        content: JSON.stringify(
+          {
+            task: "Write your public weekly letter reviewing this week. Honest about mistakes; no hindsight vocabulary; your voice.",
+            yourMirror: mirror,
+            thisWeeksDecisions: weekDecisions,
+          },
+          null,
+          1,
+        ),
+      },
+    ],
+    text: { format: zodTextFormat(LetterSchema, "weekly_letter") },
+  });
+  return response.output_parsed?.letter ?? null;
 }

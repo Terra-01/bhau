@@ -1,9 +1,9 @@
 import { loadEnv } from "@/lib/load-env";
 import type { BriefingPack } from "@/ingest/briefing";
-import { deliberate, hasModelKey, isMockMode } from "./deliberate";
+import { deliberate, hasModelKey, isMockMode, weeklyLetter, type WatchEntry } from "./deliberate";
 import { fillBuy, fillSell, markToMarket } from "./fills";
 import { GENESIS_HASH, chainEntries, type ChainEntryInput } from "./ledger";
-import { BENCHMARK_AGENT_ID, PERSONAS } from "./personas";
+import { BENCHMARK_AGENT_ID, PERSONAS, PROMPT_VERSION } from "./personas";
 import { RULEBOOK, validateDecisions, type AgentBook, type Positions } from "./rulebook";
 
 loadEnv();
@@ -27,9 +27,15 @@ interface DecisionPayload {
   thesis: string;
   /** NO_TRADE only: the published condition that would flip it. */
   trigger?: string;
+  /** BUY only: the machine-checked tripwire. */
+  invalidation?: { level: number; direction: "below" | "above" };
+  /** Up to 3 published watch entries — a pass with a watchlist is a prediction. */
+  watchlist?: WatchEntry[];
   marketRead: string;
   accepted: boolean;
   rejectReason?: string;
+  /** Which prompt generation produced this row (personas.PROMPT_VERSION). */
+  promptVersion?: string;
 }
 
 async function main() {
@@ -150,6 +156,59 @@ async function main() {
   }
 
   // --- 3. deliberation → tomorrow's decisions
+  // The mirror: each agent's view of itself — book P&L, benchmark gap,
+  // drawdown, staleness, and its open tripwires (machine-checked here;
+  // a breach is flagged and the prompt requires the agent to address it).
+  const peaks = await prisma.equitySnapshot.groupBy({ by: ["agentId"], _max: { equity: true } });
+  const peakOf = new Map(peaks.map((p) => [p.agentId, p._max.equity ?? RULEBOOK.startingCapital]));
+  const benchmarkReturnPct = benchmarkBook
+    ? ((equities.get(BENCHMARK_AGENT_ID)! - RULEBOOK.startingCapital) / RULEBOOK.startingCapital) * 100
+    : undefined;
+  const latestDecisionOf = (agentId: string) =>
+    decisionEntries.filter((d) => d.agentId === agentId).at(-1)?.payload as DecisionPayload | undefined;
+
+  const mirrorOf = (persona: (typeof PERSONAS)[number]) => {
+    const book = books.get(persona.id)!;
+    const equity = equities.get(persona.id)!;
+    const returnPct = ((equity - RULEBOOK.startingCapital) / RULEBOOK.startingCapital) * 100;
+    const peak = Math.max(peakOf.get(persona.id) ?? equity, equity);
+    const lastFill = fillEntries
+      .filter((f) => f.agentId === persona.id && (f.payload as { status?: string }).status === "FILLED")
+      .at(-1);
+    // Open tripwires: the latest accepted BUY per still-open symbol.
+    const tripwires = Object.keys(book.positions).flatMap((symbol) => {
+      const buys = decisionEntries.filter((d) => {
+        const p = d.payload as unknown as DecisionPayload;
+        return d.agentId === persona.id && p.accepted && p.action === "BUY" && p.symbol === symbol && p.invalidation;
+      });
+      const inv = (buys.at(-1)?.payload as unknown as DecisionPayload | undefined)?.invalidation;
+      if (!inv) return [];
+      const close = closeOf(symbol);
+      const breached =
+        close !== undefined && (inv.direction === "below" ? close < inv.level : close > inv.level);
+      if (breached) summary.push(`[tripwire:${persona.id}] ${symbol} BREACHED — close ${close} ${inv.direction} ${inv.level}`);
+      return [{ symbol, level: inv.level, direction: inv.direction, close, breached }];
+    });
+    return {
+      equityInr: Math.round(equity),
+      totalReturnPct: Number(returnPct.toFixed(2)),
+      vsBenchmarkPp: benchmarkReturnPct !== undefined ? Number((returnPct - benchmarkReturnPct).toFixed(2)) : undefined,
+      drawdownFromPeakPct: Number((((equity - peak) / peak) * 100).toFixed(2)),
+      positions: Object.entries(book.positions).map(([symbol, pos]) => {
+        const close = closeOf(symbol);
+        return {
+          symbol,
+          qty: pos.qty,
+          avgCost: pos.avgCost,
+          last: close,
+          plPct: close !== undefined ? Number((((close - pos.avgCost) / pos.avgCost) * 100).toFixed(2)) : undefined,
+        };
+      }),
+      daysSinceLastFill: lastFill ? Math.round((Date.now() - lastFill.ts.getTime()) / 86_400_000) : null,
+      openTripwires: tripwires,
+    };
+  };
+
   // Idempotency: an agent deliberates once per session, no matter how many
   // times the job runs (local + CI on the same evening must not double-decide).
   const decidedToday = new Set(
@@ -170,10 +229,25 @@ async function main() {
         .filter((d) => d.agentId === persona.id)
         .slice(-10)
         .map((d) => d.payload);
+      // The contrarian reads the house view: a unanimous floor is itself a
+      // sentiment reading it may fade.
+      const colleagues =
+        persona.id === "contrarian"
+          ? PERSONAS.filter((p) => p.id !== persona.id).map((p) => {
+              const latest = latestDecisionOf(p.id);
+              return {
+                codename: p.codename,
+                positions: Object.keys(books.get(p.id)!.positions),
+                latest: latest
+                  ? { action: latest.action, symbol: latest.symbol, thesis: latest.thesis?.slice(0, 240) }
+                  : undefined,
+              };
+            })
+          : undefined;
       try {
-        const result = await deliberate(persona, pack, book, equities.get(persona.id)!, recent);
+        const result = await deliberate(persona, pack, book, equities.get(persona.id)!, recent, mirrorOf(persona), colleagues);
         const validated = validateDecisions(book, result.proposals);
-        const base = { packDate: date, marketRead: result.marketRead };
+        const base = { packDate: date, marketRead: result.marketRead, promptVersion: PROMPT_VERSION, watchlist: result.watchlist };
         if (validated.length === 0) {
           writes.push({
             ts: new Date(), kind: "DECISION", agentId: persona.id,
@@ -185,14 +259,15 @@ async function main() {
               trigger: result.noTradeTrigger,
             } satisfies DecisionPayload,
           });
-          summary.push(`[decide:${persona.id}] NO_TRADE`);
+          summary.push(`[decide:${persona.id}] NO_TRADE${result.watchlist?.length ? ` (watching ${result.watchlist.map((w) => w.symbol).join(",")})` : ""}`);
         }
         for (const v of validated) {
           writes.push({
             ts: new Date(), kind: "DECISION", agentId: persona.id,
             payload: {
               ...base, action: v.action, symbol: v.symbol, allocationPct: v.allocationPct,
-              fraction: v.fraction, thesis: v.thesis, accepted: v.accepted, rejectReason: v.rejectReason,
+              fraction: v.fraction, invalidation: v.invalidation, thesis: v.thesis,
+              accepted: v.accepted, rejectReason: v.rejectReason,
             } satisfies DecisionPayload,
           });
           summary.push(`[decide:${persona.id}] ${v.action} ${v.symbol} ${v.accepted ? "accepted" : `REJECTED (${v.rejectReason})`}`);
@@ -200,6 +275,36 @@ async function main() {
       } catch (err) {
         // A failed deliberation must not block the others or the fills.
         summary.push(`[decide:${persona.id}] ERROR — ${err instanceof Error ? err.message : String(err)}`);
+      }
+    }
+
+    // --- 3b. the Friday letter: each agent reviews its week in public.
+    const weekday = new Date().toLocaleDateString("en-US", { weekday: "short", timeZone: "Asia/Kolkata" });
+    if (weekday === "Fri" && !isMockMode() && hasModelKey()) {
+      const letterEntries = await prisma.ledgerEntry.findMany({ where: { kind: "NOTE" } });
+      const wrote = new Set(
+        letterEntries
+          .filter((e) => (e.payload as { week?: string }).week === date)
+          .map((e) => e.agentId),
+      );
+      for (const persona of PERSONAS) {
+        if (wrote.has(persona.id)) continue;
+        const weekDecisions = decisionEntries
+          .filter((d) => d.agentId === persona.id)
+          .slice(-6)
+          .map((d) => d.payload);
+        try {
+          const letter = await weeklyLetter(persona, mirrorOf(persona), weekDecisions);
+          if (letter) {
+            writes.push({
+              ts: new Date(), kind: "NOTE", agentId: persona.id,
+              payload: { note: letter, week: date, packDate: date },
+            });
+            summary.push(`[letter:${persona.id}] published`);
+          }
+        } catch (err) {
+          summary.push(`[letter:${persona.id}] failed — ${err instanceof Error ? err.message : String(err)}`);
+        }
       }
     }
   }

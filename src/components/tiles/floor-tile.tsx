@@ -69,7 +69,9 @@ function LedgerRow({ e }: { e: LogEntry }) {
             {e.status === "FILLED" ? `FILLED ${e.action ?? ""}` : `FILL ${e.status ?? ""}`}
           </span>
         ) : e.kind === "NOTE" ? (
-          <span className="rounded-full bg-paper px-2 py-px text-[9px] font-semibold text-fog">NOTE</span>
+          <span className="rounded-full bg-paper px-2 py-px text-[9px] font-semibold text-fog">
+            {e.week ? "WEEKLY LETTER" : "NOTE"}
+          </span>
         ) : (
           <Badge action={e.action ?? ""} accepted={e.accepted ?? true} />
         )}
@@ -99,9 +101,25 @@ function LedgerRow({ e }: { e: LogEntry }) {
           {e.kind === "DECISION" && e.rejectReason ? <span className="text-warn"> — rulebook: {e.rejectReason}</span> : null}
         </p>
       )}
+      {e.invalidation && (
+        <p className="mt-0.5 font-mono text-[9.5px] leading-snug text-fog">
+          tripwire: close {e.invalidation.direction} {inr2(e.invalidation.level)}
+        </p>
+      )}
       {e.trigger && (
         <p className="mt-0.5 text-[10px] leading-snug text-fog">
           Waiting for: <span className="text-charcoal">{e.trigger}</span>
+        </p>
+      )}
+      {e.watchlist && e.watchlist.length > 0 && (
+        <p className="mt-0.5 text-[10px] leading-snug text-fog">
+          Watching:{" "}
+          {e.watchlist.map((w, i) => (
+            <span key={w.symbol}>
+              {i > 0 && " · "}
+              <span className="font-mono text-charcoal">{w.symbol}</span> ({w.trigger})
+            </span>
+          ))}
         </p>
       )}
       {e.note && <p className="mt-1 text-[10.5px] leading-snug text-steel">{e.note}</p>}
@@ -120,6 +138,7 @@ export function FloorTile({
   const benchmark = floor.scoreboard.find((r) => r.isBenchmark);
   const latestOf = (agentId: string) => floor.theses.find((t) => t.agentId === agentId);
   const logOf = (agentId: string) => floor.log.filter((e) => e.agentId === agentId);
+  const cardOf = (agentId: string) => floor.personas.find((c) => c.id === agentId);
 
   // The mark lags the market by design (crons 17:17–22:17 IST, with
   // GitHub-scheduler jitter) — say so instead of looking frozen. Computed
@@ -201,15 +220,21 @@ export function FloorTile({
                   <PopoverContent align="start" className="w-[340px] p-0">
                     <div className="border-b border-ash px-3 py-2">
                       <div className="flex items-baseline justify-between gap-2">
-                        <span className="inline-flex min-w-0 items-center gap-1.5 truncate text-[12px] font-semibold text-charcoal">
-                          <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: AGENT_COLOR[row.agentId] }} />
+                        <span className="inline-flex min-w-0 items-baseline gap-1.5 truncate text-[12px] font-semibold text-charcoal">
+                          <span className="h-1.5 w-1.5 shrink-0 self-center rounded-full" style={{ background: AGENT_COLOR[row.agentId] }} />
                           {row.name}
+                          {cardOf(row.agentId) && (
+                            <span className="text-[9.5px] font-normal text-fog">{cardOf(row.agentId)!.role}</span>
+                          )}
                         </span>
                         <span className="shrink-0 font-mono text-[11px] tabular-nums text-ink">
                           {inr(row.equity)}{" "}
                           <span className={deltaClass(row.totalReturnPct)}>{signedPct(row.totalReturnPct)}</span>
                         </span>
                       </div>
+                      {cardOf(row.agentId) && (
+                        <p className="mt-0.5 text-[9.5px] leading-snug text-steel">{cardOf(row.agentId)!.bio} <span className="text-silver">· AI persona</span></p>
+                      )}
                       {book && (
                         <div className="mt-0.5 truncate font-mono text-[9.5px] text-fog">
                           {inr(book.cash)} cash

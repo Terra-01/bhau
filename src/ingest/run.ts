@@ -2,6 +2,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { loadEnv } from "@/lib/load-env";
 import { computeRegime } from "@/lib/regime";
 import { buildBriefingPack } from "./briefing";
+import { assembleEvidence, type Evidence } from "./evidence";
 import { buildQuant, type QuantSheet } from "./quant";
 import { amfiFetcher } from "./sources/amfi";
 import { bhavcopyFetcher } from "./sources/bhavcopy";
@@ -10,6 +11,7 @@ import { fuelCityFetcher } from "./sources/fuel-city";
 import { googleNewsFetcher } from "./sources/google-news";
 import { ibjaFetcher } from "./sources/ibja";
 import { macroRatesFetcher } from "./sources/macro-rates";
+import { mmiFetcher } from "./sources/mmi";
 import { nseCalendarsFetcher } from "./sources/nse-calendars";
 import { nseIndicesFetcher } from "./sources/nse-indices";
 import { rbiRatesFetcher } from "./sources/rbi-rates";
@@ -30,6 +32,7 @@ const FETCHERS: Fetcher[] = [
   yahooMarketsFetcher,
   rbiRatesFetcher,
   ibjaFetcher,
+  mmiFetcher,
   fuelCityFetcher,
   tvLiveFetcher,
 ];
@@ -193,7 +196,16 @@ async function main() {
       console.warn(`[quant] unavailable — ${err instanceof Error ? err.message : String(err)}`);
     }
   }
-  const pack = buildBriefingPack(todayIST(), events, barsBySymbol, regime, quant);
+  let evidence: Evidence | undefined;
+  if (process.env.DATABASE_URL) {
+    try {
+      evidence = await assembleEvidence(barsBySymbol, todayIST());
+      console.log(`[evidence] sections: ${Object.keys(evidence).join(", ") || "(none)"}`);
+    } catch (err) {
+      console.warn(`[evidence] unavailable — ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+  const pack = buildBriefingPack(todayIST(), events, barsBySymbol, regime, quant, evidence);
   try {
     const { synthesize } = await import("./synthesize");
     const synthesis = await synthesize(pack);

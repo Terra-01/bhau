@@ -32,10 +32,10 @@ Four archetypes (personas/names TBD — see Open Decisions):
 
 | Agent | Mandate | Information diet |
 |---|---|---|
-| **The Macro Trader** | Top-down. Trades index/sector ETFs off RBI, crude, INR, FII flows, global cues | Macro panels, RBI feed, flows, commodities, global markets |
-| **The Momentum Trader** | Trend-following on liquid large caps. Rides breadth, sector rotation, 52-week highs | Price/volume history, sector heatmap, delivery data |
-| **The Value Investor** | Slow. Buys quality on bad-news selloffs, holds weeks. Low turnover | Fundamentals, corporate announcements, results calendar, news clusters |
-| **The Contrarian** | Fades crowded sentiment. Positions against extremes in the regime index and news euphoria/panic | Regime index, news sentiment, F&O positioning (PCR), mood extremes |
+| **Monsoon** — The Macro Trader | Top-down. Trades index/sector ETFs off RBI, crude, INR, FII flows, global cues | Macro panels, RBI feed, flows, commodities, global markets |
+| **Tape** — The Momentum Trader | Trend-following on liquid large caps. Rides breadth, sector rotation, 52-week highs | Price/volume history, sector heatmap, delivery data |
+| **Ballast** — The Value Investor | Slow. Buys quality on bad-news selloffs, holds weeks. Low turnover | Fundamentals, corporate announcements, results calendar, news clusters |
+| **Undertow** — The Contrarian | Fades crowded sentiment. Positions against extremes in the regime index and news euphoria/panic | Regime index, news sentiment, F&O positioning (PCR), mood extremes |
 
 **Shared rules:**
 

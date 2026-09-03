@@ -35,6 +35,8 @@ export interface ProposedDecision {
   allocationPct?: number;
   /** SELL: fraction of the position to exit, (0, 1]. */
   fraction?: number;
+  /** BUY: the published, machine-checked tripwire that falsifies the thesis. */
+  invalidation?: { level: number; direction: "below" | "above" };
   thesis: string;
 }
 
